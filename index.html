@@ -3271,7 +3271,8 @@ function ownerShow(){
   drawQr();
   return el('div', {}, car, dots, qrArea);
 }
-function showCard(c, url){
+function showCard(c, url, opts){
+  opts = opts || {};
   let wake = null;
   const front = cardView(c, true); front.classList.add('face', 'front');
   const back = el('div', {class:'face back'},
@@ -3298,7 +3299,31 @@ function showCard(c, url){
   document.body.append(ov); fit();
   try{ ov.requestFullscreen && ov.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }catch(e){}
   try{ navigator.wakeLock && navigator.wakeLock.request('screen').then(w => wake = w).catch(()=>{}); }catch(e){}   // 見せている間は画面を消さない
-  setTimeout(() => { front.append(el('div', {class:'sweep', 'aria-hidden':'true'})); front.classList.add('live', 'shine'); }, 350);
+  const shine = () => { front.append(el('div', {class:'sweep', 'aria-hidden':'true'})); front.classList.add('live', 'shine'); };
+  if (!opts.intro || matchMedia('(prefers-reduced-motion: reduce)').matches){ setTimeout(shine, 350); return; }
+  // アプリを開いたときの演出：ロゴを大きく線で描く → 光が広がる → 名刺が回りながら現れる
+  stageEl.style.visibility = 'hidden'; hint.style.opacity = '0';
+  const big = logoMark(true, c, true); big.classList.add('big');
+  const r0 = big.querySelector('rect'); if (r0){ r0.setAttribute('fill', 'transparent'); r0.setAttribute('stroke', 'rgba(255,255,255,.55)'); r0.setAttribute('stroke-width', '1.2'); }
+  const sparks = Array.from({length:16}, () => {
+    const a = Math.random() * Math.PI * 2, d = 120 + Math.random() * 130;
+    const sp = el('i', {class:'spark'}); sp.style.setProperty('--dx', (Math.cos(a) * d).toFixed(0) + 'px'); sp.style.setProperty('--dy', (Math.sin(a) * d).toFixed(0) + 'px');
+    sp.style.animationDelay = (1.1 + Math.random() * .3).toFixed(2) + 's'; return sp;
+  });
+  const intro = el('div', {class:'opening', 'aria-hidden':'true'}, el('div', {class:'fx'}, el('div', {class:'ring'}), el('div', {class:'ring r2'}), sparks), big, el('div', {class:'brand'}, c.label || c.company || CONFIG.NAME));
+  ov.append(intro);
+  let done = false;
+  const go = () => {
+    if (done) return; done = true;
+    big.querySelectorAll('text,path').forEach(t => { t.style.animation = 'none'; t.style.strokeDashoffset = '0'; t.style.fillOpacity = '1'; });
+    intro.classList.add('out');
+    big.animate([{transform:'scale(1)', opacity:1}, {transform:'scale(.55)', opacity:0}], {duration:520, easing:'cubic-bezier(.6,0,.4,1)', fill:'forwards'});
+    intro.animate([{opacity:1}, {opacity:0}], {duration:700, delay:250, fill:'forwards'}).onfinish = () => intro.remove();
+    stageEl.style.visibility = '';
+    stageEl.animate([{opacity:0, transform:'perspective(1400px) rotateY(-70deg) scale(.6)'}, {opacity:1, transform:'perspective(1400px) rotateY(8deg) scale(1.02)', offset:.75}, {opacity:1, transform:'none'}],
+      {duration:1000, delay:180, easing:'cubic-bezier(.2,.8,.2,1)', fill:'backwards'}).onfinish = () => { shine(); hint.animate([{opacity:0}, {opacity:1}], {duration:500, fill:'forwards'}); };
+  };
+  setTimeout(go, 2200); intro.addEventListener('click', go);
 }
 function fullQr(c, url){
   const f = el('div', {class:'full', onclick:()=>f.remove()},
@@ -3566,6 +3591,8 @@ function ownerSettings(){
     file, info3,
 
     el('h2', {}, 'アプリ'),
+    (() => { const cb = el('input', {type:'checkbox', id:'lsh'}); cb.checked = LS.get('launchShow', true); cb.addEventListener('change', () => LS.set('launchShow', cb.checked));
+      return el('label', {class:'check', for:'lsh', style:'margin-bottom:14px'}, cb, el('span', {}, 'アプリを開いたら、名刺を画面いっぱいに出す', el('small', {class:'sub'}, 'ロゴの演出のあとに名刺が出ます。タップでQRコードになります'))); })(),
     installBox()
   );
 }
@@ -4061,6 +4088,11 @@ function renderImport(src){
   if (!p || !Array.isArray(p.cards) || !p.cards.length) return renderSetup();
   await Profile.save(p);
   renderOwner();
+  // アプリを開いたら、名刺を画面いっぱいに（演出つき）
+  if (LS.get('launchShow', true)){
+    const cur = cardById(LS.get('card', CONFIG.CARDS[0].id));
+    showCard(cur, cardUrl(cur, cur.fortune ? LS.get('mode', 'c') : 'c'), {intro:true});
+  }
 })();
 window.addEventListener('hashchange', () => location.reload());
 })();

@@ -406,6 +406,26 @@ button[disabled]{opacity:.45;cursor:default}
 .big-hint{color:rgba(255,255,255,.55);font-size:13px;letter-spacing:.08em}
 .big-close{position:absolute;right:14px;top:calc(env(safe-area-inset-top) + 12px);width:44px;height:44px;padding:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:24px;font-weight:300;line-height:44px}
 @media (prefers-reduced-motion:reduce){.flipper>.face{transition:none}}
+/* 紹介文 */
+.aboutx{margin-top:34px}
+.ax-eyebrow{font-size:11px;letter-spacing:.32em;color:var(--accent);font-weight:700;margin-bottom:10px}
+.ax-lead p{font-family:var(--serif);font-size:17px;line-height:1.9;margin:0 0 6px;letter-spacing:.02em}
+.ax-lead .blist{margin-top:6px}
+.works{display:grid;gap:12px;margin-top:18px}
+.work{display:grid;grid-template-columns:52px 1fr;gap:4px;padding:18px 18px 16px 14px;border-radius:16px;background:var(--paper);border:1px solid var(--line);position:relative;overflow:hidden}
+.work::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:3px;border-radius:0 3px 3px 0;background:var(--accent);transform:scaleY(0);transform-origin:top;transition:transform .7s cubic-bezier(.2,.8,.2,1) calc(var(--i) * .12s + .25s)}
+.work.in::before{transform:scaleY(1)}
+.wno{font-family:var(--serif);font-size:30px;line-height:1;color:var(--accent);opacity:.9;padding-left:8px;font-weight:600;letter-spacing:-.02em}
+.work h3{font-family:var(--serif);font-size:18px;font-weight:600;margin:2px 0 8px;letter-spacing:.04em}
+.work p{margin:0 0 6px;font-size:14px;line-height:1.8;color:#3a3a3c}
+.blist{list-style:none;padding:0;margin:4px 0 2px}
+.blist li{position:relative;padding-left:16px;font-size:14px;line-height:1.75;margin:3px 0}
+.blist li::before{content:"";position:absolute;left:2px;top:.72em;width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.75}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.tags span{font-size:12px;padding:5px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);color:#3a3a3c}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease calc(var(--i) * .12s), transform .7s cubic-bezier(.2,.8,.2,1) calc(var(--i) * .12s)}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.work::before{transform:none}}
 /* はじめての画面 */
 .setup .hero{padding:26px 0 6px}
 .setup .eyebrow{font-size:11px;letter-spacing:.3em;color:var(--accent);font-weight:700}
@@ -3059,6 +3079,48 @@ function contactRows(c){
     el('a', {href, target: /^https?:/.test(href) ? '_blank' : null, rel:'noopener'}, el('span',{},k), el('span',{},v))));
 }
 
+/* 紹介文：「■」の行は見出し、「・」の行は箇条書き。仕事ごとに番号つきのカードにする */
+function parseAbout(t){
+  const out = {lead:[], secs:[]}; let cur = null;
+  for (let line of String(t || '').split(/\r?\n/)){
+    line = line.trim(); if (!line) continue;
+    const head = line.match(/^(?:[■◆●▼□◇]\s*|【)(.+?)】?$/);
+    if (head){ cur = {title:head[1].trim(), lines:[]}; out.secs.push(cur); continue; }
+    (cur ? cur.lines : out.lead).push(line);
+  }
+  return out;
+}
+function linesView(lines){
+  const nodes = [], buf = [];
+  const flush = () => { if (buf.length){ nodes.push(el('ul', {class:'blist'}, buf.map(x => el('li', {}, x)))); buf.length = 0; } };
+  for (const l of lines){
+    const b = l.match(/^[・\-•‐*]\s*(.+)$/);
+    if (b){ buf.push(b[1]); continue; }
+    flush();
+    // 「（A／B／C）」のように並んだものは、小さなタグにする
+    const m = l.match(/^(.*?)[（(]([^）)]*[／/][^）)]*)[）)]\s*$/);
+    if (m){ nodes.push(el('p', {}, m[1])); nodes.push(el('div', {class:'tags'}, m[2].split(/[／/]/).map(x => el('span', {}, x.trim())))); }
+    else nodes.push(el('p', {}, l));
+  }
+  flush();
+  return nodes;
+}
+function aboutView(text){
+  const a = parseAbout(text);
+  const box = el('section', {class:'aboutx fade d3'},
+    el('div', {class:'ax-eyebrow'}, a.secs.length ? 'WORKS' : 'ABOUT'),
+    a.lead.length ? el('div', {class:'ax-lead'}, linesView(a.lead)) : null,
+    a.secs.length ? el('div', {class:'works'}, a.secs.map((x, i) => el('article', {class:'work reveal', style:'--i:' + i},
+      el('div', {class:'wno', 'aria-hidden':'true'}, String(i + 1).padStart(2, '0')),
+      el('div', {class:'wbody'}, el('h3', {}, x.title), linesView(x.lines))))) : null);
+  // 画面に入ったら、1枚ずつ浮かび上がる
+  if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }), {threshold:.25});
+    setTimeout(() => box.querySelectorAll('.reveal').forEach(n => io.observe(n)), 50);
+  } else box.querySelectorAll('.reveal').forEach(n => n.classList.add('in'));
+  return box;
+}
+
 function renderVisitor(){
   const c = CONFIG.CARDS[0];
   setAccent(c);
@@ -3186,7 +3248,7 @@ function renderVisitor(){
     })() : null,
     c.fortune ? el('button', {class:'tlink fade d2', onclick:showTarot}, '✦ 出会いの記念に、今日の1枚を引く') : null,
     el('div', {class:'fade d2'}, contactRows(c)),
-    c.about ? el('p', {class:'about fade d3'}, c.about) : null,
+    c.about ? aboutView(c.about) : null,
     c.intro ? el('p', {class:'intro fade d3'}, c.intro) : null,
     c.sections ? el('div', {class:'sections fade d3'}, c.sections.map(x => el('div', {class:'sec'}, el('h3', {}, x.head), el('p', {}, x.body)))) : null,
     promo,
@@ -3619,9 +3681,9 @@ function cardEditor(card, opts){
     i.addEventListener('input', () => { c[k] = i.value; redraw(); });
     return [el('label', {}, t, k==='label' ? el('b',{},'必須') : null), i];
   });
-  const about = el('textarea', {maxlength:'300', placeholder:'どんな仕事をしているか、2〜3行で'}); about.value = c.about || '';
-  const aboutCount = el('small', {class:'counter'}, (c.about||'').length + ' / 300');
-  about.addEventListener('input', () => { c.about = about.value; aboutCount.textContent = about.value.length + ' / 300'; });
+  const about = el('textarea', {maxlength:'400', placeholder:'例：\n店舗向けにWebサイトを作っています。\n■ Web制作\n・ホームページ\n・予約サイト\n■ 撮影\n料理・店内の写真撮影', style:'min-height:150px'}); about.value = c.about || '';
+  const aboutCount = el('small', {class:'counter'}, (c.about||'').length + ' / 400');
+  about.addEventListener('input', () => { c.about = about.value; aboutCount.textContent = about.value.length + ' / 400'; });
   const linkBox = el('div');
   const drawLinks = () => linkBox.replaceChildren(
     ...c.links.map((l, i) => {
@@ -3651,6 +3713,7 @@ function cardEditor(card, opts){
       el('h2', {}, 'デザイン'), tpl, el('div', {class:'fk2'}, '色'), col,
       el('h2', {}, '名刺に載せること'), inputs,
       el('label', {}, '紹介文', aboutCount), about,
+      el('p', {class:'note', style:'margin-top:4px'}, '「■」で始まる行は仕事の見出しになり、相手の画面で番号つきのカードに分かれます。「・」で始まる行は箇条書きになります。'),
       el('label', {}, 'リンク（SNS・ポートフォリオなど）'), linkBox,
       el('h2', {}, 'オプション'),
       toggle('mark', c.logo ? 'ロゴを表示する' : 'マークを表示する', c.logo ? '名刺の写真から取り込んだロゴを出します' : '名刺の左上に、頭文字のマークを出します'),

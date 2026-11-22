@@ -294,6 +294,8 @@ details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 .logo.draw text{stroke-dasharray:320;stroke-dashoffset:320;fill-opacity:0;animation:mkDraw 1.1s .3s cubic-bezier(.65,0,.25,1) forwards, mkFill .5s 1.25s ease forwards}
 .opening .big.draw text{animation-duration:1.3s, .6s;animation-delay:.3s, 1.4s}
 @keyframes mkDraw{to{stroke-dashoffset:0}}
+.logo.draw path.ln{fill-opacity:1;animation:mkDraw 1.2s .3s cubic-bezier(.65,0,.25,1) forwards}
+.opening.out .big.img path.ln{stroke-opacity:1}
 @keyframes mkFill{to{fill-opacity:1}}
 @media (prefers-reduced-motion:reduce){.logo.draw text{animation:none;stroke-dashoffset:0;fill-opacity:1}}
 .addcard{flex:0 0 60%!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center!important;gap:4px;border:1.5px dashed var(--line);background:#fff;box-shadow:none;color:var(--sub);font-weight:600;font-size:14px;cursor:pointer}
@@ -1756,8 +1758,8 @@ function safeLogo(l){
   if (!l || !Array.isArray(l.p)) return null;
   const w = Math.round(+l.w), h = Math.round(+l.h);
   if (!(w > 0 && w <= 1000 && h > 0 && h <= 1000)) return null;
-  const p = l.p.filter(x => Array.isArray(x) && HEX.test(x[0]) && typeof x[1] === 'string' && x[1].length < 4000 && /^[MmLlQqCcZz0-9 .,\-]+$/.test(x[1])).slice(0, 3);
-  return p.length ? {w, h, p:p.map(x => [x[0], x[1]])} : null;
+  const p = l.p.filter(x => Array.isArray(x) && HEX.test(x[0]) && typeof x[1] === 'string' && x[1].length < 4000 && /^[MmLlHhVvQqCcAaZz0-9 .,\-]+$/.test(x[1])).slice(0, 3);
+  return p.length ? {w, h, p:p.map(x => (+x[2] > 0 && +x[2] <= 100) ? [x[0], x[1], +x[2]] : [x[0], x[1]])} : null;
 }
 function safeCard(c){
   c = Object.assign({links:[]}, c || {});
@@ -2864,7 +2866,10 @@ function logoMark(draw, c, onDark){
     const avg = L.p.reduce((a, x) => a + lum(x[0]), 0) / L.p.length;
     svg.setAttribute('class', 'logo img' + (draw ? ' draw' : '') + (onDark && avg < 150 ? ' chip' : '') + (!onDark && avg > 205 ? ' chipdark' : ''));
     svg.style.aspectRatio = L.w + ' / ' + L.h;
-    for (const [col, d] of L.p){ const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); p.setAttribute('fill', col); p.setAttribute('fill-rule', 'evenodd'); p.setAttribute('stroke', col); p.setAttribute('stroke-width', String(Math.max(L.w, L.h) / 110)); p.setAttribute('pathLength', '100'); svg.append(p); }
+    for (const [col, d, sw] of L.p){ const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); p.setAttribute('stroke', col); p.setAttribute('pathLength', '100');
+      if (sw){ p.setAttribute('fill', 'none'); p.setAttribute('stroke-width', String(sw)); p.setAttribute('stroke-linecap', 'round'); p.setAttribute('stroke-linejoin', 'round'); p.classList.add('ln'); }
+      else { p.setAttribute('fill', col); p.setAttribute('fill-rule', 'evenodd'); p.setAttribute('stroke-width', String(Math.max(L.w, L.h) / 110)); }
+      svg.append(p); }
     return svg;
   }
   const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -3970,9 +3975,30 @@ function renderPrivacy(){
     el('p', {class:'note'}, 'このページは、デジタル名刺の持ち主の情報をもとに表示しています。')));
 }
 
+function renderImport(src){
+  const p = {name:String(src.name || '').slice(0, 40), kana:String(src.kana || '').slice(0, 40), nameEn:String(src.nameEn || '').slice(0, 60),
+    birth:/^\d{4}-\d{2}-\d{2}$/.test(src.birth || '') ? src.birth : '', gas:'', cards:src.cards.slice(0, 12).map(safeCard)};
+  const had = Profile.get();
+  CONFIG.NAME = p.name; CONFIG.CARDS = p.cards;
+  $app.replaceChildren(el('div', {class:'setup'},
+    el('div', {class:'hero'}, el('div', {class:'eyebrow'}, 'DIGITAL MEISHI'), el('h1', {}, p.name + ' さんの名刺を', el('br'), '読み込みます')),
+    el('p', {class:'note'}, '次の ' + p.cards.length + ' 枚の名刺を、このスマホに入れます。入れたあとも、自由に編集できます。'),
+    p.cards.map(c => el('div', {class:'stage', style:'margin:12px 0'}, cardView(c))),
+    had ? el('div', {class:'msg info'}, 'このスマホにはもう名刺の設定があります。読み込むと、今の名刺の設定は置き換わります（受け取った名刺は消えません）。') : null,
+    el('div', {class:'stack', style:'margin-top:18px'},
+      el('button', {class:'btn-main', onclick: async () => { await Profile.save(p); LS.set('card', p.cards[0].id); history.replaceState(null, '', BASE); tab = 'show'; renderOwner(); window.scrollTo(0, 0); toast('読み込みました'); }}, '読み込む'),
+      el('button', {class:'btn-sub', onclick:()=>{ location.href = BASE; }}, 'やめる'))));
+}
+
 /* 起動：# に名刺があれば相手の画面、なければ自分の画面 */
 (async () => {
   const code = location.hash.slice(1);
+  if (code && params.has('import')){
+    let d = null; try{ d = await Codec.dec(code); }catch(e){}
+    if (d && d.v === 1 && d.profile && Array.isArray(d.profile.cards) && d.profile.cards.length){ OWNER = true; return renderImport(d.profile); }
+    $app.replaceChildren(el('div', {class:'msg ng', style:'margin-top:40px'}, 'この読み込みリンクは使えませんでした。リンクが途中で切れていないか確認してください。'));
+    return;
+  }
   if (code){
     let d = null; try{ d = await Codec.dec(code); }catch(e){}
     if (d && d.v === 1 && d.c && d.n){ applyPayload(d, code); return params.has('privacy') ? renderPrivacy() : renderVisitor(); }

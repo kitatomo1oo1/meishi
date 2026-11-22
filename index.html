@@ -3386,38 +3386,42 @@ function showCard(c, url, opts){
     stageEl.style.width = (360 * k) + 'px'; stageEl.style.height = (360 / 1.75 * k) + 'px';
   }
   // 傾けると名刺が少し動き、光が移る。
-  // ・持った角度を「基準」にして、そこからの傾きだけを使う（基準はゆっくり追従するので、どの角度で持っても落ち着く）
-  // ・画面の向き（縦・横）に合わせて軸を入れ替える
-  // ・値はなめらかに追いかける（手ぶれでガタつかない）
-  // ・名刺は傾きと逆に少しだけ回り、空間に置かれているように見せる
+  // 角度（beta/gamma）は横持ちで値が跳ぶので使わず、重力の向き（加速度センサー）で傾きを測る。
+  // ・画面の向き → 名刺の向き（縦持ちで90°回しているとき）の順に座標を直す
+  // ・持った姿勢を基準にして、そこからの変化だけを使う（基準はゆっくり追従）
+  // ・なめらかに追いかけ、名刺は下がった側が少し奥へ逃げる（その場に浮いて見える）
   let tx = 0, ty = 0, cx = 0, cy = 0, raf = 0, base = null;
   const clamp = v => Math.max(-1, Math.min(1, v));
   const loop = () => {
-    cx += (tx - cx) * .12; cy += (ty - cy) * .12;
-    stageEl.style.transform = 'perspective(1300px) rotateX(' + (cy * 8).toFixed(2) + 'deg) rotateY(' + (-cx * 8).toFixed(2) + 'deg)';
-    front.style.setProperty('--gx', (50 - cx * 40).toFixed(1) + '%'); front.style.setProperty('--gy', (50 - cy * 40).toFixed(1) + '%');
-    flip.style.filter = 'drop-shadow(' + (cx * 12).toFixed(1) + 'px ' + (18 - cy * 8).toFixed(1) + 'px 22px rgba(0,0,0,.45))';
+    cx += (tx - cx) * .14; cy += (ty - cy) * .14;
+    stageEl.style.transform = 'perspective(1300px) rotateY(' + (cx * 9).toFixed(2) + 'deg) rotateX(' + (-cy * 9).toFixed(2) + 'deg)';
+    front.style.setProperty('--gx', (50 - cx * 42).toFixed(1) + '%'); front.style.setProperty('--gy', (50 - cy * 42).toFixed(1) + '%');
+    flip.style.filter = 'drop-shadow(' + (-cx * 12).toFixed(1) + 'px ' + (18 - cy * 8).toFixed(1) + 'px 22px rgba(0,0,0,.45))';
     raf = (Math.abs(tx - cx) > .002 || Math.abs(ty - cy) > .002) ? requestAnimationFrame(loop) : 0;
   };
   const setT = (x, y) => { tx = clamp(x); ty = clamp(y); if (!raf) raf = requestAnimationFrame(loop); };
-  const toCard = (x, y) => ov.classList.contains('portrait') ? setT(y, -x) : setT(x, y);   // 縦持ちで名刺を90°回しているときは軸を入れ替える
-  const onOri = e => {
-    if (e.gamma == null || e.beta == null) return;
+  // 画面の座標（右が+x、下が+y）での「下がった向き」を、名刺の座標に直して渡す
+  const toCard = (x, y) => ov.classList.contains('portrait') ? setT(y, -x) : setT(x, y);
+  const onMot = e => {
+    const g = e.accelerationIncludingGravity; if (!g || g.x == null || g.y == null) return;
     const ang = ((((screen.orientation && screen.orientation.angle) || window.orientation || 0) % 360) + 360) % 360;
-    let X = e.gamma, Y = e.beta;                       // 画面から見た左右・前後の傾き
-    if (ang === 90){ X = e.beta; Y = -e.gamma; } else if (ang === 270){ X = -e.beta; Y = e.gamma; } else if (ang === 180){ X = -e.gamma; Y = -e.beta; }
-    if (!base) base = {X, Y};
-    base.X += (X - base.X) * .015; base.Y += (Y - base.Y) * .015;
-    toCard((X - base.X) / 16, (Y - base.Y) / 16);
+    // 端末の座標（右が+x、上が+y。値は「上向き」の反力）→ 画面の座標（右が+x、下が+y）
+    let sx = g.x, sy = -g.y;
+    if (ang === 90){ sx = -g.y; sy = -g.x; } else if (ang === 270){ sx = g.y; sy = g.x; } else if (ang === 180){ sx = -g.x; sy = g.y; }
+    // 持ち替え（約25°以上の大きな変化）は、すぐにその姿勢を新しい基準にする
+    if (!base || Math.hypot(sx - base.x, sy - base.y) > 4.2) base = {x:sx, y:sy};
+    base.x += (sx - base.x) * .03; base.y += (sy - base.y) * .03;
+    // 反力が減った側＝下がった側。約14°で最大
+    toCard(-(sx - base.x) / 2.4, -(sy - base.y) / 2.4);
   };
   const onPtr = e => { if (e.pointerType !== 'mouse') return; const r = ov.getBoundingClientRect();
     toCard((e.clientX - r.left) / r.width * 2 - 1, (e.clientY - r.top) / r.height * 2 - 1); };
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
-    addEventListener('deviceorientation', onOri, {passive:true});
+    addEventListener('devicemotion', onMot, {passive:true});
     ov.addEventListener('pointermove', onPtr);
-    stageEl.addEventListener('click', () => { try{ if (window.DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) DeviceOrientationEvent.requestPermission().catch(()=>{}); }catch(e){} }, {once:true});
+    stageEl.addEventListener('click', () => { try{ if (window.DeviceMotionEvent && DeviceMotionEvent.requestPermission) DeviceMotionEvent.requestPermission().catch(()=>{}); }catch(e){} }, {once:true});
   }
-  function close(){ removeEventListener('deviceorientation', onOri); removeEventListener('resize', fit); try{ wake && wake.release(); }catch(e){} if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); ov.remove(); }
+  function close(){ removeEventListener('devicemotion', onMot); removeEventListener('resize', fit); try{ wake && wake.release(); }catch(e){} if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); ov.remove(); }
   stageEl.addEventListener('click', () => { flip.classList.toggle('flipped'); hint.textContent = flip.classList.contains('flipped') ? 'タップで名刺に戻る' : 'タップで QRコード'; });
   addEventListener('resize', fit);
   document.body.append(ov); fit();

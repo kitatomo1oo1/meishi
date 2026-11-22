@@ -356,6 +356,9 @@ details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 .crop .lh{fill:#ffb020;stroke:#fff;stroke-width:2px;vector-effect:non-scaling-stroke}
 .crop .lt{fill:#ffb020;font-size:30px;font-weight:700}
 .found{margin-top:10px}
+.choose{margin:12px 0;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.choose input{margin-top:8px}
+.small-link{display:inline-block;font-size:13px;color:var(--accent);margin:2px 0 4px}
 .frow{display:grid;grid-template-columns:72px 1fr auto;gap:8px;align-items:center;margin:8px 0;padding:2px;border-radius:12px;transition:background .2s}
 .frow .fl{font-size:12px;color:var(--sub)}
 .frow input{margin:0;padding:10px 12px;font-size:15px}
@@ -3483,7 +3486,16 @@ function ownerSettings(){
           el('p', {class:'note', style:'white-space:pre-line'}, '1. 下のボタンで Google AI Studio を開き、Googleアカウントでログイン\n2.「APIキーを作成」を押す\n3. 表示されたキー（AIza で始まる文字）をコピーして、下に貼る'),
           el('a', {class:'btn btn-sub', href:'https://aistudio.google.com/apikey', target:'_blank', rel:'noopener'}, 'Google AI Studio を開く')),
         el('label', {}, 'Gemini のAPIキー'), gk, gi,
-        el('button', {class:'btn-main', style:'margin-top:12px', onclick:()=>{ LS.set('gemini', gk.value.trim()); LS.set('geminiModel', ''); gi.replaceChildren(el('div', {class:'msg ok'}, gk.value.trim() ? '保存しました。次に名刺を撮るときから使います。' : '消しました。スマホの中で読み取ります。')); }}, '保存'));
+        el('button', {class:'btn-main', style:'margin-top:12px', onclick: async ev => {
+          const v = gk.value.trim(); LS.set('gemini', v); LS.set('geminiModel', '');
+          if (!v){ gi.replaceChildren(el('div', {class:'msg ok'}, '消しました。')); return; }
+          ev.target.disabled = true; gi.replaceChildren(el('div', {class:'msg info'}, '保存しました。使えるか確かめています…'));
+          try{ await Reader.call('「OK」とだけ返してください。', null, {type:'OBJECT', properties:{text:{type:'STRING'}}}); gi.replaceChildren(el('div', {class:'msg ok'}, '使えます（' + Reader.model + '）。名刺を撮ると Gemini で読み取ります。')); }
+          catch(e){ gi.replaceChildren(el('div', {class:'msg ng'}, '保存しましたが、使えませんでした：' + e.message)); }
+          ev.target.disabled = false;
+        }}, '保存して確かめる'),
+        (() => { const cb = el('input', {type:'checkbox', id:'gemoth'}); cb.checked = LS.get('geminiOthers', false); cb.addEventListener('change', () => LS.set('geminiOthers', cb.checked));
+          return el('label', {class:'check', for:'gemoth', style:'margin-top:14px'}, cb, el('span', {}, '受け取った名刺にも Gemini を使う', el('small', {class:'sub'}, '無料枠では画像がGoogleのサービス改善に使われることがあります。相手の個人情報を送ることになるので、使う場合は自己責任で。'))); })());
     })(),
 
     el('h2', {}, 'バックアップ'),
@@ -3602,7 +3614,7 @@ function editCard(card, forceNew){
 /* ━━━━━━━━━━ 名刺の写真を読み取る ━━━━━━━━━━ */
 const Reader = {
   key: () => LS.get('gemini', ''),
-  MODELS: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3-flash-preview', 'gemini-2.5-flash'],
+  MODELS: ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash', 'gemini-2.5-flash'],
   PROMPT: 'これは名刺を真上から撮った画像です。書かれている情報を読み取り、指定のJSONで返してください。\n' +
     '・書かれていない項目は空文字にする。推測で補わない。\n' +
     '・name は人の名前（姓と名の間に半角スペース）。kana はふりがな（ひらがな）、nameEn はローマ字・英語表記。\n' +
@@ -3617,16 +3629,25 @@ const Reader = {
     boxes:{type:'ARRAY', items:{type:'OBJECT', properties:{field:{type:'STRING'}, box:{type:'ARRAY', items:{type:'INTEGER'}}}}} },
     required:['name','company','phone','email','hasLogo','logoBox'] },
   async call(prompt, b64, schema){
-    const body = JSON.stringify({ contents:[{ parts:[{text:prompt}, {inline_data:{mime_type:'image/jpeg', data:b64}}] }],
+    const body = JSON.stringify({ contents:[{ parts:[{text:prompt}].concat(b64 ? [{inline_data:{mime_type:'image/jpeg', data:b64}}] : []) }],
       generationConfig:{ responseMimeType:'application/json', responseSchema:schema, temperature:0 } });
     const tried = [LS.get('geminiModel', '')].concat(this.MODELS).filter((m, i, a) => m && a.indexOf(m) === i);
     let why = '使えるモデルが見つかりません';
+    if (!this.key()) throw new Error('Gemini のAPIキーが入っていません');
     for (const m of tried){
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + encodeURIComponent(this.key()), {method:'POST', headers:{'Content-Type':'application/json'}, body});
+      let res;
+      try{ res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + encodeURIComponent(this.key()), {method:'POST', headers:{'Content-Type':'application/json'}, body}); }
+      catch(e){ throw new Error('Gemini につながりません（電波を確認してください）'); }
       const j = await res.json().catch(() => ({}));
       if (res.status === 404){ why = 'モデル ' + m + ' が見つかりません'; continue; }
-      if (!res.ok) throw new Error(res.status === 400 || res.status === 403 ? 'APIキーを確認してください' : res.status === 429 ? '無料枠の回数を超えました。少し時間をおいてください' : ((j.error && j.error.message) || res.status));
-      LS.set('geminiModel', m);
+      if (!res.ok){
+        const msg = String((j.error && j.error.message) || '');
+        throw new Error(/API key not valid|API_KEY_INVALID/i.test(msg) ? 'APIキーが正しくありません。コピーし直して貼ってください' :
+          res.status === 403 ? 'このAPIキーでは使えません（' + msg.slice(0, 80) + '）' :
+          res.status === 429 ? '無料枠の回数を超えました。少し時間をおいてください' :
+          ('Gemini のエラー ' + res.status + (msg ? '：' + msg.slice(0, 100) : '')));
+      }
+      LS.set('geminiModel', m); this.model = m;
       const t = ((j.candidates || [])[0] || {}).content;
       return JSON.parse(((t && t.parts) || []).map(p => p.text || '').join('') || '{}');
     }
@@ -3657,19 +3678,18 @@ function jpegB64(c, maxW, q){
   o.getContext('2d').drawImage(c, 0, 0, o.width, o.height);
   return o.toDataURL('image/jpeg', q).split(',')[1];
 }
-async function readCard(mode, card, A, box, say){
-  if (mode === 'self' && Reader.key()){
-    say('Gemini で読み取っています…');
-    try{ return await Reader.gemini(jpegB64(card, 1600, .88)); }
-    catch(e){ say('Gemini で読み取れませんでした（' + e.message + '）。スマホの中で読み直します…'); }
-  }
-  if (mode === 'other' && Store.remote){
-    say('Googleドライブの文字認識で読み取っています…');
-    try{ const r = await Store.call({action:'ocr', key:Store.key(), image:jpegB64(card, 1800, .9)}); return {fields:parseCardText(r.text || ''), text:r.text, by:'Googleドライブ'}; }
-    catch(e){ say('Googleドライブで読み取れませんでした（' + e.message + '）。スマホの中で読み直します…'); }
-  }
+function engineFor(mode){
+  if (mode === 'self') return Reader.key() ? 'gemini' : null;
+  if (Store.remote) return 'drive';
+  if (Reader.key() && LS.get('geminiOthers', false)) return 'gemini';
+  return null;
+}
+const ENGINE_JA = {gemini:'Gemini', drive:'Googleドライブ', local:'スマホ'};
+async function readCard(engine, card, A, box, say){
+  if (engine === 'gemini'){ say('Gemini で読み取っています…'); return await Reader.gemini(jpegB64(card, 1600, .88)); }
+  if (engine === 'drive'){ say('Googleドライブの文字認識で読み取っています…'); const r = await Store.call({action:'ocr', key:Store.key(), image:jpegB64(card, 1800, .9)}); return {fields:parseCardText(r.text || ''), text:r.text, by:'Googleドライブ'}; }
   say('文字を読み取る準備をしています…（初回は約14MBをダウンロード）');
-  const t = await Scan.ocr(Scan.forOcr(card, A, box), p => say('文字を読み取っています… ' + Math.round(p * 100) + '%'));
+  const t = await Scan.ocr(Scan.forOcr(card, A, box), p => say('スマホの中で読み取っています… ' + Math.round(p * 100) + '%'));
   return {fields:parseCardText(t), text:t, by:'スマホ'};
 }
 function cropCanvas(src, b, minH){
@@ -3765,7 +3785,7 @@ function scanSheet(mode, onDone){
       const card = Scan.warp(photo, q), A = Scan.analyze(card);
       const keys = ['name','kana'].concat(mode === 'self' ? ['nameEn'] : [], ['company','title','phone','email','web','address']);
       const boxes = {}, inputs = {}, rows = {};
-      let logoBox = mode === 'self' ? Scan.findLogo(A) : null, logoTouched = false, target = null, drawing = null, start = null, ocrCanvas = null, by = '';
+      let logoBox = mode === 'self' ? Scan.findLogo(A) : null, logoTouched = false, target = null, drawing = null, start = null, ocrCanvas = null, by = '', engine = null;
       const useLogo = el('input', {type:'checkbox', id:'uselogo'}); useLogo.checked = !!logoBox;
       const show = document.createElement('canvas'); show.width = Math.min(1000, card.width); show.height = Math.round(card.height * show.width / card.width);
       show.getContext('2d').drawImage(card, 0, 0, show.width, show.height);
@@ -3808,8 +3828,10 @@ function scanSheet(mode, onDone){
       }
       async function readRegion(k, b){
         const p = {x:Math.max(0, b.x - .01), y:Math.max(0, b.y - .02)}; p.w = Math.min(1 - p.x, b.w + .02); p.h = Math.min(1 - p.y, b.h + .04);
-        if (mode === 'self' && Reader.key()) return cleanField(k, await Reader.text(jpegB64(cropCanvas(card, p, 140), 1600, .92), k));
-        if (mode === 'other' && Store.remote){ const r = await Store.call({action:'ocr', key:Store.key(), image:jpegB64(cropCanvas(card, p, 140), 1600, .92)}); return cleanField(k, r.text); }
+        const eng = engine || engineFor(mode);
+        if (!eng) throw new Error('読み取り方法が決まっていません。上の案内から選んでください');
+        if (eng === 'gemini') return cleanField(k, await Reader.text(jpegB64(cropCanvas(card, p, 140), 1600, .92), k));
+        if (eng === 'drive'){ const r = await Store.call({action:'ocr', key:Store.key(), image:jpegB64(cropCanvas(card, p, 140), 1600, .92)}); return cleanField(k, r.text); }
         if (!ocrCanvas) ocrCanvas = Scan.forOcr(card, A, null);
         return cleanField(k, await Scan.ocr(cropCanvas(ocrCanvas, p, 90), null, k === 'address' || k === 'title' ? 6 : 7));
       }
@@ -3833,21 +3855,44 @@ function scanSheet(mode, onDone){
       body.replaceChildren(cropBox, hint, status,
         el('p', {class:'note', style:'margin:10px 0 4px'}, '違っている所は、そのまま書き直すか、「範囲」を押して名刺の上をなぞると、その部分だけ読み直します。'),
         rows.logo || null, fieldRows, el('div', {style:'margin-top:16px'}, go));
-      readCard(mode, card, A, logoBox, t => status.textContent = t).then(r => {
-        by = r.by;
-        for (const k of keys) if (r.fields[k] && !inputs[k].value) inputs[k].value = r.fields[k];
-        Object.assign(boxes, r.boxes || {});
-        if (mode === 'self' && !logoTouched){
-          if (r.logoBox){ logoBox = r.logoBox; useLogo.checked = true; }
-          else if (r.by === 'Gemini' && r.hasLogo === false){ useLogo.checked = false; }
-        }
-        drawOv();
-        const n = keys.filter(k => r.fields[k]).length;
-        status.className = 'msg ' + (n ? 'ok' : 'ng');
-        status.textContent = n ? r.by + 'で ' + n + ' 項目を読み取りました。' : '文字を読み取れませんでした。「範囲」で項目ごとに読み取るか、入力してください。';
-      }).catch(e => {
-        status.className = 'msg ng'; status.textContent = '自動では読み取れませんでした（' + e.message + '）。「範囲」で項目ごとに読み取るか、入力してください。';
-      });
+      const choose = el('div');
+      function chooser(why){
+        const kin = el('input', {type:'password', autocomplete:'off', placeholder:'AIza… で始まるキーを貼る', value:Reader.key()});
+        const canGem = mode === 'self' || LS.get('geminiOthers', false);
+        choose.replaceChildren(el('div', {class:'choose'},
+          why ? el('div', {class:'msg ng', style:'margin-top:0'}, why) : null,
+          mode === 'self' || canGem ? [
+            el('p', {class:'note', style:'margin-top:0'}, 'Gemini を使うと、文字とロゴの場所を正確に読み取れます（無料）。APIキーを貼って「読み取る」を押してください。'),
+            el('a', {class:'small-link', href:'https://aistudio.google.com/apikey', target:'_blank', rel:'noopener'}, 'APIキーを作る（Google AI Studio が開きます）'),
+            kin,
+            el('button', {class:'btn-main', style:'margin-top:10px', onclick:()=>{ const v = kin.value.trim(); if (!v){ kin.focus(); return; } LS.set('gemini', v); LS.set('geminiModel', ''); run('gemini'); }}, 'Gemini で読み取る')
+          ] : el('p', {class:'note', style:'margin-top:0'}, '受け取った名刺を正確に読むには、「設定」でGoogleスプレッドシートにつなぐか、「受け取った名刺にもGeminiを使う」をオンにしてください。'),
+          el('button', {class:'btn-sub', style:'margin-top:10px', onclick:()=>run('local')}, 'スマホの中で読む（精度は低め）')));
+      }
+      function run(eng){
+        engine = eng; choose.replaceChildren();
+        status.className = 'msg info'; status.classList.remove('hidden');
+        readCard(eng, card, A, logoBox, t => status.textContent = t).then(r => {
+          by = r.by;
+          for (const k of keys) if (r.fields[k] && !inputs[k].value) inputs[k].value = r.fields[k];
+          Object.assign(boxes, r.boxes || {});
+          if (mode === 'self' && !logoTouched){
+            if (r.logoBox){ logoBox = r.logoBox; useLogo.checked = true; }
+            else if (r.by === 'Gemini' && r.hasLogo === false){ useLogo.checked = false; }
+          }
+          drawOv();
+          const n = keys.filter(k => r.fields[k]).length;
+          status.className = 'msg ' + (n ? 'ok' : 'ng');
+          status.textContent = n ? r.by + 'で ' + n + ' 項目を読み取りました。' : r.by + 'では文字を読み取れませんでした。';
+          if (eng === 'local') choose.replaceChildren(el('p', {class:'note'}, 'スマホの中の読み取りは精度が低めです。読み間違いが多いときは、Gemini で読み直せます。'), el('button', {class:'btn-sub', onclick:()=>chooser()}, 'Gemini で読み直す'));
+        }).catch(e => {
+          status.classList.add('hidden');
+          chooser(ENGINE_JA[eng] + 'で読み取れませんでした：' + e.message);
+        });
+      }
+      body.insertBefore(choose, status.nextSibling);
+      const first = engineFor(mode);
+      if (first) run(first); else { status.classList.add('hidden'); chooser(mode === 'self' ? 'Gemini のAPIキーが入っていないので、まだ読み取っていません。' : ''); }
     }, 30);
   }
   step1();

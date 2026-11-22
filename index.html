@@ -386,6 +386,26 @@ details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 button[disabled]{opacity:.45;cursor:default}
 .filebtn{position:relative;overflow:hidden;cursor:pointer}
 .fileinput{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.showbtn{margin:14px 0 4px;font-size:17px;padding:16px}
+.showcard{position:fixed;inset:0;z-index:120;background:radial-gradient(ellipse at 50% 40%, #2a2a2e 0%, #121214 70%);display:flex;align-items:center;justify-content:center;overflow:hidden;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0}}
+.showcard .rot{display:flex;flex-direction:column;align-items:center;gap:14px}
+.showcard.portrait .rot{transform:rotate(90deg)}
+.big-stage{position:relative;perspective:1600px;cursor:pointer}
+.flipper{position:absolute;left:0;top:0;width:360px;height:205.7px;transform-origin:0 0}
+.flipper>.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform .6s cubic-bezier(.6,0,.2,1)}
+.flipper .front{width:360px;margin:0;box-shadow:0 30px 60px -30px rgba(0,0,0,.8)}
+.flipper .back{background:#fff;border-radius:14px;display:flex;align-items:center;gap:16px;padding:14px 18px;transform:rotateY(180deg);box-shadow:0 30px 60px -30px rgba(0,0,0,.8)}
+.flipper.flipped .front{transform:rotateY(-180deg)}
+.flipper.flipped .back{transform:rotateY(0)}
+.flipper .qrwrap{height:100%;aspect-ratio:1}
+.flipper .qrwrap svg{width:100%;height:100%;display:block}
+.flipper .qrtxt{display:flex;flex-direction:column;gap:6px;color:#1c1c1e}
+.flipper .qrtxt b{font-family:var(--serif);font-size:15px;line-height:1.4}
+.flipper .qrtxt span{font-size:10px;color:#6b6b70;line-height:1.6}
+.big-hint{color:rgba(255,255,255,.55);font-size:13px;letter-spacing:.08em}
+.big-close{position:absolute;right:14px;top:calc(env(safe-area-inset-top) + 12px);width:44px;height:44px;padding:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:24px;font-weight:300;line-height:44px}
+@media (prefers-reduced-motion:reduce){.flipper>.face{transition:none}}
 /* はじめての画面 */
 .setup .hero{padding:26px 0 6px}
 .setup .eyebrow{font-size:11px;letter-spacing:.3em;color:var(--accent);font-weight:700}
@@ -2683,7 +2703,7 @@ function showTarot(){
       el('p', {class:'tr-note'}, 'タロットはお楽しみとしてどうぞ。今日はこの1枚です。'),
       document.querySelector('details.fortune') ? el('button', {class:'tnext', onclick:()=>{
         ov.remove(); const f = document.querySelector('details.fortune'); f.open = true; f.scrollIntoView({behavior:'smooth', block:'start'});
-      }}, 'あなたの今日・今月・今年の仕事運も見る →') : null);
+      }}, '今日・今月・今年の仕事運も見る →') : null);
     setTimeout(() => result.classList.add('show'), reduce ? 0 : 900);
   }
   card.addEventListener('click', flip);
@@ -2699,7 +2719,7 @@ function shukuWheel(r, done){
   const NS = 'http://www.w3.org/2000/svg', N = 27, C = 160, R = 122, step = 360 / N;
   const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
   const pt = (deg, rad) => [C + rad * Math.sin(deg * Math.PI / 180), C - rad * Math.cos(deg * Math.PI / 180)];
-  const svg = mk('svg', {viewBox:'0 0 320 320', class:'wheel', role:'img', 'aria-label':'宿曜の円盤。あなたは' + r.shuku + '宿、' + CONFIG.FORTUNE.name + 'は' + r.meShuku + '宿、関係は' + r.rel6});
+  const svg = mk('svg', {viewBox:'0 0 320 320', class:'wheel', role:'img', 'aria-label':'宿曜の円盤。' + (r.who || 'ご自身') + 'は' + r.shuku + '宿、' + CONFIG.FORTUNE.name + 'は' + r.meShuku + '宿、関係は' + r.rel6});
   svg.innerHTML = '<defs><radialGradient id="wbg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#2c3d63"/><stop offset="1" stop-color="#141c30"/></radialGradient>'
     + '<filter id="wgl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
   svg.append(mk('circle', {cx:C, cy:C, r:156, fill:'url(#wbg)'}));
@@ -2727,7 +2747,7 @@ function shukuWheel(r, done){
   const center = mk('g', {class:'wcenter', opacity:0});
   const t1 = mk('text', {x:C, y:C - 8, 'text-anchor':'middle', fill:'#f3e3c3', 'font-size':40, class:'wrel'}); t1.textContent = r.rel6;
   const t2 = mk('text', {x:C, y:C + 26, 'text-anchor':'middle', fill:'rgba(255,255,255,.75)', 'font-size':12, 'letter-spacing':'.2em'}); t2.textContent = 'ふたりの関係';
-  const t3 = mk('text', {x:C, y:C + 50, 'text-anchor':'middle', fill:'rgba(255,255,255,.6)', 'font-size':11}); t3.textContent = 'あなた ' + r.shuku + '宿　' + CONFIG.FORTUNE.name + ' ' + r.meShuku + '宿';
+  const t3 = mk('text', {x:C, y:C + 50, 'text-anchor':'middle', fill:'rgba(255,255,255,.6)', 'font-size':11}); t3.textContent = (r.who || 'ご自身') + ' ' + r.shuku + '宿　' + CONFIG.FORTUNE.name + ' ' + r.meShuku + '宿';
   center.append(t1, t2, t3); svg.append(center);
   const wrap = el('div', {class:'wheel-wrap'}, svg);
   ring.style.transformBox = 'view-box'; ring.style.transformOrigin = `${C}px ${C}px`;
@@ -2758,14 +2778,14 @@ function workView(w){
   const st = n => el('span', {class:'wst', 'aria-label':'3段階中' + n}, '★'.repeat(n) + '☆'.repeat(3 - n));
   const t = w.days[0];
   return el('div', {class:'work'},
-    el('div', {class:'w-k'}, 'あなたの仕事運'),
+    el('div', {class:'w-k'}, '仕事運'),
     el('div', {class:'w-today'}, el('div', {class:'w-d'}, '今日 ' + t.m + '/' + t.d + '（' + t.wd + '）'), el('div', {class:'w-l'}, t.label, ' ', st(t.stars)), el('p', {}, t.text)),
     el('div', {class:'w-sub'}, 'この先1週間'),
     el('div', {class:'w-week'}, w.days.map(x => el('div', {class:'w-day s' + x.stars}, el('div', {class:'wd'}, x.d + '（' + x.wd + '）'), el('div', {class:'wdot'}), el('div', {class:'wl'}, x.label)))),
-    el('div', {class:'w-year'}, el('div', {class:'w-sub'}, w.year.Y + '年のあなた'), el('div', {class:'w-l'}, w.year.label, ' ', st(w.year.stars)), el('p', {}, w.year.text)),
+    el('div', {class:'w-year'}, el('div', {class:'w-sub'}, w.year.Y + '年の運勢'), el('div', {class:'w-l'}, w.year.label, ' ', st(w.year.stars)), el('p', {}, w.year.text)),
     el('div', {class:'w-sub'}, 'この先12か月'),
     el('div', {class:'w-months'}, w.months.map(x => el('div', {class:'w-mon'}, el('span', {class:'wm'}, (x.m === 1 || x === w.months[0] ? x.y + '年' : '') + x.m + '月'), st(x.stars), el('span', {class:'wml'}, x.label)))),
-    el('p', {class:'note', style:'margin-top:10px'}, '日ごとの運は宿曜（27日周期）、年と月は九星（あなたの本命星：' + w.honmeiName + '）から出しています。月の区切りは毎月の節入り（4〜8日ごろ）です。'));
+    el('p', {class:'note', style:'margin-top:10px'}, '日ごとの運は宿曜（27日周期）、年と月は九星（本命星：' + w.honmeiName + '）から出しています。月の区切りは毎月の節入り（4〜8日ごろ）です。'));
 }
 
 /* ── 結果を1枚の画像に（SNS用 1080×1350）── */
@@ -2787,7 +2807,7 @@ function resultImage(r, name){
   // 見出し
   g.textAlign = 'center'; g.textBaseline = 'alphabetic';
   g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '500 30px ' + sans; g.fillText('相性診断', W/2, 250);
-  g.fillStyle = '#ffffff'; g.font = '600 46px ' + serif; g.fillText((name ? name + ' さん' : 'あなた') + '  ×  ' + CONFIG.FORTUNE.name, W/2, 320);
+  g.fillStyle = '#ffffff'; g.font = '600 46px ' + serif; g.fillText((name ? name + ' さん' : 'わたし') + '  ×  ' + CONFIG.FORTUNE.name, W/2, 320);
   // 円盤
   const cx = W/2, cy = 600, R = 200, N = 27, step = 2 * Math.PI / N, base = -r.meIdx * step;
   g.strokeStyle = 'rgba(233,214,173,.35)'; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, R + 34, 0, Math.PI*2); g.stroke();
@@ -3054,7 +3074,7 @@ function renderVisitor(){
       el('label', {}, '肩書き'), el('input', {name:'title', maxlength:'60', autocomplete:'organization-title'}),
       el('label', {}, 'ひとこと'), el('textarea', {name:'message', maxlength:'500'})),
     el('input', {class:'hp', name:'website', tabindex:'-1', autocomplete:'off', 'aria-hidden':'true'}),
-    el('p', {class:'note'}, Store.remote ? '入力した内容は ' + CONFIG.NAME + ' にだけ届きます。' : '次の画面で、あなたのSMSかメールのアプリから ' + CONFIG.NAME + ' に送ります。'),
+    el('p', {class:'note'}, Store.remote ? '入力した内容は ' + CONFIG.NAME + ' にだけ届きます。' : '次の画面で、お使いのスマホのSMSかメールのアプリから ' + CONFIG.NAME + ' に送ります。'),
     el('button', {class:'btn-main', type:'submit'}, Store.remote ? '送信する' : '次へ')
   );
   form.addEventListener('submit', async ev => {
@@ -3092,7 +3112,7 @@ function renderVisitor(){
     c.phone ? el('a', {class:'act', href:'tel:'+c.phone.replace(/[^\d+]/g,'')}, icon('phone'), '電話する') : null,
     el('button', {class:'act', onclick:()=>shareCard(c)}, icon('share'), '共有する'));
   const send = el('details', {class:'send fade d4'},
-    el('summary', {}, el('div', {}, el('span', {class:'t'}, 'あなたの連絡先を送る'), el('span', {class:'s'}, '名刺の代わりに、こちらから送れます')), icon('chev')),
+    el('summary', {}, el('div', {}, el('span', {class:'t'}, surname(CONFIG.NAME) + 'に連絡先を送る'), el('span', {class:'s'}, '名刺の代わりに、こちらから送れます')), icon('chev')),
     [msgBox, form]);
   const canSend = Store.remote || c.phone || c.email;
 
@@ -3106,21 +3126,21 @@ function renderVisitor(){
   if (c.fortune && CONFIG.FORTUNE){
     const F = CONFIG.FORTUNE, save = Store.remote;
     const nameIn = el('input', {autocomplete:'name', maxlength:'60', 'aria-label':'お名前'});
-    const bday = el('input', {type:'date', autocomplete:'off', min:'1900-01-01', max:new Date().toISOString().slice(0,10), 'aria-label':'あなたの生年月日'});
+    const bday = el('input', {type:'date', autocomplete:'off', min:'1900-01-01', max:new Date().toISOString().slice(0,10), 'aria-label':'生年月日'});
     const bdOk = el('input', {type:'checkbox', id:'bdok'});
     const bdMem = el('input', {type:'checkbox', id:'bdmem'});
     const memo = LS.get('mybday', ''); if (memo){ bday.value = memo; bdMem.checked = true; }
     const out = el('div', {'aria-live':'polite'});
     let savedKey = '';
     fortune = el('details', {class:'send fortune fade d4'},
-      el('summary', {}, el('div', {}, el('span', {class:'t'}, 'あなたの仕事運と、' + F.name + 'との相性'), el('span', {class:'s'}, '生年月日で、今日・今月・今年の仕事運がわかります')), icon('chev')),
+      el('summary', {}, el('div', {}, el('span', {class:'t'}, '仕事運と、' + F.name + 'との相性'), el('span', {class:'s'}, '生年月日で、今日・今月・今年の仕事運がわかります')), icon('chev')),
       save
         ? el('div', {class:'msg info', style:'margin-top:0'},
             '占うと、お名前と占いの結果（数・宿・九星・干支など）を' + F.name + 'が保存します。今後のご案内とサービスづくりに使います。生年月日そのものは保存しません。',
             el('br'), el('a', {href:privacyUrl(c), target:'_blank', rel:'noopener'}, 'プライバシーポリシー'))
         : el('div', {class:'msg info', style:'margin-top:0'}, '生年月日は、このスマホの中だけで計算します。どこにも保存されません。'),
       save ? [el('label', {}, 'お名前', el('b',{},'必須')), nameIn] : null,
-      el('label', {}, 'あなたの生年月日'), bday,
+      el('label', {}, '生年月日'), bday,
       save ? el('label', {class:'check', for:'bdok'}, bdOk, el('span', {}, '誕生日（月・日）も保存してよい')) : null,
       el('label', {class:'check', for:'bdmem'}, bdMem, el('span', {}, 'このスマホに生年月日を覚えておく（' + F.name + 'には送られません。次から開くだけで今日の仕事運が出ます）')),
       el('div', {style:'margin-top:12px'}, el('button', {class:'btn-main', onclick:()=>{
@@ -3128,13 +3148,14 @@ function renderVisitor(){
         if (save && !nameIn.value.trim()){ out.replaceChildren(el('div', {class:'msg ng'}, 'お名前を入れてください。')); nameIn.focus(); return; }
         if (!r){ out.replaceChildren(el('div', {class:'msg ng'}, '生年月日を正しく選んでください。')); return; }
         if (bdMem.checked) LS.set('mybday', bday.value); else LS.set('mybday', '');
+        r.who = (save && nameIn.value.trim()) ? nameIn.value.trim() + 'さん' : 'ご自身';
         const status = el('p', {class:'note', style:'margin:4px 0 0;grid-column:1 / -1'});
         const rest = el('div', {class:'fres rest'},
-          el('div', {class:'fbox'}, el('div', {class:'fk'}, 'あなたの数'), el('div', {class:'fnum'}, String(r.lp)), el('div', {class:'fname'}, r.lpName), el('p', {}, r.lpText)),
+          el('div', {class:'fbox'}, el('div', {class:'fk'}, r.who + 'の数'), el('div', {class:'fnum'}, String(r.lp)), el('div', {class:'fname'}, r.lpName), el('p', {}, r.lpText)),
           el('div', {class:'fbox'}, el('div', {class:'fk'}, F.name + 'の数'), el('div', {class:'fnum'}, String(r.meLp)), el('div', {class:'fname'}, r.meLpName), el('p', {}, r.meLpText)),
           el('div', {class:'fpair'}, el('div', {class:'fk'}, 'ふたりの相性'), el('p', {}, r.pair)),
-          el('div', {class:'fpair'}, el('div', {class:'fk'}, '宿曜で見ると'), el('p', {}, 'あなたは' + r.shuku + '宿（' + r.shukuText + '）、' + F.name + 'は' + r.meShuku + '宿。ふたりは「' + r.rel6 + '」の関係です。' + r.rel6Text)),
-          el('div', {class:'fpair'}, el('div', {class:'fk'}, '九星で見ると'), el('p', {}, 'あなたは' + r.kName + '、' + F.name + 'は' + r.meK + '。「' + r.kRel[0] + '」関係です。' + r.kRel[1])),
+          el('div', {class:'fpair'}, el('div', {class:'fk'}, '宿曜で見ると'), el('p', {}, r.who + 'は' + r.shuku + '宿（' + r.shukuText + '）、' + F.name + 'は' + r.meShuku + '宿。ふたりは「' + r.rel6 + '」の関係です。' + r.rel6Text)),
+          el('div', {class:'fpair'}, el('div', {class:'fk'}, '九星で見ると'), el('p', {}, r.who + 'は' + r.kName + '、' + F.name + 'は' + r.meK + '。「' + r.kRel[0] + '」関係です。' + r.kRel[1])),
           el('div', {style:'grid-column:1 / -1;margin-top:6px'}, el('button', {class:'btn-main share-btn', onclick:()=>shareResult(r, save ? nameIn.value.trim() : '')}, icon('share'), '結果を画像で保存・シェア')),
           el('p', {class:'note', style:'margin:4px 0 0;grid-column:1 / -1'}, '数は生年月日の数字を足していく数秘術、宿曜は旧暦の生まれ日、九星は生まれ年から出しています。2月3〜5日生まれの方は九星が、新月の前後に生まれた方は宿が、前後することがあります。占いはお楽しみとしてどうぞ。'),
           status);
@@ -3161,7 +3182,7 @@ function renderVisitor(){
       const [a, b2, d2] = LS.get('mybday', '').split('-').map(Number), now = new Date(Date.now() + 9 * 3600 * 1000);
       let t; try{ t = Work.read(a, b2, d2, [now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate()]).days[0]; }catch(e){ return null; }
       return el('button', {class:'mychip fade d2', onclick:()=>{ const f = document.querySelector('details.fortune'); if (f){ f.open = true; f.scrollIntoView({behavior:'smooth', block:'start'}); } }},
-        el('span', {class:'mc-k'}, '今日のあなたの仕事運'), el('span', {class:'mc-v'}, t.label + ' ' + '★'.repeat(t.stars) + '☆'.repeat(3 - t.stars)));
+        el('span', {class:'mc-k'}, '今日の仕事運'), el('span', {class:'mc-v'}, t.label + ' ' + '★'.repeat(t.stars) + '☆'.repeat(3 - t.stars)));
     })() : null,
     c.fortune ? el('button', {class:'tlink fade d2', onclick:showTarot}, '✦ 出会いの記念に、今日の1枚を引く') : null,
     el('div', {class:'fade d2'}, contactRows(c)),
@@ -3214,7 +3235,7 @@ function ownerShow(){
   setAccent(cur);
   const qrArea = el('div');
   const dots = el('div', {class:'dots', 'aria-hidden':'true'}, CONFIG.CARDS.map(()=>el('span')));
-  const cards = CONFIG.CARDS.map(c => { const v = cardView(c); v.dataset.id = c.id; v.addEventListener('click', ()=>v.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'})); return v; });
+  const cards = CONFIG.CARDS.map(c => { const v = cardView(c); v.dataset.id = c.id; v.addEventListener('click', ()=>{ if (c.id === cur.id) showCard(c, cardUrl(c, c.fortune ? mode : 'c')); else v.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'}); }); return v; });
   const addCard = el('button', {class:'card addcard', onclick:()=>editCard(null)}, el('span', {class:'plus'}, '＋'), el('span', {}, '名刺を追加'), el('small', {}, '仕事ごと・場面ごとに何枚でも'));
   const car = el('div', {class:'carousel'}, cards, addCard);
   function drawQr(){
@@ -3225,6 +3246,7 @@ function ownerShow(){
       cur.fortune ? el('div', {class:'modes', role:'group', 'aria-label':'見せ方'},
         [['c','カジュアル','交換するとタロットが出る'],['b','ビジネス','タロットは自動で出さない']].map(([k, t, sub]) =>
           el('button', {class:'mode' + (mode === k ? ' on' : ''), 'aria-pressed': mode === k ? 'true' : 'false', onclick:()=>{ mode = k; LS.set('mode', k); drawQr(); }}, el('b', {}, t), el('small', {}, sub)))) : null,
+      el('button', {class:'btn-main showbtn', onclick:()=>showCard(cur, url)}, '名刺を画面いっぱいに見せる'),
       el('div', {class:'qrhead'}, el('span', {class:'t'}, cur.label), el('span', {class:'s'}, '読み取ってもらう')),
       el('button', {class:'qrbox', style:'display:block;width:100%;cursor:pointer', 'aria-label':'QRコードを全画面で表示', onclick:()=>fullQr(cur, url)}, qrSvg(url), el('div', {class:'url'}, url)),
       el('div', {class:'tools'},
@@ -3248,6 +3270,35 @@ function ownerShow(){
   requestAnimationFrame(()=>{ const v = cards.find(x=>x.dataset.id===cur.id); if (v) car.scrollLeft = v.offsetLeft - (car.clientWidth - v.offsetWidth)/2; });
   drawQr();
   return el('div', {}, car, dots, qrArea);
+}
+function showCard(c, url){
+  let wake = null;
+  const front = cardView(c, true); front.classList.add('face', 'front');
+  const back = el('div', {class:'face back'},
+    el('div', {class:'qrwrap'}, qrSvg(url)),
+    el('div', {class:'qrtxt'}, el('b', {}, 'カメラで読み取ってください'), el('span', {}, 'アプリは不要です。そのまま連絡先に登録できます')));
+  const flip = el('div', {class:'flipper'}, front, back);
+  const stageEl = el('div', {class:'big-stage'}, flip);
+  const hint = el('div', {class:'big-hint'}, 'タップで QRコード');
+  const rot = el('div', {class:'rot'}, stageEl, hint);
+  const ov = el('div', {class:'showcard', role:'dialog', 'aria-label':c.label + 'の名刺'},
+    rot, el('button', {class:'big-close', 'aria-label':'閉じる', onclick:close}, '×'));
+  function fit(){
+    // 縦持ちのときは名刺を90°回して、画面いっぱいに出す
+    const portrait = innerHeight > innerWidth;
+    ov.classList.toggle('portrait', portrait);
+    const W = portrait ? innerHeight : innerWidth, H = portrait ? innerWidth : innerHeight;
+    const k = Math.min(W * .9 / 360, H * .82 / (360 / 1.75));
+    flip.style.transform = 'scale(' + k.toFixed(3) + ')';
+    stageEl.style.width = (360 * k) + 'px'; stageEl.style.height = (360 / 1.75 * k) + 'px';
+  }
+  function close(){ removeEventListener('resize', fit); try{ wake && wake.release(); }catch(e){} if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); ov.remove(); }
+  stageEl.addEventListener('click', () => { flip.classList.toggle('flipped'); hint.textContent = flip.classList.contains('flipped') ? 'タップで名刺に戻る' : 'タップで QRコード'; });
+  addEventListener('resize', fit);
+  document.body.append(ov); fit();
+  try{ ov.requestFullscreen && ov.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }catch(e){}
+  try{ navigator.wakeLock && navigator.wakeLock.request('screen').then(w => wake = w).catch(()=>{}); }catch(e){}   // 見せている間は画面を消さない
+  setTimeout(() => { front.append(el('div', {class:'sweep', 'aria-hidden':'true'})); front.classList.add('live', 'shine'); }, 350);
 }
 function fullQr(c, url){
   const f = el('div', {class:'full', onclick:()=>f.remove()},
@@ -3450,7 +3501,7 @@ function ownerSettings(){
     }catch(e){ info3.replaceChildren(el('div', {class:'msg ng'}, '読み込めませんでした（' + e.message + '）')); }
   });
   return el('div', {},
-    el('h2', {}, 'あなたの情報'),
+    el('h2', {}, '自分の情報'),
     el('p', {class:'note'}, 'すべての名刺に共通で表示されます。'),
     el('label', {}, 'お名前', el('b',{},'必須')), f.name,
     el('label', {}, 'ふりがな'), f.kana,
@@ -3577,7 +3628,7 @@ function cardEditor(card, opts){
       el('h2', {}, 'オプション'),
       toggle('mark', c.logo ? 'ロゴを表示する' : 'マークを表示する', c.logo ? '名刺の写真から取り込んだロゴを出します' : '名刺の左上に、頭文字のマークを出します'),
       c.logo ? el('button', {class:'btn-sub', style:'margin-top:8px', onclick:ev=>{ c.logo = null; redraw(); ev.target.replaceWith(el('p', {class:'note'}, '取り込んだロゴを外しました。保存すると、頭文字のマークに戻ります。')); }}, '取り込んだロゴを外す') : [el('label', {}, 'マークの文字（1〜2文字）'), mk],
-      toggle('fortune', '相性占いを付ける', opts.hasBirth ? '相手が生年月日を入れると、仕事運とあなたとの相性が出ます' : '使うには「設定」で生年月日を入れてください'),
+      toggle('fortune', '相性占いを付ける', opts.hasBirth ? '相手が生年月日を入れると、相手の仕事運と、自分との相性が出ます' : '使うには「設定」で生年月日を入れてください'),
       toggle('promo', '「このデジタル名刺について」を下に出す', '見た人が、同じ名刺を無料で作れる案内です'),
       info)
   };
@@ -3731,7 +3782,7 @@ function scanSheet(mode, onDone){
   document.body.append(sheet);
   const engine = mode === 'self'
     ? (Reader.key() ? '文字とロゴの場所は Google の Gemini で読み取ります（設定したAPIキーを使います）。' : '文字はスマホの中で読み取ります。初回だけ読み取り用のデータ（約14MB）をダウンロードします。「設定」で Gemini のAPIキーを入れると、精度が大きく上がります。')
-    : (Store.remote ? '文字は、あなたのGoogleドライブの文字認識で読み取ります。' : '文字はスマホの中で読み取ります。初回だけ読み取り用のデータ（約14MB）をダウンロードします。');
+    : (Store.remote ? '文字は、自分のGoogleドライブの文字認識で読み取ります。' : '文字はスマホの中で読み取ります。初回だけ読み取り用のデータ（約14MB）をダウンロードします。');
   // ボタンそのものを本物のファイル選択にする（プログラムから押す方式は、環境によって無視されるため）
   function picker(camera, cls, text){
     const i = el('input', {type:'file', accept:'image/*', class:'fileinput', 'aria-label':text});
@@ -3922,9 +3973,9 @@ function renderSetup(pre){
   const info = el('div');
   const c = pre.card || Object.assign(blankCard(), {label:'仕事用'});
   const ed = cardEditor(c, {hasBirth:false});
-  const nameSync = () => { CONFIG.NAME = name.value.trim() || 'あなたの名前'; ed.node.querySelector('.pv .stage').replaceChildren(cardView(ed.c)); };
+  const nameSync = () => { CONFIG.NAME = name.value.trim() || 'お名前'; ed.node.querySelector('.pv .stage').replaceChildren(cardView(ed.c)); };
   name.addEventListener('input', nameSync);
-  CONFIG.NAME = name.value.trim() || 'あなたの名前'; ed.node.querySelector('.pv .stage').replaceChildren(cardView(ed.c));
+  CONFIG.NAME = name.value.trim() || 'お名前'; ed.node.querySelector('.pv .stage').replaceChildren(cardView(ed.c));
   $app.replaceChildren(el('div', {class:'setup'},
     el('div', {class:'hero'},
       el('div', {class:'eyebrow'}, 'DIGITAL MEISHI'),
@@ -3934,7 +3985,7 @@ function renderSetup(pre){
       : el('div', {class:'scan-cta'},
           el('button', {class:'btn-main', onclick:()=>scanSheet('self', r => renderSetup({name:(r.fields||{}).name, kana:(r.fields||{}).kana, nameEn:(r.fields||{}).nameEn, card:cardFromScan(r, Object.assign(blankCard(), {label:'仕事用'}))}))}, '今の名刺を撮って作る'),
           el('p', {class:'note', style:'text-align:center;margin:8px 0 0'}, '紙の名刺を1枚撮るだけで、文字もロゴも取り込みます。下から手で入力することもできます。')),
-    el('h2', {}, 'あなたの名前'),
+    el('h2', {}, 'お名前'),
     el('label', {}, 'お名前', el('b',{},'必須')), name,
     el('label', {}, 'ふりがな'), kana,
     el('p', {class:'note'}, '入れた情報は、このスマホの中にだけ保存されます。'),

@@ -391,7 +391,7 @@ button[disabled]{opacity:.45;cursor:default}
 @keyframes fadeIn{from{opacity:0}}
 .showcard .rot{display:flex;flex-direction:column;align-items:center;gap:14px}
 .showcard.portrait .rot{transform:rotate(90deg)}
-.big-stage{position:relative;perspective:1600px;cursor:pointer}
+.big-stage{position:relative;perspective:1600px;cursor:pointer;transform-style:preserve-3d;transition:transform .12s linear}
 .flipper{position:absolute;left:0;top:0;width:360px;height:205.7px;transform-origin:0 0}
 .flipper>.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform .6s cubic-bezier(.6,0,.2,1)}
 .flipper .front{width:360px;margin:0;box-shadow:0 30px 60px -30px rgba(0,0,0,.8)}
@@ -3382,10 +3382,28 @@ function showCard(c, url, opts){
     ov.classList.toggle('portrait', portrait);
     const W = portrait ? innerHeight : innerWidth, H = portrait ? innerWidth : innerHeight;
     const k = Math.min(W * .9 / 360, H * .82 / (360 / 1.75));
-    flip.style.transform = 'scale(' + k.toFixed(3) + ')';
+    flip.style.zoom = k.toFixed(3);   // 拡大して描き直す（拡大表示でぼやけないように）
     stageEl.style.width = (360 * k) + 'px'; stageEl.style.height = (360 / 1.75 * k) + 'px';
   }
-  function close(){ removeEventListener('resize', fit); try{ wake && wake.release(); }catch(e){} if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); ov.remove(); }
+  // 傾けると名刺が動き、光が移る（縦持ちで名刺を回しているときは、向きを入れ替える）
+  let tx = 0, ty = 0, raf = 0;
+  const clamp = v => Math.max(-1, Math.min(1, v));
+  const applyT = () => { raf = 0;
+    stageEl.style.transform = 'perspective(1300px) rotateX(' + (-ty * 11).toFixed(2) + 'deg) rotateY(' + (tx * 11).toFixed(2) + 'deg)';
+    front.style.setProperty('--gx', (50 + tx * 45).toFixed(1) + '%'); front.style.setProperty('--gy', (50 + ty * 45).toFixed(1) + '%');
+    flip.style.filter = 'drop-shadow(' + (-tx * 14).toFixed(1) + 'px ' + (18 + ty * 10).toFixed(1) + 'px 22px rgba(0,0,0,.45))'; };
+  const setT = (x, y) => { tx = clamp(x); ty = clamp(y); if (!raf) raf = requestAnimationFrame(applyT); };
+  const onOri = e => { if (e.gamma == null || e.beta == null) return;
+    const g = e.gamma / 24, b = (e.beta - 45) / 24;
+    if (ov.classList.contains('portrait')) setT(b, -g); else setT(g, b); };
+  const onPtr = e => { const r = stageEl.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 2 - 1, y = (e.clientY - r.top) / r.height * 2 - 1;
+    if (ov.classList.contains('portrait')) setT(y, -x); else setT(x, y); };
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    addEventListener('deviceorientation', onOri, {passive:true});
+    ov.addEventListener('pointermove', onPtr);
+    stageEl.addEventListener('click', () => { try{ if (window.DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) DeviceOrientationEvent.requestPermission().catch(()=>{}); }catch(e){} }, {once:true});
+  }
+  function close(){ removeEventListener('deviceorientation', onOri); removeEventListener('resize', fit); try{ wake && wake.release(); }catch(e){} if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); ov.remove(); }
   stageEl.addEventListener('click', () => { flip.classList.toggle('flipped'); hint.textContent = flip.classList.contains('flipped') ? 'タップで名刺に戻る' : 'タップで QRコード'; });
   addEventListener('resize', fit);
   document.body.append(ov); fit();
@@ -3415,7 +3433,7 @@ function showCard(c, url, opts){
     stageEl.animate([{opacity:0, transform:'perspective(1400px) rotateY(-70deg) scale(.6)'}, {opacity:1, transform:'perspective(1400px) rotateY(8deg) scale(1.02)', offset:.75}, {opacity:1, transform:'none'}],
       {duration:1000, delay:180, easing:'cubic-bezier(.2,.8,.2,1)', fill:'backwards'}).onfinish = () => { shine(); hint.animate([{opacity:0}, {opacity:1}], {duration:500, fill:'forwards'}); };
   };
-  setTimeout(go, 2200); intro.addEventListener('click', go);
+  setTimeout(go, 3300); intro.addEventListener('click', go);   // 描き終わったロゴを1秒ほど見せてから
 }
 function fullQr(c, url){
   const f = el('div', {class:'full', onclick:()=>f.remove()},

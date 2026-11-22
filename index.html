@@ -391,7 +391,7 @@ button[disabled]{opacity:.45;cursor:default}
 @keyframes fadeIn{from{opacity:0}}
 .showcard .rot{display:flex;flex-direction:column;align-items:center;gap:14px}
 .showcard.portrait .rot{transform:rotate(90deg)}
-.big-stage{position:relative;perspective:1600px;cursor:pointer;transform-style:preserve-3d;transition:transform .12s linear}
+.big-stage{position:relative;perspective:1600px;cursor:pointer;transform-style:preserve-3d}
 .flipper{position:absolute;left:0;top:0;width:360px;height:205.7px;transform-origin:0 0}
 .flipper>.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform .6s cubic-bezier(.6,0,.2,1)}
 .flipper .front{width:360px;margin:0;box-shadow:0 30px 60px -30px rgba(0,0,0,.8)}
@@ -3385,19 +3385,33 @@ function showCard(c, url, opts){
     flip.style.zoom = k.toFixed(3);   // 拡大して描き直す（拡大表示でぼやけないように）
     stageEl.style.width = (360 * k) + 'px'; stageEl.style.height = (360 / 1.75 * k) + 'px';
   }
-  // 傾けると名刺が動き、光が移る（縦持ちで名刺を回しているときは、向きを入れ替える）
-  let tx = 0, ty = 0, raf = 0;
+  // 傾けると名刺が少し動き、光が移る。
+  // ・持った角度を「基準」にして、そこからの傾きだけを使う（基準はゆっくり追従するので、どの角度で持っても落ち着く）
+  // ・画面の向き（縦・横）に合わせて軸を入れ替える
+  // ・値はなめらかに追いかける（手ぶれでガタつかない）
+  // ・名刺は傾きと逆に少しだけ回り、空間に置かれているように見せる
+  let tx = 0, ty = 0, cx = 0, cy = 0, raf = 0, base = null;
   const clamp = v => Math.max(-1, Math.min(1, v));
-  const applyT = () => { raf = 0;
-    stageEl.style.transform = 'perspective(1300px) rotateX(' + (-ty * 11).toFixed(2) + 'deg) rotateY(' + (tx * 11).toFixed(2) + 'deg)';
-    front.style.setProperty('--gx', (50 + tx * 45).toFixed(1) + '%'); front.style.setProperty('--gy', (50 + ty * 45).toFixed(1) + '%');
-    flip.style.filter = 'drop-shadow(' + (-tx * 14).toFixed(1) + 'px ' + (18 + ty * 10).toFixed(1) + 'px 22px rgba(0,0,0,.45))'; };
-  const setT = (x, y) => { tx = clamp(x); ty = clamp(y); if (!raf) raf = requestAnimationFrame(applyT); };
-  const onOri = e => { if (e.gamma == null || e.beta == null) return;
-    const g = e.gamma / 24, b = (e.beta - 45) / 24;
-    if (ov.classList.contains('portrait')) setT(b, -g); else setT(g, b); };
-  const onPtr = e => { const r = stageEl.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 2 - 1, y = (e.clientY - r.top) / r.height * 2 - 1;
-    if (ov.classList.contains('portrait')) setT(y, -x); else setT(x, y); };
+  const loop = () => {
+    cx += (tx - cx) * .12; cy += (ty - cy) * .12;
+    stageEl.style.transform = 'perspective(1300px) rotateX(' + (cy * 8).toFixed(2) + 'deg) rotateY(' + (-cx * 8).toFixed(2) + 'deg)';
+    front.style.setProperty('--gx', (50 - cx * 40).toFixed(1) + '%'); front.style.setProperty('--gy', (50 - cy * 40).toFixed(1) + '%');
+    flip.style.filter = 'drop-shadow(' + (cx * 12).toFixed(1) + 'px ' + (18 - cy * 8).toFixed(1) + 'px 22px rgba(0,0,0,.45))';
+    raf = (Math.abs(tx - cx) > .002 || Math.abs(ty - cy) > .002) ? requestAnimationFrame(loop) : 0;
+  };
+  const setT = (x, y) => { tx = clamp(x); ty = clamp(y); if (!raf) raf = requestAnimationFrame(loop); };
+  const toCard = (x, y) => ov.classList.contains('portrait') ? setT(y, -x) : setT(x, y);   // 縦持ちで名刺を90°回しているときは軸を入れ替える
+  const onOri = e => {
+    if (e.gamma == null || e.beta == null) return;
+    const ang = ((((screen.orientation && screen.orientation.angle) || window.orientation || 0) % 360) + 360) % 360;
+    let X = e.gamma, Y = e.beta;                       // 画面から見た左右・前後の傾き
+    if (ang === 90){ X = e.beta; Y = -e.gamma; } else if (ang === 270){ X = -e.beta; Y = e.gamma; } else if (ang === 180){ X = -e.gamma; Y = -e.beta; }
+    if (!base) base = {X, Y};
+    base.X += (X - base.X) * .015; base.Y += (Y - base.Y) * .015;
+    toCard((X - base.X) / 16, (Y - base.Y) / 16);
+  };
+  const onPtr = e => { if (e.pointerType !== 'mouse') return; const r = ov.getBoundingClientRect();
+    toCard((e.clientX - r.left) / r.width * 2 - 1, (e.clientY - r.top) / r.height * 2 - 1); };
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
     addEventListener('deviceorientation', onOri, {passive:true});
     ov.addEventListener('pointermove', onPtr);

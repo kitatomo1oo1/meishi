@@ -415,7 +415,23 @@ button[disabled]{opacity:.45;cursor:default}
 .work{display:grid;grid-template-columns:52px 1fr;gap:4px;padding:18px 18px 16px 14px;border-radius:16px;background:var(--paper);border:1px solid var(--line);position:relative;overflow:hidden}
 .work::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:3px;border-radius:0 3px 3px 0;background:var(--accent);transform:scaleY(0);transform-origin:top;transition:transform .7s cubic-bezier(.2,.8,.2,1) calc(var(--i) * .12s + .25s)}
 .work.in::before{transform:scaleY(1)}
-.wno{font-family:var(--serif);font-size:30px;line-height:1;color:var(--accent);opacity:.9;padding-left:8px;font-weight:600;letter-spacing:-.02em}
+.wno{font-family:var(--serif);font-size:34px;line-height:1;padding-left:8px;font-weight:600;letter-spacing:-.02em;color:transparent;-webkit-text-stroke:1px var(--accent);
+  background:linear-gradient(var(--accent),var(--accent)) no-repeat 0 100%/100% 0;-webkit-background-clip:text;background-clip:text;transition:background-size .9s cubic-bezier(.6,0,.2,1) calc(var(--i) * .12s + .35s)}
+.work.in .wno{background-size:100% 100%}
+.works{position:relative}
+.wline{position:absolute;left:30px;top:-10px;bottom:-10px;width:1px;background:var(--line);z-index:0}
+.wline i{position:absolute;inset:0;background:var(--accent);transform:scaleY(0);transform-origin:top;transition:transform .15s linear}
+.work{z-index:1}
+.work h3 .ch{display:inline-block;transform:translateY(.9em);opacity:0;transition:transform .55s cubic-bezier(.2,.8,.2,1) calc(var(--i) * .12s + .3s + var(--k) * .04s), opacity .4s ease calc(var(--i) * .12s + .3s + var(--k) * .04s)}
+.work h3{overflow:hidden;padding-bottom:2px}
+.work.in h3 .ch{transform:none;opacity:1}
+.work .blist li,.work .tags span,.work .wbody p{opacity:0;transform:translateY(8px);transition:opacity .45s ease calc(var(--i) * .12s + .7s + var(--k) * .07s), transform .45s cubic-bezier(.2,.8,.2,1) calc(var(--i) * .12s + .7s + var(--k) * .07s)}
+.work.in .blist li,.work.in .tags span,.work.in .wbody p{opacity:1;transform:none}
+.work .tags span{transform:scale(.85)}
+.wsweep{position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.75) 48%,color-mix(in srgb,var(--accent) 18%,transparent) 52%,transparent 65%);background-size:250% 100%;background-position:130% 0;opacity:0}
+.work.in .wsweep{animation:wsweep 1.3s cubic-bezier(.5,0,.3,1) calc(var(--i) * .12s + .5s) forwards}
+@keyframes wsweep{0%{opacity:1;background-position:130% 0}100%{opacity:1;background-position:-30% 0}}
+.reveal{transform:perspective(900px) translateY(26px) rotateX(10deg)}
 .work h3{font-family:var(--serif);font-size:18px;font-weight:600;margin:2px 0 8px;letter-spacing:.04em}
 .work p{margin:0 0 6px;font-size:14px;line-height:1.8;color:#3a3a3c}
 .blist{list-style:none;padding:0;margin:4px 0 2px}
@@ -425,7 +441,7 @@ button[disabled]{opacity:.45;cursor:default}
 .tags span{font-size:12px;padding:5px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);color:#3a3a3c}
 .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease calc(var(--i) * .12s), transform .7s cubic-bezier(.2,.8,.2,1) calc(var(--i) * .12s)}
 .reveal.in{opacity:1;transform:none}
-@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.work::before{transform:none}}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.work::before{transform:none}.work h3 .ch,.work .blist li,.work .tags span,.work .wbody p{opacity:1;transform:none;transition:none}.wno{background-size:100% 100%;transition:none}.wsweep{display:none}}
 /* はじめての画面 */
 .setup .hero{padding:26px 0 6px}
 .setup .eyebrow{font-size:11px;letter-spacing:.3em;color:var(--accent);font-weight:700}
@@ -3110,9 +3126,23 @@ function aboutView(text){
   const box = el('section', {class:'aboutx fade d3'},
     el('div', {class:'ax-eyebrow'}, a.secs.length ? 'WORKS' : 'ABOUT'),
     a.lead.length ? el('div', {class:'ax-lead'}, linesView(a.lead)) : null,
-    a.secs.length ? el('div', {class:'works'}, a.secs.map((x, i) => el('article', {class:'work reveal', style:'--i:' + i},
+    a.secs.length ? el('div', {class:'works'}, el('div', {class:'wline', 'aria-hidden':'true'}, el('i')), a.secs.map((x, i) => el('article', {class:'work reveal', style:'--i:' + i},
       el('div', {class:'wno', 'aria-hidden':'true'}, String(i + 1).padStart(2, '0')),
-      el('div', {class:'wbody'}, el('h3', {}, x.title), linesView(x.lines))))) : null);
+      el('div', {class:'wbody'},
+        el('h3', {'aria-label':x.title}, [...x.title].map((ch, k) => el('span', {class:'ch', 'aria-hidden':'true', style:'--k:' + k}, ch === ' ' ? '\u00a0' : ch))),
+        linesView(x.lines)),
+      el('div', {class:'wsweep', 'aria-hidden':'true'})))) : null);
+  // 箇条書きとタグも、順番に出す
+  box.querySelectorAll('.work').forEach(w => w.querySelectorAll('.blist li, .tags span, .wbody p').forEach((n, k) => n.style.setProperty('--k', k)));
+  // 縦の線：スクロールに合わせて伸びる
+  const line = box.querySelector('.wline i');
+  if (line){
+    let raf = 0;
+    const upd = () => { raf = 0; const r = box.querySelector('.works').getBoundingClientRect(), mid = innerHeight * .62;
+      line.style.transform = 'scaleY(' + Math.max(0, Math.min(1, (mid - r.top) / r.height)).toFixed(3) + ')'; };
+    addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(upd); }, {passive:true});
+    setTimeout(upd, 60);
+  }
   // 画面に入ったら、1枚ずつ浮かび上がる
   if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches){
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }), {threshold:.25});

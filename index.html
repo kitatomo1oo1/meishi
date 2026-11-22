@@ -356,6 +356,23 @@ details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 .crop .lh{fill:#ffb020;stroke:#fff;stroke-width:2px;vector-effect:non-scaling-stroke}
 .crop .lt{fill:#ffb020;font-size:30px;font-weight:700}
 .found{margin-top:10px}
+.frow{display:grid;grid-template-columns:72px 1fr auto;gap:8px;align-items:center;margin:8px 0;padding:2px;border-radius:12px;transition:background .2s}
+.frow .fl{font-size:12px;color:var(--sub)}
+.frow input{margin:0;padding:10px 12px;font-size:15px}
+.frow .rbtn{width:auto;padding:10px 12px;font-size:13px;font-weight:600;background:#fff;border:1px solid var(--line);color:var(--accent)}
+.frow.on{background:#e8f0fe}
+.frow.on .rbtn{background:var(--accent);color:#fff;border-color:var(--accent)}
+.frow.busy input{background:repeating-linear-gradient(90deg,#f3f3f3 0 20px,#fafafa 20px 40px);background-size:200% 100%;animation:busy 1s linear infinite}
+@keyframes busy{to{background-position:-40px 0}}
+.frow.logo-row{grid-template-columns:auto 1fr auto}
+.crop .fb{fill:rgba(59,130,246,.08);stroke:#3b82f6;stroke-width:2px;vector-effect:non-scaling-stroke}
+.crop .fb.on{stroke-width:3px;fill:rgba(59,130,246,.2)}
+.crop .fbt{fill:#3b82f6;font-size:22px;font-weight:700}
+.crop .lbt{fill:#ffb020;font-size:26px;font-weight:700}
+.crop .drw{fill:rgba(255,255,255,.15);stroke:#fff;stroke-width:3px;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
+.card-crop{scroll-margin-top:64px}
+.card-crop.drawing{outline:3px solid var(--accent);outline-offset:3px;border-radius:12px}
+.hint{position:sticky;top:56px;z-index:3}
 .found>div{display:flex;justify-content:space-between;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line);font-size:14px}
 .found>div span:first-child{color:var(--sub);flex:none}
 .found>div span:last-child{text-align:right;word-break:break-all}
@@ -2498,10 +2515,13 @@ const Scan = (()=>{
     if (!tessP) tessP = new Promise((ok, ng) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = () => ok(window.Tesseract); s.onerror = () => { tessP = null; ng(new Error('文字読み取りの部品を読み込めませんでした（ネット接続を確認してください）')); }; document.head.append(s); });
     return tessP;
   }
-  async function ocr(canvas, onProgress){
+  async function ocr(canvas, onProgress, psm){
     const T = await loadTess();
     const worker = await T.createWorker(['jpn', 'eng'], 1, { logger: m => { if (onProgress && m.status === 'recognizing text') onProgress(m.progress); } });
-    try{ const r = await worker.recognize(canvas); return tidy(r.data.text || ''); }
+    try{
+      if (psm) await worker.setParameters({tessedit_pageseg_mode:String(psm)});   // 7=1行、6=数行のまとまり
+      const r = await worker.recognize(canvas); return tidy(r.data.text || '');
+    }
     finally{ worker.terminate(); }
   }
   function tidy(t){
@@ -3590,13 +3610,15 @@ const Reader = {
     '・phone は携帯があれば携帯、なければ代表番号。ハイフン区切り。\n' +
     '・web はURL（https:// から）。address は郵便番号を含む住所。\n' +
     '・hasLogo は、文字以外のロゴマーク・図形、またはデザインされたロゴタイプがあれば true。\n' +
-    '・logoBox はそのロゴの範囲を [ymin, xmin, ymax, xmax]（0〜1000の整数）で。ロゴがなければ空配列。',
+    '・logoBox はそのロゴの範囲を [ymin, xmin, ymax, xmax]（0〜1000の整数）で。ロゴがなければ空配列。\n' +
+    '・boxes には、読み取った項目ごとに、名刺のどこに書かれていたかを入れる。field は name, kana, nameEn, company, title, phone, email, web, address のどれか、box は [ymin, xmin, ymax, xmax]（0〜1000の整数）。',
   SCHEMA: { type:'OBJECT', properties:{ name:{type:'STRING'}, kana:{type:'STRING'}, nameEn:{type:'STRING'}, company:{type:'STRING'}, title:{type:'STRING'},
-    phone:{type:'STRING'}, email:{type:'STRING'}, web:{type:'STRING'}, address:{type:'STRING'}, hasLogo:{type:'BOOLEAN'}, logoBox:{type:'ARRAY', items:{type:'INTEGER'}} },
+    phone:{type:'STRING'}, email:{type:'STRING'}, web:{type:'STRING'}, address:{type:'STRING'}, hasLogo:{type:'BOOLEAN'}, logoBox:{type:'ARRAY', items:{type:'INTEGER'}},
+    boxes:{type:'ARRAY', items:{type:'OBJECT', properties:{field:{type:'STRING'}, box:{type:'ARRAY', items:{type:'INTEGER'}}}}} },
     required:['name','company','phone','email','hasLogo','logoBox'] },
-  async gemini(b64){
-    const body = JSON.stringify({ contents:[{ parts:[{text:this.PROMPT}, {inline_data:{mime_type:'image/jpeg', data:b64}}] }],
-      generationConfig:{ responseMimeType:'application/json', responseSchema:this.SCHEMA, temperature:0 } });
+  async call(prompt, b64, schema){
+    const body = JSON.stringify({ contents:[{ parts:[{text:prompt}, {inline_data:{mime_type:'image/jpeg', data:b64}}] }],
+      generationConfig:{ responseMimeType:'application/json', responseSchema:schema, temperature:0 } });
     const tried = [LS.get('geminiModel', '')].concat(this.MODELS).filter((m, i, a) => m && a.indexOf(m) === i);
     let why = '使えるモデルが見つかりません';
     for (const m of tried){
@@ -3606,16 +3628,28 @@ const Reader = {
       if (!res.ok) throw new Error(res.status === 400 || res.status === 403 ? 'APIキーを確認してください' : res.status === 429 ? '無料枠の回数を超えました。少し時間をおいてください' : ((j.error && j.error.message) || res.status));
       LS.set('geminiModel', m);
       const t = ((j.candidates || [])[0] || {}).content;
-      const o = JSON.parse(((t && t.parts) || []).map(p => p.text || '').join('') || '{}');
-      const f = {}; for (const k of ['name','kana','nameEn','company','title','phone','email','web','address']) if (o[k]) f[k] = String(o[k]).trim();
-      let box = null;
-      if (o.hasLogo && Array.isArray(o.logoBox) && o.logoBox.length === 4){
-        const [y0, x0, y1, x1] = o.logoBox.map(v => Math.max(0, Math.min(1000, +v)) / 1000);
-        if (x1 > x0 && y1 > y0){ const px = (x1 - x0) * .06, py = (y1 - y0) * .06; box = {x:Math.max(0, x0 - px), y:Math.max(0, y0 - py), w:Math.min(1, x1 + px) - Math.max(0, x0 - px), h:Math.min(1, y1 + py) - Math.max(0, y0 - py)}; }
-      }
-      return {fields:f, logoBox:box, hasLogo:!!o.hasLogo, by:'Gemini'};
+      return JSON.parse(((t && t.parts) || []).map(p => p.text || '').join('') || '{}');
     }
     throw new Error(why);
+  },
+  toBox(a, pad){
+    if (!Array.isArray(a) || a.length !== 4) return null;
+    const [y0, x0, y1, x1] = a.map(v => Math.max(0, Math.min(1000, +v)) / 1000);
+    if (!(x1 > x0 && y1 > y0)) return null;
+    const px = (x1 - x0) * pad, py = (y1 - y0) * pad;
+    return {x:Math.max(0, x0 - px), y:Math.max(0, y0 - py), w:Math.min(1, x1 + px) - Math.max(0, x0 - px), h:Math.min(1, y1 + py) - Math.max(0, y0 - py)};
+  },
+  async gemini(b64){
+    const o = await this.call(this.PROMPT, b64, this.SCHEMA);
+    const f = {}; for (const k of ['name','kana','nameEn','company','title','phone','email','web','address']) if (o[k]) f[k] = String(o[k]).trim();
+    const boxes = {};
+    for (const x of (Array.isArray(o.boxes) ? o.boxes : [])){ const b = this.toBox(x && x.box, .02); if (b && FIELD_JA[x.field] && f[x.field]) boxes[x.field] = b; }
+    return {fields:f, boxes, logoBox:o.hasLogo ? this.toBox(o.logoBox, .06) : null, hasLogo:!!o.hasLogo, by:'Gemini'};
+  },
+  async text(b64, k){
+    const hint = {phone:'電話番号はハイフン区切りで。', email:'メールアドレスだけを。', web:'URLだけを。', kana:'ふりがな（ひらがな）で。', name:'姓と名の間に半角スペース。', address:'郵便番号から住所まで1行で。'}[k] || '';
+    const o = await this.call('この画像は名刺の一部を切り出したものです。写っている文字だけを、そのまま書き出してください。推測で補わない。' + hint, b64, {type:'OBJECT', properties:{text:{type:'STRING'}}, required:['text']});
+    return String(o.text || '');
   }
 };
 function jpegB64(c, maxW, q){
@@ -3637,6 +3671,21 @@ async function readCard(mode, card, A, box, say){
   say('文字を読み取る準備をしています…（初回は約14MBをダウンロード）');
   const t = await Scan.ocr(Scan.forOcr(card, A, box), p => say('文字を読み取っています… ' + Math.round(p * 100) + '%'));
   return {fields:parseCardText(t), text:t, by:'スマホ'};
+}
+function cropCanvas(src, b, minH){
+  const sx = b.x * src.width, sy = b.y * src.height, sw = Math.max(4, b.w * src.width), sh = Math.max(4, b.h * src.height);
+  const k = Math.max(1, Math.min(3, minH / sh, 1800 / sw));
+  const c = document.createElement('canvas'); c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(src, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  return c;
+}
+function cleanField(k, t){
+  let s = String(t || '').trim();
+  if (['phone','email','web'].includes(k)) s = toHalf(s);
+  if (k === 'phone'){ const m = s.match(/(\+?\d[\d\s\-()]{7,}\d)/); return m ? m[1].replace(/[()]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-') : s.replace(/\s+/g, ''); }
+  if (k === 'email'){ const m = s.replace(/\s+/g, '').match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/); return m ? m[0] : s.replace(/\s+/g, ''); }
+  if (k === 'web'){ const m = s.replace(/\s+/g, '').match(/(https?:\/\/\S+|www\.\S+|[\w-]+(\.[\w-]+)+\/?\S*)/i); return m ? m[0] : s.replace(/\s+/g, ''); }
+  return s.split(/\r?\n/).map(x => x.trim()).filter(Boolean).join(' ');
 }
 function toHex(rgb){ return '#' + rgb.map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join(''); }
 function cardColor(logo, A){
@@ -3714,61 +3763,90 @@ function scanSheet(mode, onDone){
     body.replaceChildren(el('p', {class:'note', style:'margin-top:30px;text-align:center'}, '名刺をまっすぐにしています…'));
     setTimeout(() => {
       const card = Scan.warp(photo, q), A = Scan.analyze(card);
-      let box = mode === 'self' ? Scan.findLogo(A) : null, moved = false, result = null;
-      const useLogo = el('input', {type:'checkbox', id:'uselogo'}); useLogo.checked = !!box;
+      const keys = ['name','kana'].concat(mode === 'self' ? ['nameEn'] : [], ['company','title','phone','email','web','address']);
+      const boxes = {}, inputs = {}, rows = {};
+      let logoBox = mode === 'self' ? Scan.findLogo(A) : null, logoTouched = false, target = null, drawing = null, start = null, ocrCanvas = null, by = '';
+      const useLogo = el('input', {type:'checkbox', id:'uselogo'}); useLogo.checked = !!logoBox;
       const show = document.createElement('canvas'); show.width = Math.min(1000, card.width); show.height = Math.round(card.height * show.width / card.width);
       show.getContext('2d').drawImage(card, 0, 0, show.width, show.height);
-      const NS = 'http://www.w3.org/2000/svg', ov = document.createElementNS(NS, 'svg');
-      ov.setAttribute('viewBox', '0 0 1000 ' + Math.round(1000 * card.height / card.width)); ov.setAttribute('preserveAspectRatio', 'none');
       const H = 1000 * card.height / card.width;
-      const drawBox = () => {
-        if (!box || !useLogo.checked){ ov.innerHTML = ''; return; }
-        const x = box.x * 1000, y = box.y * H, w = box.w * 1000, h = box.h * H;
-        ov.innerHTML = '<rect class="lb" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '"/><circle class="lh" cx="' + (x + w) + '" cy="' + (y + h) + '" r="22"/><text class="lt" x="' + x + '" y="' + (y - 10) + '">ロゴ</text>';
+      const NS = 'http://www.w3.org/2000/svg', ov = document.createElementNS(NS, 'svg');
+      ov.setAttribute('viewBox', '0 0 1000 ' + Math.round(H)); ov.setAttribute('preserveAspectRatio', 'none');
+      const R = (b, cls, label) => '<rect class="' + cls + '" x="' + b.x*1000 + '" y="' + b.y*H + '" width="' + b.w*1000 + '" height="' + b.h*H + '"/>' + (label ? '<text class="' + cls + 't" x="' + b.x*1000 + '" y="' + Math.max(24, b.y*H - 8) + '">' + label + '</text>' : '');
+      const drawOv = () => {
+        let h = '';
+        for (const k in boxes) h += R(boxes[k], 'fb' + (target === k ? ' on' : ''), FIELD_JA[k]);
+        if (logoBox && useLogo.checked) h += R(logoBox, 'lb', 'ロゴ');
+        if (drawing) h += R(drawing, 'drw', '');
+        ov.innerHTML = h;
       };
-      let mode2 = '', start = null;
-      const pt = e => { const b = ov.getBoundingClientRect(); return [(e.clientX - b.left) / b.width, (e.clientY - b.top) / b.height]; };
-      ov.addEventListener('pointerdown', e => {
-        if (!box || !useLogo.checked) return;
-        const [px, py] = pt(e);
-        const nearCorner = Math.abs(px - (box.x + box.w)) < .06 && Math.abs(py - (box.y + box.h)) < .1;
-        const inside = px > box.x && px < box.x + box.w && py > box.y && py < box.y + box.h;
-        mode2 = nearCorner ? 'size' : inside ? 'move' : 'new';
-        if (mode2 === 'new') box = {x:px, y:py, w:.01, h:.01}, mode2 = 'size';
-        start = {px, py, b:Object.assign({}, box)}; moved = true; ov.setPointerCapture(e.pointerId); e.preventDefault(); drawBox();
+      const pt = e => { const b = ov.getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - b.left) / b.width)), Math.max(0, Math.min(1, (e.clientY - b.top) / b.height))]; };
+      ov.addEventListener('pointerdown', e => { if (!target) return; start = pt(e); drawing = {x:start[0], y:start[1], w:0, h:0}; ov.setPointerCapture(e.pointerId); e.preventDefault(); drawOv(); });
+      ov.addEventListener('pointermove', e => { if (!start) return; const [x, y] = pt(e); drawing = {x:Math.min(x, start[0]), y:Math.min(y, start[1]), w:Math.abs(x - start[0]), h:Math.abs(y - start[1])}; drawOv(); });
+      ov.addEventListener('pointerup', () => {
+        if (!start) return; const b = drawing, k = target; start = null; drawing = null;
+        if (!b || b.w < .02 || b.h < .02){ drawOv(); return; }
+        setTarget(null); finish(k, b);
       });
-      ov.addEventListener('pointermove', e => {
-        if (!start) return; const [px, py] = pt(e), dx = px - start.px, dy = py - start.py, b = start.b;
-        if (mode2 === 'move') box = {x:Math.max(0, Math.min(1 - b.w, b.x + dx)), y:Math.max(0, Math.min(1 - b.h, b.y + dy)), w:b.w, h:b.h};
-        else box = {x:b.x, y:b.y, w:Math.max(.03, Math.min(1 - b.x, b.w + dx)), h:Math.max(.04, Math.min(1 - b.y, b.h + dy))};
-        drawBox();
+      const hint = el('div', {class:'msg info hint hidden', 'aria-live':'polite'});
+      const cropBox = el('div', {class:'crop card-crop'}, show, ov);
+      function setTarget(k){
+        target = k;
+        Object.entries(rows).forEach(([kk, r]) => r.classList.toggle('on', kk === k));
+        cropBox.classList.toggle('drawing', !!k);
+        if (k){ hint.textContent = '名刺の画像の上で、「' + (k === 'logo' ? 'ロゴ' : FIELD_JA[k]) + '」の所を指でなぞって囲んでください。'; hint.classList.remove('hidden'); cropBox.scrollIntoView({behavior:'smooth', block:'start'}); }
+        else hint.classList.add('hidden');
+        drawOv();
+      }
+      async function finish(k, b){
+        if (k === 'logo'){ logoBox = b; logoTouched = true; useLogo.checked = true; drawOv(); return; }
+        boxes[k] = b; drawOv();
+        const inp = inputs[k], old = inp.value; inp.value = ''; inp.placeholder = 'この範囲を読み取っています…'; rows[k].classList.add('busy');
+        try{ inp.value = await readRegion(k, b) || old; inp.placeholder = ''; }
+        catch(e){ inp.value = old; inp.placeholder = ''; toast('読み取れませんでした（' + e.message + '）'); }
+        rows[k].classList.remove('busy');
+      }
+      async function readRegion(k, b){
+        const p = {x:Math.max(0, b.x - .01), y:Math.max(0, b.y - .02)}; p.w = Math.min(1 - p.x, b.w + .02); p.h = Math.min(1 - p.y, b.h + .04);
+        if (mode === 'self' && Reader.key()) return cleanField(k, await Reader.text(jpegB64(cropCanvas(card, p, 140), 1600, .92), k));
+        if (mode === 'other' && Store.remote){ const r = await Store.call({action:'ocr', key:Store.key(), image:jpegB64(cropCanvas(card, p, 140), 1600, .92)}); return cleanField(k, r.text); }
+        if (!ocrCanvas) ocrCanvas = Scan.forOcr(card, A, null);
+        return cleanField(k, await Scan.ocr(cropCanvas(ocrCanvas, p, 90), null, k === 'address' || k === 'title' ? 6 : 7));
+      }
+      const fieldRows = keys.map(k => {
+        const inp = el('input', {maxlength:'200', 'aria-label':FIELD_JA[k], type:k === 'email' ? 'email' : k === 'phone' ? 'tel' : 'text'});
+        inputs[k] = inp;
+        return rows[k] = el('div', {class:'frow'}, el('span', {class:'fl'}, FIELD_JA[k]), inp,
+          el('button', {class:'rbtn', 'aria-label':FIELD_JA[k] + 'を、名刺の範囲を選んで読み取る', onclick:()=>setTarget(target === k ? null : k)}, '範囲'));
       });
-      ov.addEventListener('pointerup', () => { start = null; });
-      useLogo.addEventListener('change', () => { if (useLogo.checked && !box) box = {x:.06, y:.08, w:.2, h:.25}; drawBox(); });
-      drawBox();
+      if (mode === 'self') rows.logo = el('div', {class:'frow logo-row'}, el('label', {class:'check', for:'uselogo', style:'margin:0'}, useLogo, el('span', {}, 'ロゴを取り込む')),
+        el('span'), el('button', {class:'rbtn', 'aria-label':'ロゴの範囲を選ぶ', onclick:()=>setTarget(target === 'logo' ? null : 'logo')}, '範囲'));
+      useLogo.addEventListener('change', () => { if (useLogo.checked && !logoBox) setTarget('logo'); drawOv(); });
+      drawOv();
       const status = el('div', {class:'msg info', 'aria-live':'polite'}, '読み取りを始めます…');
-      const found = el('div');
-      const go = el('button', {class:'btn-main', disabled:'', onclick:()=>{
-        const logo = (mode === 'self' && useLogo.checked && box) ? Scan.vectorize(card, box, A) : null;
+      const go = el('button', {class:'btn-main', onclick:()=>{
+        const logo = (mode === 'self' && useLogo.checked && logoBox) ? Scan.vectorize(card, logoBox, A) : null;
+        const fields = {}; for (const k of keys){ const v = inputs[k].value.trim(); if (v) fields[k] = v; }
         sheet.remove();
-        onDone({fields:(result && result.fields) || {}, logo, color:cardColor(logo, A), dark:A.dark, by:result && result.by});
-      }}, '読み取った内容で進む');
-      body.replaceChildren(
-        el('div', {class:'crop card-crop'}, show, ov),
-        mode === 'self' ? el('label', {class:'check', for:'uselogo'}, useLogo, el('span', {}, 'ロゴを取り込む', el('small', {class:'sub'}, '枠を指で動かせます。右下の丸で大きさを変えられます。'))) : null,
-        status, found, el('div', {style:'margin-top:14px'}, go));
-      readCard(mode, card, A, box, t => status.textContent = t).then(r => {
-        result = r;
-        if (mode === 'self' && r.logoBox && !moved){ box = r.logoBox; useLogo.checked = true; drawBox(); }
-        if (mode === 'self' && r.hasLogo === false && !moved && r.by === 'Gemini'){ useLogo.checked = false; drawBox(); }
-        const keys = Object.keys(FIELD_JA).filter(k => r.fields[k]);
-        status.className = 'msg ' + (keys.length ? 'ok' : 'ng');
-        status.textContent = keys.length ? r.by + 'で ' + keys.length + ' 項目を読み取りました。次の画面で確認・修正できます。' : '文字を読み取れませんでした。次の画面で入力してください。';
-        found.replaceChildren(keys.length ? el('div', {class:'contact-list found'}, keys.map(k => el('div', {}, el('span', {}, FIELD_JA[k]), el('span', {}, r.fields[k])))) : null);
-        go.disabled = false;
+        onDone({fields, logo, color:cardColor(logo, A), dark:A.dark, by});
+      }}, 'この内容で進む');
+      body.replaceChildren(cropBox, hint, status,
+        el('p', {class:'note', style:'margin:10px 0 4px'}, '違っている所は、そのまま書き直すか、「範囲」を押して名刺の上をなぞると、その部分だけ読み直します。'),
+        rows.logo || null, fieldRows, el('div', {style:'margin-top:16px'}, go));
+      readCard(mode, card, A, logoBox, t => status.textContent = t).then(r => {
+        by = r.by;
+        for (const k of keys) if (r.fields[k] && !inputs[k].value) inputs[k].value = r.fields[k];
+        Object.assign(boxes, r.boxes || {});
+        if (mode === 'self' && !logoTouched){
+          if (r.logoBox){ logoBox = r.logoBox; useLogo.checked = true; }
+          else if (r.by === 'Gemini' && r.hasLogo === false){ useLogo.checked = false; }
+        }
+        drawOv();
+        const n = keys.filter(k => r.fields[k]).length;
+        status.className = 'msg ' + (n ? 'ok' : 'ng');
+        status.textContent = n ? r.by + 'で ' + n + ' 項目を読み取りました。' : '文字を読み取れませんでした。「範囲」で項目ごとに読み取るか、入力してください。';
       }).catch(e => {
-        status.className = 'msg ng'; status.textContent = '文字を読み取れませんでした（' + e.message + '）。ロゴだけ取り込んで、文字は次の画面で入力できます。';
-        go.disabled = false;
+        status.className = 'msg ng'; status.textContent = '自動では読み取れませんでした（' + e.message + '）。「範囲」で項目ごとに読み取るか、入力してください。';
       });
     }, 30);
   }

@@ -458,8 +458,16 @@ button[disabled]{opacity:.45;cursor:default}
 .tz-ai{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--tz);background:#fff;border:1px solid color-mix(in srgb,var(--tz) 25%,#fff);padding:7px 14px;border-radius:999px}
 .tz-ai i{width:8px;height:8px;border-radius:50%;background:var(--tz);animation:tzpulse 1.8s ease-in-out infinite}
 @keyframes tzpulse{50%{transform:scale(.55);opacity:.5}}
-.tz-h{font-family:var(--sans);font-size:27px;line-height:1.45;font-weight:800;margin:18px 0 12px;letter-spacing:.01em}
-.tz-lead{font-size:16px;line-height:1.75;color:var(--sub);margin:0;max-width:20em}
+.tz-ql{font-size:14px;font-weight:700;color:var(--tz);margin:20px 0 0}
+.tz-h{font-family:var(--sans);font-size:25px;line-height:1.5;font-weight:800;margin:6px 0 16px;letter-spacing:.01em}
+.tz-h span{display:inline-block}
+.tz-what{width:100%;max-width:340px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 16px 14px;margin:0 0 14px}
+.tz-what p{margin:0 0 8px;font-size:14px;color:var(--sub)}
+.tz-what ol{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none;counter-reset:n}
+.tz-what li{counter-increment:n;font-size:14px;font-weight:700;color:var(--tz);background:color-mix(in srgb,var(--tz) 9%,#fff);padding:4px 10px;border-radius:999px}
+.tz-what li::before{content:counter(n) '. '}
+.tz-rq{font-size:14px;font-weight:700;color:var(--tz);line-height:1.6;margin-top:10px}
+.tz-lead{font-size:15px;line-height:1.75;color:var(--sub);margin:0;max-width:22em;text-align:left}
 .tz-lead span{display:inline-block}
 .tz-go{display:block;width:100%;max-width:320px;min-height:54px;margin:26px auto 0;border-radius:14px;background:var(--tz);color:#fff;font-size:17px;font-weight:700;box-shadow:0 8px 20px color-mix(in srgb,var(--tz) 28%,transparent)}
 .tz-go.ghost{background:#fff;color:var(--tz);border:1.5px solid var(--tz);box-shadow:none;margin-top:12px}
@@ -481,6 +489,7 @@ button[disabled]{opacity:.45;cursor:default}
 .tz-bk svg{display:block;width:100%;height:100%}
 .tz-fr{transform:rotateY(180deg);background:#fff;border:1.5px solid var(--tz);box-shadow:0 18px 40px rgba(0,0,0,.16)}
 .tz-stage.idle .tz-cd{animation:tzfloat 3.2s ease-in-out infinite}
+.tz-stage.idle{height:clamp(150px,24vh,220px);margin:18px 0 0}
 @keyframes tzfloat{50%{translate:0 -6px}}
 .tz-face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:14px 10px 14px}
 .tz-no{font-size:14px;font-weight:700;letter-spacing:.1em;color:var(--tz)}
@@ -513,7 +522,7 @@ button[disabled]{opacity:.45;cursor:default}
 .tz-link{width:auto;margin:14px auto 0;min-height:44px;padding:10px 12px;background:none;color:var(--tz);font-size:15px;font-weight:700}
 @media (max-height:700px){.tz-stage{height:clamp(170px,33vh,260px);margin:16px 0 0}}
 @media (orientation:landscape) and (max-height:500px){.tz-stage{height:max(240px,72vh)}.tz-deck{max-width:none}}
-@media (max-width:360px),(max-height:620px){.tz{padding-top:calc(env(safe-area-inset-top) + 50px)}.tz-h{font-size:23px;margin:14px 0 8px}.tz-lead{font-size:15px}.tz-go{margin-top:18px}.tz-kw{font-size:26px}}
+@media (max-width:360px),(max-height:620px){.tz{padding-top:calc(env(safe-area-inset-top) + 50px)}.tz-stage.idle{display:none}.tz-h{font-size:23px;margin:14px 0 8px}.tz-lead{font-size:15px}.tz-go{margin-top:18px}.tz-kw{font-size:26px}}
 @media (prefers-reduced-motion:reduce){.tz *{animation:none!important;transition:none!important}.tz-face svg *{stroke-dashoffset:0}}
 </style>
 </head>
@@ -2998,7 +3007,7 @@ const Fortune = (()=>{
 /* ━━━━━━━━━━ 話のネタにタロット（1枚引き）━━━━━━━━━━
    流れ：「AIにて制作／話のネタに、いかがでしょうか？」→ シャッフル → 1枚引く → 線画が描かれる → 結果
    見た目は名刺の色に合わせる。紺と金・明朝・星の飾りなど、占いらしい演出は使わない */
-const TZ_LBL = ['この出会い', 'ふたりの強み', 'この先'];
+const TZ_LBL = ['この出会いの意味', 'ふたりの強み', 'この先'];
 function rnd(n){ const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; }
 /* 名刺の色が明るすぎても、白地で文字が読める濃さ（4.5:1以上）まで下げる */
 function tzInk(hex){
@@ -3030,8 +3039,8 @@ async function tzImage(t, v, rv, who, ink){
   const x = cv.getContext('2d'), F = '-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif';
   x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
   const gr = x.createLinearGradient(0, 0, 0, 760); gr.addColorStop(0, ink + '16'); gr.addColorStop(1, ink + '00'); x.fillStyle = gr; x.fillRect(0, 0, W, 760);
-  x.textAlign = 'center'; x.fillStyle = ink; x.font = '700 30px ' + F; x.fillText('AIにて制作 ・ 話のネタにタロット', W / 2, 92);
-  x.fillStyle = '#1c1c1e'; x.font = '600 34px ' + F; x.fillText(who + 'との出会い', W / 2, 150);
+  x.textAlign = 'center'; x.fillStyle = ink; x.font = '700 30px ' + F; x.fillText('AIにて制作 ・ 出会いのタロット', W / 2, 92);
+  x.fillStyle = '#1c1c1e'; x.font = '600 34px ' + F; x.fillText(who + 'と出会ったことは、何につながる？', W / 2, 150);
   // カード
   const cw = 330, ch = 528, cx = (W - cw) / 2, cy = 196;
   x.save(); x.shadowColor = 'rgba(0,0,0,.14)'; x.shadowBlur = 40; x.shadowOffsetY = 16; x.fillStyle = '#fff';
@@ -3119,8 +3128,11 @@ function showTarot(){
   function intro(){
     const {stage} = stack(5); stage.classList.add('idle');
     body.replaceChildren(chip(),
-      el('h2', {class:'tz-h'}, '話のネタに、', el('br'), 'いかがでしょうか？'),
-      el('p', {class:'tz-lead'}, el('span', {}, who + 'との出会いを、'), el('span', {}, 'タロットカード1枚で'), el('span', {}, '読んでみる遊びです。')),
+      el('p', {class:'tz-ql'}, 'このタロットで占うこと'),
+      el('h2', {class:'tz-h'}, el('span', {}, who + 'と'), el('span', {}, '出会ったことは、'), el('br'), 'この先、何につながる？'),
+      el('div', {class:'tz-what'}, el('p', {}, 'カードを1枚引いて、3つを読みます'),
+        el('ol', {}, TZ_LBL.map(l => el('li', {}, l)))),
+      el('p', {class:'tz-lead'}, '生年月日などは使わないので、相性占いではありません。今日のこの出会いそのものを占います。最後に、この場で聞いてみたい「話のネタ」が出ます。'),
       stage,
       el('button', {class:'tz-go', onclick:() => {
         try{ if (window.DeviceMotionEvent && DeviceMotionEvent.requestPermission) DeviceMotionEvent.requestPermission().catch(()=>{}); }catch(e){}
@@ -3185,10 +3197,11 @@ function showTarot(){
     }}, '結果を画像で保存');
     const fortune = document.querySelector('details.fortune');
     const res = el('div', {class:'tz-res'},
+      el('div', {class:'tz-rq'}, who + 'と出会ったことは、この先、何につながる？'),
       el('div', {class:'tz-kwl'}, t.name + (rv ? '（逆向き）' : '') + 'のキーワード'),
       el('div', {class:'tz-kw'}, v.k),
       el('div', {class:'tz-rows'}, TZ_LBL.map((l, i) => el('div', {class:'tz-row', style:'--i:' + i}, el('b', {}, l), el('p', {}, v.m[i])))),
-      el('div', {class:'tz-chat'}, el('div', {class:'tz-cl'}, '話のネタ'), bubble,
+      el('div', {class:'tz-chat'}, el('div', {class:'tz-cl'}, '話のネタ（この場で聞いてみる）'), bubble,
         el('div', {class:'tz-bub me'}, el('b', {}, '次の一手'), v.a)),
       el('p', {class:'tz-foot'}, 'タロットカードの意味をもとにした読み物です。' + (rv ? '逆向きのカードは、悪い意味ではなく「気をつけたいポイント」として読んでいます。' : '')),
       el('button', {class:'tz-go', onclick:shuffle}, 'もう1枚引く'),
@@ -3736,7 +3749,7 @@ function renderVisitor(){
       return el('button', {class:'mychip fade d2', onclick:()=>{ const f = document.querySelector('details.fortune'); if (f){ f.open = true; f.scrollIntoView({behavior:'smooth', block:'start'}); } }},
         el('span', {class:'mc-k'}, '今日の仕事運'), el('span', {class:'mc-v'}, t.label + ' ' + '★'.repeat(t.stars) + '☆'.repeat(3 - t.stars)));
     })() : null,
-    c.fortune ? el('button', {class:'tcta fade d2', style:'--tz:' + tzInk(c.color), onclick:showTarot}, el('span', {class:'tc-ic', 'aria-hidden':'true'}), el('span', {class:'tc-t'}, el('span', {class:'tc-ai'}, 'AIにて制作'), el('span', {class:'tc-k'}, '話のネタに、タロットを1枚'), el('span', {class:'tc-s'}, '1枚引くだけ・30秒ほど'))) : null,
+    c.fortune ? el('button', {class:'tcta fade d2', style:'--tz:' + tzInk(c.color), onclick:showTarot}, el('span', {class:'tc-ic', 'aria-hidden':'true'}), el('span', {class:'tc-t'}, el('span', {class:'tc-ai'}, 'AIにて制作'), el('span', {class:'tc-k'}, 'この出会いを、タロットで占う'), el('span', {class:'tc-s'}, '出会いの意味と、話のネタが出ます'))) : null,
     el('div', {class:'fade d2'}, contactRows(c)),
     c.about ? aboutView(c.about) : null,
     c.intro ? el('p', {class:'intro fade d3'}, c.intro) : null,

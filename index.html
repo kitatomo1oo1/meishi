@@ -22,10 +22,10 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)
 body{padding:env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 80px)}
 .wrap{max-width:480px;margin:0 auto;padding:20px 18px}
 h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:28px 0 12px;letter-spacing:.04em}
-p.note{color:var(--sub);font-size:13px;line-height:1.7;margin:6px 0 14px}
+p.note{color:var(--sub);font-size:14px;line-height:1.7;margin:6px 0 14px}
 a{color:inherit}
 button,.btn{font:inherit;border:0;border-radius:12px;padding:14px 16px;font-size:16px;font-weight:600;cursor:pointer;display:block;width:100%;text-align:center;text-decoration:none}
-.btn-main{background:var(--accent);color:#fff}
+.btn-main{background:var(--accent-ink,var(--accent));color:#fff}
 .btn-sub{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
 .btn-danger{background:#fff;color:var(--danger);border:1px solid #e8c5c2}
 .row{display:flex;gap:10px}.row>*{flex:1}
@@ -36,61 +36,61 @@ button,.btn{font:inherit;border:0;border-radius:12px;padding:14px 16px;font-size
 .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--accent)}
 .card .label-row{display:flex;align-items:center;gap:10px}
 .card .logo{width:28px;height:28px;flex:none}
-.card .label{font-size:11px;letter-spacing:.18em;color:var(--accent);font-weight:700}
+.card .label{font-size:12px;letter-spacing:.18em;color:var(--accent-ink,var(--accent));font-weight:700}
 .card .name{font-family:var(--serif);font-size:28px;letter-spacing:.08em;line-height:1.2}
-.card .kana{font-size:11px;color:var(--sub);letter-spacing:.12em;margin-top:4px}
+.card .kana{font-size:12px;color:var(--sub);letter-spacing:.12em;margin-top:4px}
 .card .org{font-size:13px;line-height:1.6}
 .card .org .title{color:var(--sub)}
 .contact-list{margin:18px 0 0;border-top:1px solid var(--line)}
 .contact-list a{display:flex;justify-content:space-between;align-items:center;padding:15px 4px;border-bottom:1px solid var(--line);text-decoration:none;font-size:15px}
-.contact-list a span:first-child{color:var(--sub);font-size:12px;width:76px;flex:none}
+.contact-list a span:first-child{color:var(--sub);font-size:13px;width:76px;flex:none}
 .contact-list a span:last-child{flex:1;text-align:right;word-break:break-all}
 .sections{margin-top:6px}
 .sec{padding:16px 0;border-bottom:1px solid var(--line)}
 .sec:last-child{border-bottom:0}
-.sec h3{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.05em;margin:0 0 6px;color:var(--accent)}
-.sec p{margin:0;font-size:14px;line-height:1.8;white-space:pre-wrap}
-.about{font-size:14px;line-height:1.8;margin:16px 0 0;white-space:pre-wrap}
+.sec h3{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.05em;margin:0 0 6px;color:var(--accent-ink,var(--accent))}
+.sec p{margin:0;font-size:15px;line-height:1.8;white-space:pre-wrap}
+.about{font-size:15px;line-height:1.8;margin:16px 0 0;white-space:pre-wrap}
 
 /* フォーム */
-label{display:block;font-size:12px;color:var(--sub);margin:14px 0 6px}
+label{display:block;font-size:13px;color:var(--sub);margin:14px 0 6px}
 label b{color:var(--danger);font-weight:600;margin-left:4px}
 input,textarea{font:inherit;font-size:16px;width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
 textarea{min-height:84px;resize:vertical}
 input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
-.msg{padding:14px;border-radius:10px;font-size:14px;line-height:1.7;margin:14px 0}
+.msg{padding:14px;border-radius:10px;font-size:15px;line-height:1.7;margin:14px 0}
 .msg.ok{background:#eef5ee;color:#1e4d2b}.msg.ng{background:#fbeeee;color:var(--danger)}.msg.info{background:var(--paper);color:var(--sub);border:1px solid var(--line)}
 
 /* 自分用 */
 .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:none;width:auto;padding:9px 14px;font-size:13px;font-weight:600;border-radius:999px;background:var(--paper);border:1px solid var(--line);color:var(--ink)}
-.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip{flex:none;width:auto;min-height:40px;padding:9px 14px;font-size:13px;font-weight:600;border-radius:999px;background:var(--paper);border:1px solid var(--line);color:var(--ink)}
+.chip.on{background:var(--accent-ink,var(--accent));border-color:var(--accent-ink,var(--accent));color:#fff}
 .qrbox{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;text-align:center;margin-top:14px}
 .qrbox svg{width:100%;max-width:300px;height:auto;display:block;margin:0 auto}
 .qrbox .cap{font-family:var(--serif);font-size:17px;margin-top:12px;letter-spacing:.06em}
-.qrbox .url{font-size:11px;color:var(--sub);margin-top:6px;word-break:break-all}
+.qrbox .url{font-size:12px;color:var(--sub);margin-top:6px;word-break:break-all}
 .full{position:fixed;inset:0;background:#fff;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
 .full svg{width:88vmin;height:88vmin}
 .full .cap{font-family:var(--serif);font-size:20px;margin-top:18px}
-.full .hint{color:var(--sub);font-size:12px;margin-top:8px}
+.full .hint{color:var(--sub);font-size:13px;margin-top:8px}
 
 .search{margin-bottom:12px}
 .item{display:block;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:14px 4px;font-weight:400}
 .item .n{font-family:var(--serif);font-size:17px}
-.item .m{font-size:12px;color:var(--sub);margin-top:4px;line-height:1.6}
+.item .m{font-size:13px;color:var(--sub);margin-top:4px;line-height:1.6}
 .empty{color:var(--sub);text-align:center;padding:40px 0;font-size:14px}
-.tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:999px;background:var(--paper);border:1px solid var(--line);margin-left:6px;vertical-align:2px;color:var(--sub)}
+.tag{display:inline-block;font-size:12px;padding:2px 7px;border-radius:999px;background:var(--paper);border:1px solid var(--line);margin-left:6px;vertical-align:2px;color:var(--sub)}
 
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:40;display:flex;align-items:flex-end}
 .sheet .panel{background:#fff;width:100%;max-width:480px;margin:0 auto;border-radius:18px 18px 0 0;max-height:92vh;overflow:auto;padding:20px 18px calc(env(safe-area-inset-bottom) + 24px)}
-.sheet .close{width:auto;background:none;color:var(--sub);padding:4px 0;font-weight:500;font-size:14px;margin-left:auto}
+.sheet .close{width:auto;background:none;color:var(--sub);padding:4px 4px;min-height:44px;min-width:44px;font-weight:500;font-size:14px;margin-left:auto}
 
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;padding:6px 8px calc(env(safe-area-inset-bottom) + 6px);z-index:30}
-nav.tabs button{background:none;color:#8a8a8f;font-size:11px;font-weight:600;padding:7px 4px 6px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:4px}
+nav.tabs button{background:none;color:#6b6b70;font-size:12px;font-weight:600;padding:7px 4px 6px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:4px}
 nav.tabs button svg{width:22px;height:22px}
-nav.tabs button.on{color:var(--accent)}
+nav.tabs button.on{color:var(--accent-ink,var(--accent))}
 nav.tabs button.on svg{stroke-width:2.2}
 
 /* アニメーション */
@@ -102,8 +102,8 @@ nav.tabs button.on svg{stroke-width:2.2}
 /* 相手の画面：すぐ押せるボタン */
 .actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0 4px}
 .act{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:84px;padding:12px 6px;border:1px solid var(--line);border-radius:16px;background:#fff;color:var(--ink);font-size:12px;font-weight:600;text-decoration:none;width:auto}
-.act svg{width:24px;height:24px;color:var(--accent)}
-.act.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.act svg{width:24px;height:24px;color:var(--accent-ink,var(--accent))}
+.act.primary{background:var(--accent-ink,var(--accent));border-color:var(--accent-ink,var(--accent));color:#fff}
 .act.primary svg{color:#fff}
 .act:active{transform:scale(.97)}
 .intro{font-family:var(--serif);font-size:16px;line-height:1.8;margin:26px 0 2px;letter-spacing:.02em}
@@ -111,30 +111,30 @@ details.send{margin-top:26px;border:1px solid var(--line);border-radius:16px;pad
 details.send summary{list-style:none;cursor:pointer;padding:18px 0;display:flex;justify-content:space-between;align-items:center;gap:12px}
 details.send summary::-webkit-details-marker{display:none}
 details.send summary .t{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.04em}
-details.send summary .s{display:block;font-size:12px;color:var(--sub);font-family:var(--sans);font-weight:400;margin-top:4px;letter-spacing:0}
+details.send summary .s{display:block;font-size:13px;color:var(--sub);font-family:var(--sans);font-weight:400;margin-top:4px;letter-spacing:0}
 details.send summary svg{width:20px;height:20px;color:var(--sub);transition:transform .2s;flex:none}
 details.send[open] summary svg{transform:rotate(180deg)}
 details.send form{padding-bottom:18px}
-.foot{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--sub);font-size:11px;letter-spacing:.12em;margin-top:40px}
+.foot{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--sub);font-size:12px;letter-spacing:.12em;margin-top:40px}
 .foot svg{width:18px;height:18px}
 .promo{margin-top:28px;padding:22px 20px;border-radius:16px;background:var(--paper);border:1px solid var(--line)}
 .promo-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .promo-head svg{width:26px;height:26px;flex:none}
 .promo h3{margin:0;font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.05em}
-.promo p{margin:0 0 16px;font-size:14px;line-height:1.85;white-space:pre-wrap}
+.promo p{margin:0 0 16px;font-size:15px;line-height:1.85;white-space:pre-wrap}
 .fortune .fres{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0 18px}
 .fbox{border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;background:var(--paper)}
-.fbox p{font-size:12px;line-height:1.7;margin:6px 0 0;text-align:left}
-.fk{font-size:11px;color:var(--sub);letter-spacing:.08em}
-.fnum{font-family:var(--serif);font-size:40px;line-height:1.2;color:var(--accent)}
+.fbox p{font-size:13px;line-height:1.7;margin:6px 0 0;text-align:left}
+.fk{font-size:12px;color:var(--sub);letter-spacing:.08em}
+.fnum{font-family:var(--serif);font-size:40px;line-height:1.2;color:var(--accent-ink,var(--accent))}
 .fname{font-family:var(--serif);font-size:15px;font-weight:600}
 .fpair{grid-column:1 / -1;border-top:1px solid var(--line);padding-top:12px}
-.fpair p{margin:4px 0 0;font-size:14px;line-height:1.8}
+.fpair p{margin:4px 0 0;font-size:15px;line-height:1.8}
 details.fortune{padding-bottom:0}
 details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 .consent{grid-column:1 / -1;border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:6px;background:#fff}
 .consent .ct{font-family:var(--serif);font-size:15px;font-weight:600}
-.consent p{font-size:12px;line-height:1.7;color:var(--sub);margin:6px 0 12px}
+.consent p{font-size:13px;line-height:1.7;color:var(--sub);margin:6px 0 12px}
 .consent button{padding:12px;font-size:14px}
 .ftab{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0 16px}
 .ftab td{padding:7px 4px;border-bottom:1px solid var(--line)}
@@ -144,7 +144,7 @@ details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 .check input{width:20px;height:20px;flex:none;accent-color:var(--accent)}
 .policy h1{font-family:var(--serif);font-size:24px;font-weight:600;margin:8px 0 16px}
 .policy h2{font-size:16px;margin:24px 0 8px}
-.policy p{font-size:14px;line-height:1.9;white-space:pre-wrap;margin:0}
+.policy p{font-size:15px;line-height:1.9;white-space:pre-wrap;margin:0}
 .stage{perspective:900px}
 .card.live{transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .25s ease-out;transform-style:preserve-3d;will-change:transform}
 .card.live::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
@@ -193,36 +193,36 @@ details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 .share-btn svg{width:20px;height:20px}
 .tlink{display:block;width:auto;margin:10px auto 0;background:none;color:var(--sub);font-size:12px;font-weight:500;padding:8px 12px;letter-spacing:.05em}
 @keyframes tdrop{0%{opacity:0;transform:translateY(-60px) rotate(-8deg) scale(.85)}100%{opacity:1;transform:none}}
-.work{border:1px solid var(--line);border-radius:16px;padding:18px 16px;margin-top:14px;background:#fff}
+.wfort{border:1px solid var(--line);border-radius:16px;padding:18px 16px;margin-top:14px;background:#fff}
 .w-k{font-family:var(--serif);font-size:18px;font-weight:600;letter-spacing:.06em}
 .w-today{margin-top:10px;padding:14px;border-radius:12px;background:linear-gradient(135deg,var(--paper),#fff);border:1px solid var(--line)}
-.w-d{font-size:12px;color:var(--sub)}
-.w-l{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--accent);margin-top:2px}
-.w-today p,.w-year p{margin:6px 0 0;font-size:14px;line-height:1.8}
+.w-d{font-size:13px;color:var(--sub)}
+.w-l{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--accent-ink,var(--accent));margin-top:2px}
+.w-today p,.w-year p{margin:6px 0 0;font-size:15px;line-height:1.8}
 .wst{font-size:13px;color:#c8a96c;letter-spacing:1px;font-family:var(--sans);font-weight:400}
-.w-sub{font-size:11px;color:var(--sub);letter-spacing:.12em;margin:16px 0 8px}
+.w-sub{font-size:12px;color:var(--sub);letter-spacing:.12em;margin:16px 0 8px}
 .w-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .w-day{text-align:center;padding:8px 2px;border-radius:10px;background:var(--paper)}
-.w-day .wd{font-size:10px;color:var(--sub)}
+.w-day .wd{font-size:11px;color:var(--sub)}
 .w-day .wdot{width:10px;height:10px;border-radius:50%;margin:6px auto;background:var(--line)}
 .w-day.s2 .wdot{background:#e2cfa3}.w-day.s3 .wdot{background:#c8a96c;box-shadow:0 0 0 3px rgba(200,169,108,.25)}
-.w-day .wl{font-size:9.5px;line-height:1.35}
+.w-day .wl{font-size:11px;line-height:1.35}
 .w-year{margin-top:4px}
 .w-months{display:grid;gap:0}
 .w-mon{display:grid;grid-template-columns:5.6em 4em 1fr;align-items:center;padding:8px 2px;border-bottom:1px solid var(--line);font-size:13px}
 .w-mon:last-child{border-bottom:0}
-.wm{color:var(--sub);font-size:12px}
+.wm{color:var(--sub);font-size:13px}
 .more{margin-top:14px}
-.more summary{font-size:13px;color:var(--accent);cursor:pointer;padding:4px 0}
+.more summary{font-size:13px;color:var(--accent-ink,var(--accent));cursor:pointer;padding:4px 0}
 .mychip{display:flex!important;justify-content:space-between;align-items:center;margin-top:12px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-weight:400;color:var(--ink)}
-.mc-k{font-size:12px;color:var(--sub)}
-.mc-v{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--accent)}
+.mc-k{font-size:13px;color:var(--sub)}
+.mc-v{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--accent-ink,var(--accent))}
 .modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 4px}
 .mode{background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:10px 8px;font-weight:400;text-align:center}
 .mode b{display:block;font-size:14px}
-.mode small{display:block;font-size:10px;color:var(--sub);margin-top:2px}
+.mode small{display:block;font-size:12px;color:var(--sub);margin-top:2px}
 .mode.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-.mode.on b{color:var(--accent)}
+.mode.on b{color:var(--accent-ink,var(--accent))}
 .meetbtn{margin-top:12px}
 .tag.gold{background:#f6eedb;border-color:#e2cfa3;color:#8a6a2a}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translateX(-50%);background:rgba(28,28,30,.92);color:#fff;font-size:13px;padding:10px 16px;border-radius:999px;z-index:60;animation:fadeUp .25s both}
@@ -239,13 +239,13 @@ details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 .dots span.on{width:18px;border-radius:3px;background:var(--accent)}
 .qrhead{display:flex;justify-content:space-between;align-items:baseline;margin:14px 2px 0}
 .qrhead .t{font-family:var(--serif);font-size:15px;letter-spacing:.06em}
-.qrhead .s{font-size:12px;color:var(--sub)}
+.qrhead .s{font-size:13px;color:var(--sub)}
 .tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
-.av{width:42px;height:42px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:17px;color:var(--accent);background:var(--paper);border:1px solid var(--line)}
+.av{width:42px;height:42px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:17px;color:var(--accent-ink,var(--accent));background:var(--paper);border:1px solid var(--line)}
 .item{display:flex!important;gap:14px;align-items:center}
 .item .body{flex:1;min-width:0}
-.count{font-size:12px;color:var(--sub);margin:-4px 0 10px}
-.foot{color:var(--sub);font-size:11px;text-align:center;margin-top:36px}
+.count{font-size:13px;color:var(--sub);margin:-4px 0 10px}
+.foot{color:var(--sub);font-size:12px;text-align:center;margin-top:36px}
 .hidden{display:none!important}
 /* テンプレート */
 .qrbox .url{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -274,20 +274,20 @@ details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 @media (prefers-reduced-motion:reduce){.logo.draw text{animation:none;stroke-dashoffset:0;fill-opacity:1}}
 .addcard{flex:0 0 60%!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center!important;gap:4px;border:1.5px dashed var(--line);background:#fff;box-shadow:none;color:var(--sub);font-weight:600;font-size:14px;cursor:pointer}
 .addcard::before{display:none}
-.addcard .plus{font-size:26px;color:var(--accent);line-height:1}
-.addcard small{font-size:11px;font-weight:400}
+.addcard .plus{font-size:26px;color:var(--accent-ink,var(--accent));line-height:1}
+.addcard small{font-size:12px;font-weight:400}
 /* 編集画面 */
 .full-sheet{align-items:stretch!important;overflow:auto;background:#fff}
 .full-sheet .panel{max-width:480px;width:100%;margin:0 auto;border-radius:0!important;min-height:100%;max-height:none!important;padding-top:0!important}
 .full-sheet .bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);margin:0 -18px;padding:10px 12px;border-bottom:1px solid var(--line)}
 .full-sheet .bar .bt{font-weight:600;font-size:15px;flex:1;text-align:center}
-.full-sheet .bar .close{width:auto;margin:0;padding:6px 6px}
-.full-sheet .bar .save{color:var(--accent);font-weight:700}
+.full-sheet .bar .close{width:auto;margin:0;padding:6px 8px;min-height:44px}
+.full-sheet .bar .save{color:var(--accent-ink,var(--accent));font-weight:700}
 .editor .pv{position:sticky;top:52px;z-index:4;background:#fff;padding:14px 0 10px;margin:0 -2px}
 .editor .pv .card{max-width:360px;margin:0 auto}
 .pick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.pk{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 4px 6px;font-size:11px;font-weight:600;color:var(--sub)}
-.pk.on{border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.pk{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 4px 6px;font-size:12px;font-weight:600;color:var(--sub)}
+.pk.on{border-color:var(--accent-ink,var(--accent));color:var(--accent-ink,var(--accent));box-shadow:inset 0 0 0 1px var(--accent-ink,var(--accent))}
 .mini{display:block;aspect-ratio:1.75/1;border-radius:4px;border:1px solid var(--line);margin-bottom:6px;position:relative;overflow:hidden;background:var(--paper)}
 .mini.tpl-line::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
 .mini.tpl-ink{background:var(--accent);border-color:transparent}
@@ -295,14 +295,14 @@ details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 .mini.tpl-band::before{content:"";position:absolute;left:0;right:0;top:0;height:32%;background:var(--accent)}
 .fk2{font-size:13px;color:var(--sub);margin:14px 0 8px}
 .swatches{display:flex;flex-wrap:wrap;gap:10px}
-.sw{width:34px;height:34px;border-radius:50%;padding:0;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);flex:none;position:relative;overflow:hidden}
+.sw{width:40px;height:40px;border-radius:50%;padding:0;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);flex:none;position:relative;overflow:hidden}
 .sw.on{box-shadow:0 0 0 2px var(--ink)}
 .sw.custom{background:conic-gradient(#e44,#ea4,#4a4,#4ae,#44e,#a4e,#e44);cursor:pointer}
 .sw.custom input{opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer;padding:0;border:0}
 .linkrow{display:grid;grid-template-columns:1fr 1.4fr auto;gap:6px;align-items:center;margin-bottom:8px}
 .linkrow input{margin:0}
-.counter{float:right;font-weight:400;color:var(--sub);font-size:11px}
-.check small.sub{display:block;font-size:12px;color:var(--sub);margin-top:2px;font-weight:400}
+.counter{float:right;font-weight:400;color:var(--sub);font-size:12px}
+.check small.sub{display:block;font-size:13px;color:var(--sub);margin-top:2px;font-weight:400}
 /* 取り込んだロゴ */
 .card .logo.img{width:auto;height:30px;max-width:140px}
 .logo.chip{background:#fff;border-radius:6px;padding:3px 5px;box-sizing:content-box}
@@ -335,10 +335,10 @@ details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 .searchrow .search{flex:1;margin:0}
 .sortsel{width:auto;flex:none;padding:10px 8px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit;font-size:13px}
 .fchips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px}
-.fchip{width:auto;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:500;color:var(--ink)}
-.fchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.fchip{width:auto;min-height:40px;padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:14px;font-weight:500;color:var(--ink)}
+.fchip.on{background:var(--accent-ink,var(--accent));border-color:var(--accent-ink,var(--accent));color:#fff}
 .itags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
-.itags span{font-size:11px;color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,#fff);padding:1px 7px;border-radius:999px}
+.itags span{font-size:12px;color:var(--accent-ink,var(--accent));background:color-mix(in srgb,var(--accent-ink,var(--accent)) 8%,#fff);padding:1px 7px;border-radius:999px}
 .qrcam{position:relative;margin-top:14px;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4}
 .qrcam video{width:100%;height:100%;object-fit:cover;display:block}
 .qrframe{position:absolute;inset:18%;border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.35);outline:3px solid rgba(255,255,255,.9)}
@@ -346,18 +346,18 @@ details.fortune>.msg,details.fortune>label,details.fortune>input{margin-left:0}
 .mutual .mt{font-weight:600;font-size:14px;margin-bottom:10px;line-height:1.6}
 .sigpv{padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
 .big-mode{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 14px);transform:translateX(-50%);display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,.1)}
-.big-mode button{width:auto;padding:7px 14px;border-radius:999px;background:none;color:rgba(255,255,255,.6);font-size:12px;font-weight:600}
+.big-mode button{width:auto;padding:7px 14px;border-radius:999px;background:none;color:rgba(255,255,255,.6);font-size:14px;font-weight:600}
 .big-mode button.on{background:rgba(255,255,255,.92);color:#1c1c1e}
 .found{margin-top:10px}
 .choose{margin:12px 0;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
 .choose input{margin-top:8px}
-.small-link{display:inline-block;font-size:13px;color:var(--accent);margin:2px 0 4px}
+.small-link{display:inline-block;font-size:13px;color:var(--accent-ink,var(--accent));margin:2px 0 4px}
 .frow{display:grid;grid-template-columns:72px 1fr auto;gap:8px;align-items:center;margin:8px 0;padding:2px;border-radius:12px;transition:background .2s}
-.frow .fl{font-size:12px;color:var(--sub)}
+.frow .fl{font-size:13px;color:var(--sub)}
 .frow input{margin:0;padding:10px 12px;font-size:15px}
-.frow .rbtn{width:auto;padding:10px 12px;font-size:13px;font-weight:600;background:#fff;border:1px solid var(--line);color:var(--accent)}
+.frow .rbtn{width:auto;padding:10px 12px;font-size:13px;font-weight:600;background:#fff;border:1px solid var(--line);color:var(--accent-ink,var(--accent))}
 .frow.on{background:#e8f0fe}
-.frow.on .rbtn{background:var(--accent);color:#fff;border-color:var(--accent)}
+.frow.on .rbtn{background:var(--accent-ink,var(--accent));color:#fff;border-color:var(--accent-ink,var(--accent))}
 .frow.busy input{background:repeating-linear-gradient(90deg,#f3f3f3 0 20px,#fafafa 20px 40px);background-size:200% 100%;animation:busy 1s linear infinite}
 @keyframes busy{to{background-position:-40px 0}}
 .frow.logo-row{grid-template-columns:auto 1fr auto}
@@ -393,13 +393,13 @@ button[disabled]{opacity:.45;cursor:default}
 .flipper .qrwrap svg{width:100%;height:100%;display:block}
 .flipper .qrtxt{display:flex;flex-direction:column;gap:6px;color:#1c1c1e}
 .flipper .qrtxt b{font-family:var(--serif);font-size:15px;line-height:1.4}
-.flipper .qrtxt span{font-size:10px;color:#6b6b70;line-height:1.6}
+.flipper .qrtxt span{font-size:12px;color:#6b6b70;line-height:1.6}
 .big-hint{color:rgba(255,255,255,.55);font-size:13px;letter-spacing:.08em}
 .big-close{position:absolute;right:14px;top:calc(env(safe-area-inset-top) + 12px);width:44px;height:44px;padding:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:24px;font-weight:300;line-height:44px}
 @media (prefers-reduced-motion:reduce){.flipper>.face{transition:none}}
 /* 紹介文 */
 .aboutx{margin-top:34px}
-.ax-eyebrow{font-size:11px;letter-spacing:.32em;color:var(--accent);font-weight:700;margin-bottom:10px}
+.ax-eyebrow{font-size:12px;letter-spacing:.2em;color:var(--accent-ink,var(--accent));font-weight:700;margin-bottom:10px}
 .ax-lead p{font-family:var(--serif);font-size:17px;line-height:1.9;margin:0 0 6px;letter-spacing:.02em}
 .ax-lead .blist{margin-top:6px}
 .works{display:grid;gap:12px;margin-top:18px}
@@ -424,18 +424,18 @@ button[disabled]{opacity:.45;cursor:default}
 @keyframes wsweep{0%{opacity:1;background-position:130% 0}100%{opacity:1;background-position:-30% 0}}
 .reveal{transform:perspective(900px) translateY(26px) rotateX(10deg)}
 .work h3{font-family:var(--serif);font-size:18px;font-weight:600;margin:2px 0 8px;letter-spacing:.04em}
-.work p{margin:0 0 6px;font-size:14px;line-height:1.8;color:#3a3a3c}
+.work p{margin:0 0 6px;font-size:15px;line-height:1.8;color:#3a3a3c}
 .blist{list-style:none;padding:0;margin:4px 0 2px}
-.blist li{position:relative;padding-left:16px;font-size:14px;line-height:1.75;margin:3px 0}
+.blist li{position:relative;padding-left:16px;font-size:15px;line-height:1.75;margin:3px 0}
 .blist li::before{content:"";position:absolute;left:2px;top:.72em;width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.75}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
-.tags span{font-size:12px;padding:5px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);color:#3a3a3c}
+.tags span{font-size:13px;padding:5px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);color:#3a3a3c}
 .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease calc(var(--i) * .12s), transform .7s cubic-bezier(.2,.8,.2,1) calc(var(--i) * .12s)}
 .reveal.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.work::before{transform:none}.work h3 .ch,.work .blist li,.work .tags span,.work .wbody p{opacity:1;transform:none;transition:none}.wno{background-size:100% 100%;transition:none}.wsweep{display:none}}
 /* はじめての画面 */
 .setup .hero{padding:26px 0 6px}
-.setup .eyebrow{font-size:11px;letter-spacing:.3em;color:var(--accent);font-weight:700}
+.setup .eyebrow{font-size:12px;letter-spacing:.2em;color:var(--accent-ink,var(--accent));font-weight:700}
 .setup h1{font-family:var(--serif);font-weight:600;font-size:27px;line-height:1.45;letter-spacing:.03em;margin:10px 0 12px}
 .setup .hero p{font-size:14px;line-height:1.85;color:var(--sub);margin:0}
 .setup .editor .pv{top:0}
@@ -491,15 +491,29 @@ button[disabled]{opacity:.45;cursor:default}
 .tz-stage.idle .tz-cd{animation:tzfloat 3.2s ease-in-out infinite}
 .tz-stage.idle{height:clamp(150px,24vh,220px);margin:18px 0 0}
 @keyframes tzfloat{50%{translate:0 -6px}}
-.tz-face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:14px 10px 14px}
-.tz-no{font-size:14px;font-weight:700;letter-spacing:.1em;color:var(--tz)}
-.tz-face svg{width:100%;flex:1;min-height:0;margin:4px 0}
-.tz-face svg *{fill:none;stroke:var(--tz);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:var(--len,400);stroke-dashoffset:var(--len,400)}
-.tz-face.draw svg *{animation:tzink 1.2s ease forwards}
+.tz-face{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:14px 10px 14px;background:var(--fbg,#fff);background-image:var(--fpaper,none);color:var(--ffg,#1c1c1e)}
+.tz-no{font-size:14px;font-weight:700;letter-spacing:.1em;color:var(--fline,var(--tz))}
+.tz-artbox{width:100%;flex:1;min-height:0;margin:4px 0;display:flex;align-items:center;justify-content:center}
+.tz-artbox svg{width:100%;height:100%;display:block}
+.tz-art *{stroke-dasharray:var(--len,400);stroke-dashoffset:var(--len,400)}
+.tz-face.draw .tz-art *{animation:tzink 1.2s ease forwards}
 @keyframes tzink{to{stroke-dashoffset:0}}
-.tz-face.rv svg{transform:rotate(180deg)}
-.tz-nm{font-size:18px;font-weight:800;line-height:1.3}
-.tz-en{font-size:12px;letter-spacing:.1em;color:var(--sub);margin-top:2px;white-space:nowrap}
+.tz-face.tz-show .tz-artbox{animation:tzrev 1s ease both}
+@keyframes tzrev{from{opacity:0;filter:blur(8px);transform:scale(.94)}to{opacity:1;filter:none;transform:none}}
+.tz-face.st-neon.tz-show .tz-artbox{animation:tzrev .6s ease both,tzflick 1.1s .5s steps(1) both}
+@keyframes tzflick{0%{opacity:1}10%{opacity:.25}14%{opacity:1}30%{opacity:.5}34%{opacity:1}}
+.tz-face.st-pixel.tz-show .tz-artbox{animation:tzpix .9s steps(6) both}
+@keyframes tzpix{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+.tz-nm{font-size:18px;font-weight:800;line-height:1.3;color:var(--ffg,#1c1c1e)}
+.tz-en{font-size:12px;letter-spacing:.1em;color:var(--fsub,var(--sub));margin-top:2px;white-space:nowrap}
+.tz-seal{position:absolute;right:10px;bottom:10px;width:24px;height:24px;border-radius:4px;background:#b8322a;color:#fff;font:600 15px/24px var(--serif);text-align:center}
+.tz-stl{font-size:13px;font-weight:700;color:var(--sub);margin:18px 0 8px}
+.tz-styles{display:flex;gap:6px;overflow-x:auto;width:calc(100% + 44px);margin:0 -22px;padding:2px 22px 6px;scrollbar-width:none;justify-content:flex-start}
+.tz-styles::-webkit-scrollbar{display:none}
+.tz-st{flex:none;width:auto;display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:8px 13px 8px 9px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--ink);font-size:14px;font-weight:600}
+.tz-st i{width:18px;height:18px;border-radius:50%;border:2px solid var(--tz);flex:none}
+.tz-st.on{background:var(--tz);border-color:var(--tz);color:#fff}
+.tz-st.on i{border-color:#fff}
 .tz-rv{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;color:var(--tz);background:#fff;border:1px solid var(--tz);padding:2px 8px;border-radius:999px}
 .tz-res{width:100%;opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
 .tz-res.show{opacity:1;transform:none}
@@ -523,7 +537,7 @@ button[disabled]{opacity:.45;cursor:default}
 @media (max-height:700px){.tz-stage{height:clamp(170px,33vh,260px);margin:16px 0 0}}
 @media (orientation:landscape) and (max-height:500px){.tz-stage{height:max(240px,72vh)}.tz-deck{max-width:none}}
 @media (max-width:360px),(max-height:620px){.tz{padding-top:calc(env(safe-area-inset-top) + 50px)}.tz-stage.idle{display:none}.tz-h{font-size:23px;margin:14px 0 8px}.tz-lead{font-size:15px}.tz-go{margin-top:18px}.tz-kw{font-size:26px}}
-@media (prefers-reduced-motion:reduce){.tz *{animation:none!important;transition:none!important}.tz-face svg *{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.tz *{animation:none!important;transition:none!important}.tz-art *{stroke-dashoffset:0}}
 </style>
 </head>
 <body>
@@ -1919,7 +1933,7 @@ const Profile = {
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const isAndroid = /Android/i.test(navigator.userAgent);
 const normName = s => String(s || '').replace(/[\s　]/g, '');
-function setAccent(c){ document.documentElement.style.setProperty('--accent', c.color || '#1f2a44'); }
+function setAccent(c){ const r = document.documentElement.style; r.setProperty('--accent', c.color || '#1f2a44'); r.setProperty('--accent-ink', tzInk(c.color)); }   // 文字や白抜きボタンには、白地で読める濃さの色を使う
 function safeUrl(u){ u = String(u||'').trim(); if(!u) return ''; if(/^www\./i.test(u)) u='https://'+u; return /^(https?:|mailto:|tel:|line:)/i.test(u) ? u : ''; }
 function fmtDate(s){ const d = new Date(s); if (isNaN(d)) return ''; return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate(); }
 
@@ -2187,12 +2201,59 @@ const Tarot = (()=>{
     [21,'世界','THE WORLD','完成','ひとつの仕事が、きれいに仕上がる日です。','ここから大きな輪が広がっていく出会いです。',
       '<ellipse cx="50" cy="50" rx="22" ry="32"/><circle cx="50" cy="50" r="6"/>']
   ];
+  /* 描き直した線画（100×100）。どの画風もこれを元に描き分ける */
+  const ART = [
+    // 0 愚者：崖のふちを歩く旅人、荷物、太陽、小さな犬
+    '<circle cx="83" cy="15" r="7"/><path d="M83 3v4M83 23v4M71 15h4M91 15h4M74.5 6.5l2.8 2.8M88.7 20.7l2.8 2.8M91.5 6.5l-2.8 2.8M77.3 20.7l-2.8 2.8"/><path d="M6 82H58L64 94"/><circle cx="40" cy="33" r="5"/><path d="M40 38L42 58"/><path d="M42 58L36 72M42 58L50 70L54 69"/><path d="M41 45L30 51M41 45L52 38"/><path d="M52 38L59 25"/><circle cx="61" cy="22" r="4.5"/><ellipse cx="22" cy="75" rx="7" ry="4"/><circle cx="31" cy="70" r="3"/><path d="M17 78v4M26 78v4M15 74l-4-3"/>',
+    // 1 魔術師：∞、杖を掲げる人、机の上の4つの道具
+    '<path d="M50 13C44 5 34 7 34 13C34 19 44 21 50 13C56 5 66 7 66 13C66 19 56 21 50 13Z"/><circle cx="50" cy="31" r="5"/><path d="M45 40L40 64H60L55 40Z"/><path d="M50 43L62 30M50 46L38 56"/><path d="M62 30L68 19"/><path d="M14 70H86M20 70V92M80 70V92"/><path d="M22 62h10l-2 8h-6Z"/><circle cx="44" cy="65" r="4"/><path d="M56 70L64 57M58 61l5 3"/><path d="M72 70L78 56"/>',
+    // 2 女教皇：二本の柱、ヴェール、書、足もとの月
+    '<rect x="10" y="24" width="10" height="64"/><rect x="80" y="24" width="10" height="64"/><path d="M7 24h16M77 24h16M7 88h16M77 88h16"/><path d="M20 32Q50 14 80 32"/><path d="M44 28a6 6 0 0 1 12 0"/><circle cx="50" cy="35" r="6"/><path d="M50 41C42 52 38 70 36 84H64C62 70 58 52 50 41Z"/><rect x="45" y="55" width="10" height="13" rx="2"/><path d="M38 90a12 6 0 0 0 24 0a12 4 0 0 1-24 0Z"/>',
+    // 3 女帝：星の冠、ゆったりした衣、盾、両側の麦
+    '<circle cx="37" cy="18" r="1.8"/><circle cx="43" cy="13" r="1.8"/><circle cx="50" cy="11" r="1.8"/><circle cx="57" cy="13" r="1.8"/><circle cx="63" cy="18" r="1.8"/><circle cx="50" cy="26" r="6"/><path d="M50 32C38 44 32 66 28 88H72C68 66 62 44 50 32Z"/><circle cx="50" cy="57" r="7"/><path d="M50 64V76M44 70H56"/><path d="M14 90C16 74 18 62 22 50M18 72l-5-4M19 64l-5-4M21 56l-4-5M18 72l4-5M20 64l4-5"/><path d="M86 90C84 74 82 62 78 50M82 72l5-4M81 64l5-4M79 56l4-5M82 72l-4-5M80 64l-4-5"/>',
+    // 4 皇帝：牡羊の角の玉座、冠、王笏と宝珠、山
+    '<path d="M4 90L16 72L26 84M74 84L84 70L96 90"/><rect x="30" y="34" width="40" height="54"/><path d="M30 34c-8 0-10-8-4-10c4-1 6 2 4 4M70 34c8 0 10-8 4-10c-4-1-6 2-4 4"/><circle cx="50" cy="45" r="6"/><path d="M43 39L45 32L50 36L55 32L57 39"/><path d="M42 54H58V78H42Z"/><path d="M64 72V50"/><circle cx="64" cy="47" r="3"/><circle cx="36" cy="64" r="3.5"/><path d="M36 60.5V57"/><path d="M22 90H78"/>',
+    // 5 法王：三重の冠、祝福の手、三重十字の杖、交差した鍵
+    '<path d="M40 30H60M41 24H59M42 18H58M43 18Q50 6 57 18M40 30L42 18M60 30L58 18"/><circle cx="50" cy="36" r="6"/><path d="M50 42C42 52 38 68 36 82H64C62 68 58 52 50 42Z"/><path d="M58 52L66 46V40M63 41h6"/><path d="M28 86V32M24 38h8M24 44h8M25 50h6"/><path d="M38 96L62 86M62 96L38 86"/><circle cx="36" cy="87" r="2.5"/><circle cx="64" cy="87" r="2.5"/>',
+    // 6 恋人：太陽と翼、向き合うふたり、間の山、木
+    '<circle cx="50" cy="16" r="7"/><path d="M50 4v3M50 25v3M38 16h3M59 16h3M42 8l2 2M56 22l2 2M58 8l-2 2M44 22l-2 2"/><path d="M36 32Q42 24 48 30M64 32Q58 24 52 30"/><circle cx="28" cy="52" r="5"/><path d="M28 57V78M28 78L24 90M28 78L32 90M28 62L36 68"/><circle cx="72" cy="52" r="5"/><path d="M72 57V78M72 78L68 90M72 78L76 90M72 62L64 68"/><path d="M40 90L50 66L60 90"/><path d="M12 90V72"/><circle cx="12" cy="66" r="6"/><path d="M88 90V74M82 74L88 60L94 74Z"/>',
+    // 7 戦車：星の天蓋、乗り手、車体、車輪、走る線
+    '<path d="M22 26Q50 18 78 26M27 26V50M73 26V50"/><circle cx="40" cy="23" r="1.4"/><circle cx="50" cy="21" r="1.4"/><circle cx="60" cy="23" r="1.4"/><circle cx="50" cy="36" r="5"/><path d="M44 50V42H56V50"/><rect x="22" y="50" width="56" height="22" rx="2"/><path d="M42 62H58M46 58Q50 54 54 58"/><circle cx="32" cy="78" r="8"/><circle cx="68" cy="78" r="8"/><path d="M32 70v16M24 78h16M68 70v16M60 78h16"/><path d="M84 56H96M86 64H94M88 72H96"/>',
+    // 8 力：∞、獅子にそっと手を添える人
+    '<path d="M50 12C45 6 37 7 37 12C37 17 45 18 50 12C55 6 63 7 63 12C63 17 55 18 50 12Z"/><circle cx="34" cy="30" r="5"/><path d="M34 35C28 46 26 62 24 88H44C42 70 40 52 34 35Z"/><path d="M37 45Q48 48 55 58"/><circle cx="64" cy="64" r="10"/><path d="M64 48l3 4l4-2l1 5l5 0l-2 5l4 3l-4 3l2 5l-5 0l-1 5l-4-2l-3 4l-3-4l-4 2l-1-5l-5 0l2-5l-4-3l4-3l-2-5l5 0l1-5l4 2Z"/><circle cx="60" cy="62" r="1"/><circle cx="68" cy="62" r="1"/><path d="M60 68Q64 71 68 68"/><path d="M74 70Q90 72 90 88M72 88V78"/><path d="M8 90H94"/>',
+    // 9 隠者：山の上、頭巾の人、杖、星の入ったランタン
+    '<path d="M4 92L40 76L60 82L96 92"/><path d="M50 18C40 20 38 32 40 40L32 86H64L58 40C60 32 58 20 50 18Z"/><path d="M45 30Q50 36 55 30"/><path d="M68 24V88M58 46L68 44"/><path d="M42 46L28 50M28 50V54"/><path d="M23 54H33L31 68H25Z"/><path d="M28 57L29 61L28 65L27 61ZM25 61H31"/><path d="M18 58l-4-2M18 64l-4 1"/>',
+    // 10 運命の輪：二重の輪、8本の輻、回る矢印、四隅の雲
+    '<circle cx="50" cy="50" r="30"/><circle cx="50" cy="50" r="20"/><circle cx="50" cy="50" r="5"/><path d="M50 30V45M50 55V70M30 50H45M55 50H70M35.9 35.9L46.5 46.5M53.5 53.5L64.1 64.1M64.1 35.9L53.5 46.5M46.5 53.5L35.9 64.1"/><path d="M50 14v6M50 80v6M14 50h6M80 50h6"/><path d="M76 20Q88 30 88 42M84 39l4 4l3-5"/><path d="M6 14q2-6 8-4q4-4 8 0"/><path d="M78 92q2-6 8-4q4-4 8 0"/>',
+    // 11 正義：剣と天秤
+    '<path d="M50 8V72M42 22H58M50 8L48 12M50 8L52 12"/><path d="M50 72V78"/><circle cx="50" cy="81" r="3"/><path d="M20 34H80"/><path d="M20 34L12 54M20 34L28 54"/><path d="M10 54Q20 64 30 54Z"/><path d="M80 34L72 54M80 34L88 54"/><path d="M70 54Q80 64 90 54Z"/><path d="M34 92H66M40 86H60"/>',
+    // 12 吊るされた男：木の枠、逆さの人、頭の光
+    '<path d="M14 12H86M22 12V92M78 12V92"/><path d="M18 16l-4 3M82 16l4 3"/><path d="M50 12V24"/><path d="M50 24V46"/><path d="M50 28L60 34L50 40"/><path d="M44 46H56L54 66H46Z"/><path d="M46 50L40 60L46 66M54 50L60 60L54 66"/><circle cx="50" cy="73" r="6"/><circle cx="50" cy="73" r="11"/><path d="M50 86v4M38 81l-3 3M62 81l3 3"/>',
+    // 13 死神：二つの塔の間に昇る朝日、川、鳥（区切りと再生）
+    '<rect x="14" y="48" width="10" height="22"/><path d="M14 48L19 42L24 48"/><rect x="76" y="48" width="10" height="22"/><path d="M76 48L81 42L86 48"/><path d="M6 70H94"/><path d="M34 70A16 16 0 0 1 66 70"/><path d="M50 48V40M36 56l-6-5M64 56l6-5M30 64h-6M70 64h6"/><path d="M10 80Q20 76 30 80T50 80T70 80T90 80M20 88Q30 84 40 88T60 88T80 88"/><path d="M58 24q4-4 8 0q4-4 8 0"/><path d="M30 30q3-3 6 0q3-3 6 0"/>',
+    // 14 節制：翼の人、二つの杯の間を流れる水、水辺
+    '<circle cx="40" cy="22" r="5"/><path d="M36 28Q20 20 14 34Q24 34 34 38M44 28Q58 18 64 30"/><path d="M40 27C34 40 32 60 30 82H50C48 60 46 40 40 27Z"/><path d="M37 40L40 34L43 40Z"/><path d="M22 44h10l-2 9h-6Z"/><path d="M56 62h10l-2 9h-6Z"/><path d="M30 52Q46 54 58 63"/><path d="M66 40L74 30L82 40"/><circle cx="74" cy="22" r="4"/><path d="M44 90Q54 86 64 90T84 90"/>',
+    // 15 悪魔：角と翼の影、台座、ゆるい鎖につながれたふたり（外せる鎖）
+    '<path d="M36 30Q38 16 44 24M64 30Q62 16 56 24"/><path d="M36 30Q50 20 64 30"/><path d="M34 38Q16 28 8 42Q16 40 22 46Q26 40 32 46M66 38Q84 28 92 42Q84 40 78 46Q74 40 68 46"/><rect x="40" y="46" width="20" height="14"/><path d="M44 60Q36 70 30 70M56 60Q64 70 70 70"/><circle cx="38" cy="67" r="2"/><circle cx="62" cy="67" r="2"/><circle cx="26" cy="64" r="4"/><path d="M26 68V84M26 84L22 92M26 84L30 92"/><circle cx="74" cy="64" r="4"/><path d="M74 68V84M74 84L70 92M74 84L78 92"/>',
+    // 16 塔：雷に打たれる塔、飛ぶ冠、火の粉
+    '<path d="M38 90V36H62V90"/><rect x="45" y="46" width="10" height="8"/><rect x="45" y="64" width="10" height="8"/><path d="M46 90V82a4 4 0 0 1 8 0V90"/><path d="M58 28L62 16L68 22L74 14L77 26Z"/><path d="M92 4L72 22L80 24L64 38"/><path d="M34 50l-6-2M34 60l-7 2M66 56l7-2M66 70l6 2"/><rect x="22" y="30" width="4" height="4"/><rect x="82" y="46" width="4" height="4"/><path d="M8 90H92"/>',
+    // 17 星：大きな星と小さな星、水を注ぐ人、泉
+    '<path d="M50 8L53 19L64 22L53 25L50 36L47 25L36 22L47 19Z"/><path d="M43 15L57 29M57 15L43 29"/><circle cx="18" cy="12" r="1.8"/><circle cx="82" cy="12" r="1.8"/><circle cx="12" cy="28" r="1.8"/><circle cx="88" cy="28" r="1.8"/><circle cx="24" cy="40" r="1.8"/><circle cx="76" cy="40" r="1.8"/><circle cx="44" cy="56" r="4"/><path d="M44 60L46 72L56 76M46 72L40 84"/><path d="M45 64L34 68M46 64L58 64"/><path d="M30 66h6l-1 6h-4ZM58 61h6l-1 6h-4Z"/><path d="M33 72Q32 80 28 88M61 67Q66 76 72 86"/><path d="M8 90Q22 84 36 90T64 90T92 90"/>',
+    // 18 月：月としずく、二つの塔、曲がりくねる道、水辺
+    '<circle cx="50" cy="20" r="11"/><path d="M54 12A8 8 0 1 0 54 28A6 6 0 1 1 54 12Z"/><path d="M34 36v3M50 38v3M66 36v3"/><rect x="8" y="46" width="10" height="28"/><path d="M8 46L13 40L18 46"/><rect x="82" y="46" width="10" height="28"/><path d="M82 46L87 40L92 46"/><path d="M50 92Q36 82 50 74T50 56T50 46"/><path d="M4 76Q26 68 40 76M60 76Q74 68 96 76"/><path d="M20 92Q35 86 50 92T80 92"/>',
+    // 19 太陽：大きな太陽、壁、ひまわり、草
+    '<circle cx="50" cy="32" r="14"/><path d="M50 12V5M50 52V59M30 32H23M70 32H77M35.9 17.9L31 13M64.1 46.1L69 51M64.1 17.9L69 13M35.9 46.1L31 51"/><path d="M8 70H92M8 80H92M20 70V80M36 70V80M52 70V80M68 70V80M84 70V80"/><path d="M24 70V61M76 70V61"/><circle cx="24" cy="57" r="4"/><circle cx="76" cy="57" r="4"/><path d="M8 92H92"/><path d="M16 92l2-4M30 92l2-4M44 92l2-4M58 92l2-4M72 92l2-4M86 92l2-4"/>',
+    // 20 審判：雲とラッパ、旗、起き上がる3人、水
+    '<path d="M14 26Q14 16 24 18Q28 8 40 14Q48 8 54 18Q64 16 62 26Z"/><path d="M44 24L72 44"/><path d="M70 40L80 40L74 50Z"/><path d="M56 34L58 44L66 42L64 32Z"/><circle cx="30" cy="66" r="4"/><path d="M30 70V82M30 72L24 64M30 72L36 64"/><circle cx="50" cy="68" r="4"/><path d="M50 72V84M50 74L44 66M50 74L56 66"/><circle cx="70" cy="66" r="4"/><path d="M70 70V82M70 72L64 64M70 72L76 64"/><path d="M18 84H42V90H18ZM58 84H82V90H58Z"/><path d="M6 95Q20 91 34 95T62 95T94 95"/>',
+    // 21 世界：月桂樹の輪、踊る人、四隅の印
+    '<ellipse cx="50" cy="50" rx="24" ry="34"/><path d="M27 36l-5-3M26 48l-5-2M26 60l-5 1M28 72l-5 3M73 36l5-3M74 48l5-2M74 60l5 1M72 72l5 3"/><path d="M44 16L50 20L56 16M44 84L50 80L56 84"/><circle cx="50" cy="36" r="4"/><path d="M50 40C46 48 48 56 50 62M50 62L44 72M50 62L56 68L52 74M49 44L40 40M51 44L60 48"/><path d="M44 46Q50 54 58 44"/><path d="M38 38L36 44M62 48L64 42"/><circle cx="12" cy="12" r="5"/><circle cx="88" cy="12" r="5"/><circle cx="12" cy="88" r="5"/><circle cx="88" cy="88" r="5"/>'
+  ];
   const ROMAN = ['0','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'];
   function draw(){
     const a = new Uint32Array(1); (self.crypto || window.crypto).getRandomValues(a);
     return a[0] % 22;
   }
-  const get = i => { const c = C[i]; return {no:c[0], roman:ROMAN[c[0]], name:c[1], en:c[2], key:c[3], work:c[4], meet:c[5], art:c[6]}; };
+  const get = i => { const c = C[i]; return {no:c[0], roman:ROMAN[c[0]], name:c[1], en:c[2], key:c[3], work:c[4], meet:c[5], art:ART[i] || c[6]}; };
   return {draw, get, count:C.length};
 })();
 
@@ -2205,10 +2266,10 @@ const TAROT_TEXT = [
   up:{k:'自由なはじまり', m:[
    '肩書きや損得より先に、「この人、面白い」で始まる出会いです。何が起きるか分からないぶん、想像していなかった扉が開く可能性を持っています。',
    '身軽さです。ふたりとも、思いついたら試してみる気軽さを持っています。「とりあえずやってみよう」が、この関係のいちばんの原動力になります。',
-   '予定外の寄り道から、いい展開が生まれる流れです。最初の目的とは違う所に着くかもしれませんが、そのほうが楽しい結果になりそうです。'],
+   'この先は、予定外の寄り道からいい展開が生まれそうです。最初の目的とは違う所に着くかもしれませんが、そのほうが楽しい結果になりそうです。'],
    a:'「今度ちょっとやってみたいこと」を1つずつ話して、片方を一緒に試す日を決める', t:'最近、思いつきで始めて正解だったことは？'},
   rv:{k:'足元を見る', m:[
-   '勢いだけで進みがちな自分に、ブレーキの大切さを思い出させてくれる出会いです。急がずに、相手のことを少しずつ知っていくのが吉です。',
+   '勢いだけで進みがちな自分に、ブレーキの大切さを思い出させてくれる出会いです。急がずに、相手のことを少しずつ知っていくのがよさそうです。',
    'お互いの「つい飛びついてしまう癖」を、笑いながら指摘し合えることです。冷静な目が一つ増えるだけで、失敗がぐっと減ります。',
    '準備を一つ足すことで、うまく転がり始める流れです。「とりあえず」で動く前に、行き先だけは決めておくのがヒントです。'],
    a:'次に会う前に、話したいことを3つだけメモしておく', t:'勢いで決めて、あとで焦った経験は？'}},
@@ -2216,7 +2277,7 @@ const TAROT_TEXT = [
   up:{k:'手段はそろっている', m:[
    '必要なものは、もうそろっている出会いです。お互いが持っているもの（得意なこと、知り合い、経験）を並べると、それだけで何か一つ始められます。足りないのは準備ではなく、最初のひと声です。',
    'アイデアをすぐ形にする力です。片方が考えて片方が手を動かすと、話が早く進みやすい組み合わせです。話し合うより、試しに作って見せ合うのが向いています。',
-   '小さく始めたことが、思ったより早く形になる流れです。最初の1か月の動き方が、その後の弾みになりそうです。'],
+   '小さく始めたことが、思ったより早く形になりそうです。最初の1か月の動き方が、その後の弾みになりそうです。'],
    a:'お互いが「今すぐ出せるもの」を1つずつ挙げて、組み合わせ案を1週間以内に送る', t:'最近、自分で作ったもの・始めたことは？'},
   rv:{k:'眠っている才能', m:[
    '始められる材料はあるのに、まだ手をつけていない状態を表します。この出会いは、そのきっかけをくれるかもしれません。完璧に準備がそろうのを待たないことがヒントです。',
@@ -2227,18 +2288,18 @@ const TAROT_TEXT = [
   up:{k:'静かな理解', m:[
    '多くを話さなくても、考えていることが伝わる出会いです。にぎやかに盛り上がるより、落ち着いた場所でゆっくり話すほうが、相手の良さがよく見えます。',
    '直感と洞察です。お互い、相手が言葉にしていない部分まで汲み取れるタイプ。表面的な情報より、「なぜそう思うのか」を話すと深まります。',
-   'すぐに答えは出ないものの、時間をかけて信頼が積み上がる流れです。焦って結論を出さず、二度三度と会う中で見えてくるものがあります。'],
+   'すぐに答えは出なくても、時間をかけて信頼が積み上がっていく関係です。焦って結論を出さず、二度三度と会う中で見えてくるものがあります。'],
    a:'次はにぎやかな場ではなく、静かなお店で1時間だけ話す約束をする', t:'最近、本や映画で「なるほど」と思ったことは？'},
   rv:{k:'本音を出す', m:[
    '考えすぎて、思っていることを口に出せずにいる自分に気づかせる出会いです。この相手には、もう少し本音を見せても大丈夫そうです。',
    '遠慮をやめて、率直に話し合えることです。慎重さは大切ですが、ここでは「実は」と切り出したほうが、関係が一気に近づきます。',
-   'ひとりで抱えていた考えを話すことで、霧が晴れていく流れです。頭の中だけで答えを探すのをやめると、道が見えてきます。'],
+   'ひとりで抱えていた考えを話すと、霧が晴れていきます。頭の中だけで答えを探すのをやめると、道が見えてきます。'],
    a:'今ひとりで考え込んでいることを、軽い相談として話してみる', t:'最近、ひとりで悩んで損したと思ったことは？'}},
  { // 3 女帝
   up:{k:'実りと豊かさ', m:[
    '会うたびに、何かしら得るものがある出会いです。知識、人の紹介、楽しい時間。お互いに与え合うことで、どちらにとってもプラスになっていきそうです。',
    '育てる力です。すぐに結果を求めず、相手の挑戦を気長に応援できる関係。一緒に何かを育てる（企画、場所、仲間づくり）と真価を発揮します。',
-   'じっくり育てたものが、季節が変わるころに実を結ぶ流れです。種まきから収穫まで、焦らず楽しむ余裕が実りを大きくします。'],
+   'じっくり育てたものが、季節が変わるころに実を結びそうです。種まきから収穫まで、焦らず楽しむ余裕が実りを大きくします。'],
    a:'相手に役立ちそうな人か情報を1つ、今週中に紹介する', t:'ここ1年で、育ててよかったと思うものは？'},
   rv:{k:'受け取る番', m:[
    'いつも与える側に回りがちな自分に、「受け取ってもいい」と教えてくれる出会いです。頼ることも、関係を育てる方法の一つです。',
@@ -2249,7 +2310,7 @@ const TAROT_TEXT = [
   up:{k:'土台を築く', m:[
    '頼れる柱になる出会いです。相手のぶれない姿勢や経験が、自分の迷いを整理してくれます。長く付き合えそうな、しっかりした関係です。',
    '仕組みを作る力です。思いつきを計画に、計画を約束に変えていくのが得意な組み合わせ。役割と期限を決めると、物事が進みやすくなります。',
-   '時間をかけて、揺るがない形ができあがる流れです。最初に決めたルールや約束を守り続けることが、そのまま信頼の土台になります。'],
+   '時間をかけるほど、揺るがない形ができあがっていきます。最初に決めたルールや約束を守り続けることが、そのまま信頼の土台になります。'],
    a:'一緒にやれそうなことがあれば、「誰が・いつまでに」を決めてしまう', t:'これだけは譲れない、自分ルールは？'},
   rv:{k:'力を抜く', m:[
    '「ちゃんとしなきゃ」と力が入りすぎている自分に気づかせる出会いです。この相手の前では、肩書きや立場を少し下ろしても大丈夫です。',
@@ -2260,12 +2321,12 @@ const TAROT_TEXT = [
   up:{k:'信頼と学び', m:[
    '学び合える出会いです。相手の経験や考え方から、教科書には載っていないことを教わることになりそうです。自分が教える側に回る場面もありそうです。',
    '信頼です。約束を守る、筋を通す、といった当たり前を大切にできる関係。紹介や推薦など、人と人をつなぐ場面で力を発揮します。',
-   '良い相談相手として、長く続く関係になる流れです。困ったときに思い出す、思い出される存在になっていきます。'],
+   '良い相談相手として、長く続く関係になりそうです。困ったときに思い出す、思い出される存在になっていきます。'],
    a:'相手の分野で、ずっと気になっていたことを1つ質問してみる', t:'人生でいちばん影響を受けた人は？'},
   rv:{k:'自分流でいい', m:[
    '「こうあるべき」という型から、自由になるきっかけをくれる出会いです。常識より、自分たちが納得できるやり方を探していいのだと気づけます。',
    '型にとらわれない発想です。業界の慣習や「普通」を一度疑ってみると、ふたりならではのやり方が見えてきます。',
-   '前例のないやり方が、新しい道を開く流れです。誰かの正解をなぞるより、試行錯誤を楽しむほうがうまくいきます。'],
+   '前例のないやり方こそ、新しい道を開くかもしれません。誰かの正解をなぞるより、試行錯誤を楽しむほうがうまくいきます。'],
    a:'「みんなやっているけど、本当は不要だと思うこと」を話してみる', t:'常識だと言われて、納得していないことは？'}},
  { // 6 恋人
   up:{k:'響き合う', m:[
@@ -2276,29 +2337,29 @@ const TAROT_TEXT = [
   rv:{k:'選ぶ勇気', m:[
    'いくつかの選択肢の間で、迷っている自分を映す出会いです。この相手と話すことで、本当はどちらを選びたいのかが見えてきます。',
    '違いを認め合えることです。好みや考えがずれる部分こそ、話してみると新しい発見があります。無理に合わせなくて大丈夫です。',
-   '迷いが晴れて、ひとつに決められる流れです。すべてを取ろうとせず、何を手放すかを決めると前に進めます。'],
+   'この先、迷いが晴れてひとつに決められそうです。すべてを取ろうとせず、何を手放すかを決めると前に進めます。'],
    a:'今迷っていることを、相手に「どっちがいいと思う？」と聞いてみる', t:'最近、迷った末に選んだものは？'}},
  { // 7 戦車
   up:{k:'前へ進む', m:[
    '勢いをくれる出会いです。止まっていた計画や、先延ばしにしていたことが、この相手と話すことで動き出します。',
    '推進力です。ふたりとも、決めたら一気に進むタイプ。目標をはっきり言葉にすると、形になるのが早そうです。',
-   '動き出すと、成果が目に見えやすい流れです。迷ったら止まるより進む。勢いがあるうちに次の一歩を決めておくのが吉です。'],
+   '動き出すと、成果が目に見えやすい流れです。迷ったら止まるより進む。勢いがあるうちに、次の一歩を決めておきましょう。'],
    a:'「3か月後にこうなっていたい」をお互いに宣言する', t:'今年中に、これだけは達成したいことは？'},
   rv:{k:'向きを整える', m:[
    '走り続けて、少し疲れている自分に気づかせる出会いです。この相手と話すと、どこに向かっていたのかを思い出せます。',
    '進む方向をそろえる力です。ふたりの目標が少しずれていても、それを確かめ合うだけで、空回りがなくなります。',
-   '一度立ち止まって方向を直したあと、前よりも速く進める流れです。焦りは禁物。地図を広げる時間が近道になります。'],
+   '一度立ち止まって方向を直せば、前よりも速く進めます。焦りは禁物。地図を広げる時間が近道になります。'],
    a:'今いちばん力を入れていることの「目的」を、相手に一言で説明してみる', t:'最近、焦って空回りしたことは？'}},
  { // 8 力
   up:{k:'やわらかな強さ', m:[
    '穏やかだけれど芯の強い出会いです。相手の落ち着きや粘り強さに触れて、自分の中にある強さにも気づけそうです。',
    '思いやりと忍耐です。相手のペースを尊重しながら、一緒に粘り強く進める関係。難しい状況ほど、この組み合わせが真価を発揮します。',
-   '時間がかかることも、続けるうちに確かな成果につながる流れです。力ずくではなく、相手を信じて任せる場面がカギになります。'],
+   '時間がかかることも、続けるうちに確かな成果につながっていきます。力ずくではなく、相手を信じて任せる場面がカギになります。'],
    a:'相手が今がんばっていることを聞いて、自分にできる応援を1つ申し出る', t:'これだけは、ずっと続けていることは？'},
   rv:{k:'自分を信じる', m:[
    '自信をなくしかけている自分を、そっと励ましてくれる出会いです。相手の何気ない一言が、思った以上に支えになります。',
    'お互いの弱さを見せられることです。強がらずに「実はここが苦手」と言えると、補い合える関係になります。',
-   '我慢しすぎていたことを手放したとき、本来の力が戻ってくる流れです。無理を続けるより、ひと休みする勇気を。'],
+   '我慢しすぎていたことを手放すと、本来の力が戻ってきます。無理を続けるより、ひと休みする勇気を。'],
    a:'最近の「ちょっとしんどかったこと」を、軽く話してみる', t:'落ち込んだとき、どうやって立ち直りますか？'}},
  { // 9 隠者
   up:{k:'深く知る', m:[
@@ -2309,7 +2370,7 @@ const TAROT_TEXT = [
   rv:{k:'外へ出る', m:[
    'ひとりでこもりがちな自分を、外へ連れ出してくれる出会いです。考えるだけの時間は十分。次は人と話すことで答えが見つかります。',
    'お互いの世界を広げ合えることです。普段は行かない場所、会わない人を紹介し合うと、新しい刺激が生まれます。',
-   '殻を破って動き出したとき、思わぬ縁がつながる流れです。誘われたら、迷わず一度は乗ってみるのが吉です。'],
+   '殻を破って動き出すと、思わぬ縁がつながりそうです。誘われたら、一度は乗ってみるのがおすすめです。'],
    a:'相手がよく行く場所やイベントに、一度ついて行く約束をする', t:'最近、新しく行ってみた場所は？'}},
  { // 10 運命の輪
   up:{k:'転機の到来', m:[
@@ -2331,7 +2392,7 @@ const TAROT_TEXT = [
   rv:{k:'見直しのとき', m:[
    'どこかで無理をしている、偏っていると気づかせてくれる出会いです。この相手の率直な意見が、バランスを取り戻すヒントになります。',
    'お互いに「おかしい」と言い合えることです。遠慮して黙るより、気になったことは早めに伝えたほうが関係は健全に保たれます。',
-   '一度保留にした判断を、改めて見直すことで、より良い答えにたどり着く流れです。急いで白黒をつけなくて大丈夫です。'],
+   '一度保留にした判断を見直すと、より良い答えにたどり着けそうです。急いで白黒をつけなくて大丈夫です。'],
    a:'最近「なんだか不公平だな」と感じていることを、相手に聞いてもらう', t:'最近、考えが変わったことは？'}},
  { // 12 吊るされた男
   up:{k:'見方を変える', m:[
@@ -2342,13 +2403,13 @@ const TAROT_TEXT = [
   rv:{k:'我慢を手放す', m:[
    '必要のない我慢を続けている自分に気づかせる出会いです。その我慢、本当に意味がありますか、と問いかけてくれる相手です。',
    '動き出すきっかけを与え合えることです。ふたりで話すうちに、「もう待たなくていい」と気づけます。',
-   '長く止まっていたことが、ようやく動き出す流れです。待つ時期は終わり。小さくても一歩を踏み出しましょう。'],
+   '長く止まっていたことが、ようやく動き出しそうです。待つ時期は終わり。小さくても一歩を踏み出しましょう。'],
    a:'先延ばしにしていることを1つ挙げて、着手する日を相手の前で決める', t:'ずっと先延ばしにしていることは？'}},
  { // 13 死神
   up:{k:'区切りと再生', m:[
    'ひとつの区切りと、新しい始まりを表す出会いです。これまでの自分から一歩進みたいときに、ちょうどいい刺激をくれる相手です。',
    '新しく始め直す力です。古いやり方を卒業して、ゼロから組み立てるとき、心強い相棒になります。',
-   '何かが終わり、そのぶん新しいものが入ってくる流れです。手放すことを恐れなければ、次に入ってくるものを楽しめそうです。'],
+   '何かが終われば、そのぶん新しいものが入ってきます。手放すことを恐れなければ、次に入ってくるものを楽しめそうです。'],
    a:'「今年で卒業したいこと」を1つ、お互いに決める', t:'やめてみて、よかったことは？'},
   rv:{k:'変わる準備', m:[
    '変わりたい気持ちと、変わることへのためらいの間にいる自分を映す出会いです。この相手は、その背中をそっと押してくれます。',
@@ -2359,27 +2420,27 @@ const TAROT_TEXT = [
   up:{k:'ほどよく混ざる', m:[
    '違うもの同士が、ほどよく混ざり合う出会いです。分野も考え方も違うからこそ、組み合わせたときに新しい何かが生まれます。',
    '調整力です。お互いの意見の真ん中を見つけるのが上手な組み合わせ。対立しても、うまく折り合いをつけられます。',
-   '無理なく自然に、関係が育っていく流れです。急がず、混ぜすぎず。ちょうどいい距離感が長続きの秘訣です。'],
+   '無理なく自然に、関係が育っていきそうです。急がず、混ぜすぎず。ちょうどいい距離感が長続きの秘訣です。'],
    a:'お互いの分野を1つずつ挙げて、掛け合わせたら何ができそうか話す', t:'意外な組み合わせで、うまくいったことは？'},
   rv:{k:'配分を見直す', m:[
    '忙しさや気持ちのバランスが崩れている自分に気づかせる出会いです。この相手との時間が、いい息抜きになりそうです。',
    'ちぐはぐさを笑い合えることです。ペースや温度感が違っても、それを確かめ合えば、ちょうどいい落としどころが見つかります。',
-   '偏っていた配分を整えたとき、ぐっと楽になる流れです。全部に全力ではなく、力の入れどころを選びましょう。'],
+   '偏っていた配分を整えると、ぐっと楽になります。全部に全力ではなく、力の入れどころを選びましょう。'],
    a:'最近の時間の使い方で「多すぎ」「少なすぎ」なものを話してみる', t:'最近、ちゃんと休めていますか？'}},
  { // 15 悪魔
   up:{k:'強く引き合う', m:[
    '一度会ったら忘れられない、強い印象を残す出会いです。惹かれる理由がはっきりしなくても、その印象自体を話のきっかけにしてみてください。',
    '夢中になれる力です。好きなことに没頭する熱量が、ふたりの間で増幅されます。ただし、のめり込みすぎには注意。',
-   '深く結びつく関係になる流れです。お互いを大切にするためにも、「ここまで」という線を最初に決めておくと安心です。'],
+   '深く結びつく関係になりそうです。お互いを大切にするためにも、「ここまで」という線を最初に決めておくと安心です。'],
    a:'お互いの「やめられない好きなもの」を打ち明け合う', t:'時間を忘れて没頭してしまうものは？'},
   rv:{k:'しがらみを解く', m:[
    '縛られていたものから自由になるきっかけをくれる出会いです。義理や惰性で続けていることを、見直すタイミングです。',
    '断ち切る勇気を与え合えることです。お互いに「それ、やめてもいいんじゃない？」と言える関係は貴重です。',
-   '重荷を下ろして、身軽になっていく流れです。手放したぶん、新しいことに使える時間と気持ちが生まれます。'],
+   '重荷を下ろすほど、身軽になっていきます。手放したぶん、新しいことに使える時間と気持ちが生まれます。'],
    a:'惰性で続けていることを1つ挙げて、やめるか続けるかを相手と決める', t:'思い切ってやめたもので、清々したものは？'}},
  { // 16 塔
   up:{k:'前提が変わる', m:[
-   'これまでのやり方を見直すきっかけになる出会いです。相手の一言で、当たり前だと思っていた前提がひっくり返るかもしれません。その驚きは、刺激として受け取るのが吉です。',
+   'これまでのやり方を見直すきっかけになる出会いです。相手の一言で、当たり前だと思っていた前提がひっくり返るかもしれません。その驚きは、刺激として受け取るのがよさそうです。',
    '古いやり方を壊して作り直す力です。業界や世間の常識に縛られない視点を、相手が持ち込んでくれます。',
    '今の計画が一度崩れて、別の形で立ち上がる展開です。予定どおりに進まなくても、それは悪い知らせではなく、作り直しの合図です。'],
    a:'「本当はやめたいのに続けていること」を1つ挙げて、相手に意見を聞く', t:'仕事や人生で、いちばんひっくり返った経験は？'},
@@ -2392,7 +2453,7 @@ const TAROT_TEXT = [
   up:{k:'希望の光', m:[
    '未来に希望を感じさせてくれる出会いです。相手の夢や目標を聞くと、自分も何かを始めたくなる。そんな前向きな縁です。',
    'ひらめきと理想です。「こうなったらいいね」を語り合える関係。理想を口にすることで、それが少しずつ現実に近づきます。',
-   '少し先の未来に、明るい兆しが見えてくる流れです。すぐに結果が出なくても、目指す方向を確かめ合えるのは心強いことです。'],
+   '少し先に、明るい兆しが見えてきそうです。すぐに結果が出なくても、目指す方向を確かめ合えるのは心強いことです。'],
    a:'お互いの「いつか叶えたいこと」を1つずつ話してみる', t:'子どものころの夢は何でしたか？'},
   rv:{k:'希望を取り戻す', m:[
    '自信や希望を少し見失っている自分を、もう一度照らしてくれる出会いです。相手の言葉に、忘れていた夢を思い出すかもしれません。',
@@ -2403,7 +2464,7 @@ const TAROT_TEXT = [
   up:{k:'想像の扉', m:[
    'まだお互いに知らないことが多い出会いです。最初の印象だけで判断せず、少しずつ相手を知っていく過程そのものを楽しんで。',
    '想像力と感性です。言葉にならない感覚や、ちょっと不思議な話で盛り上がれる関係。創作やアイデア出しで力を発揮します。',
-   'しばらくは先が読めない流れです。不安になったら、思い込みで決めつけず、直接聞いてみるのがいちばんの近道です。'],
+   'しばらくは先が読めないかもしれません。不安になったら、思い込みで決めつけず、直接聞いてみるのがいちばんの近道です。'],
    a:'気になっていることは推測せず、そのまま質問してみる', t:'最近見た、印象に残っている夢は？'},
   rv:{k:'霧が晴れる', m:[
    'もやもやしていたことが、すっきり晴れるきっかけになる出会いです。相手と話すうちに、何に迷っていたのかがはっきりします。',
@@ -2414,12 +2475,12 @@ const TAROT_TEXT = [
   up:{k:'明るい成功', m:[
    '一緒にいるだけで明るい気持ちになれる出会いです。素直に笑い合える、エネルギーをもらえる関係の始まりです。',
    '前向きさと素直さです。ふたりとも、良いことは良いと言える人。その明るさが、まわりの人も巻き込んでいきます。',
-   'ものごとが順調に進み、うれしい結果につながる流れです。ふたりで喜べる何かを、一緒に目指せそうです。'],
+   'ものごとが順調に進み、うれしい結果につながりそうです。ふたりで喜べる何かを、一緒に目指せそうです。'],
    a:'うまくいったら一緒にお祝いしよう、と小さな目標を決める', t:'最近いちばん笑ったことは？'},
   rv:{k:'雲の向こうの太陽', m:[
    '少し元気をなくしている時期に、本来の明るさを思い出させてくれる出会いです。相手の笑顔が、いい気分転換になります。',
    '気取らずにいられることです。調子がいいときだけでなく、そうでないときも素のままで話せる関係です。',
-   '一時的な曇りが晴れて、また明るい日が戻ってくる流れです。結果を急がず、楽しむことを優先すると、気持ちも晴れやすくなります。'],
+   '一時的な曇りが晴れれば、また明るい日が戻ってきます。結果を急がず、楽しむことを優先すると、気持ちも晴れやすくなります。'],
    a:'次は仕事の話抜きで、ただ楽しい時間を過ごす約束をする', t:'元気がないとき、何をしますか？'}},
  { // 20 審判
   up:{k:'呼び覚まされる', m:[
@@ -2441,9 +2502,122 @@ const TAROT_TEXT = [
   rv:{k:'あと一歩', m:[
    'もう少しで完成する何かに、最後のひと押しをくれる出会いです。仕上げに必要なものを、この相手が持っているかもしれません。',
    '締めくくる力です。始めるのは得意でも、終わらせるのは苦手。そんなとき、ふたりで「最後までやろう」と言い合えます。',
-   '中途半端になっていたことを仕上げて、次の段階へ進む流れです。終わらせてこそ、次のスタートが切れます。'],
+   '中途半端になっていたことを仕上げれば、次の段階へ進めます。終わらせてこそ、次のスタートが切れます。'],
    a:'やりかけのことを1つ挙げて、仕上げる日を決める', t:'途中のままになっている計画は？'}}
 ];
+
+/* ━━━━━━━━━━ タロットの画風（すべて画面上でプログラムが描く。外部サービスは使わない）━━━━━━━━━━
+   同じ線画（100×100）を元に、画風ごとに描き分ける。art() は <svg> の文字列を返す（ドット絵だけは Promise）。
+   bg・fg・sub・line は、カード表面の地の色・名前の色・英名の色・枠の色 */
+let TZ_UID = 0;
+const TZ_STYLES = (()=>{
+  const S = (body, defs, extra) => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"' + (extra || '') + '><defs>' + (defs || '') + '</defs>' + body + '</svg>';
+  const rot = (rv, g) => rv ? '<g transform="rotate(180 50 50)">' + g + '</g>' : g;
+  // 線画の各要素を取り出す（色や塗りを1つずつ変えるため）
+  const parts = art => (art.match(/<(path|circle|rect|ellipse|line|polyline|polygon)\b[^>]*\/>/g) || []);
+  const closed = p => /^<(circle|rect|ellipse|polygon)/.test(p) || /[Zz]"/.test(p);
+  const withAttr = (p, attrs) => p.replace(/\/>$/, ' ' + attrs + '/>');
+  const mix = (hex, to, k) => { const a = hex.match(/\w\w/g).map(h => parseInt(h, 16)), b = to.match(/\w\w/g).map(h => parseInt(h, 16));
+    return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * k).toString(16).padStart(2, '0')).join(''); };
+  const grain = (id, op) => '<filter id="g' + id + '" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3"/><feColorMatrix values="0 0 0 0 .35  0 0 0 0 .3  0 0 0 0 .25  0 0 0 ' + op + ' 0"/></filter>';
+
+  return [
+    { id:'line', name:'線画', bg:'#fff', fg:'#1c1c1e', sub:'#5f5f64', draw:true,
+      art:(t, ink, rv) => S(rot(rv, '<g class="tz-art" fill="none" stroke="' + ink + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + t.art + '</g>')) },
+
+    { id:'water', name:'水彩', bg:'#fbf8f2', paper:true, fg:'#2b2b2b', sub:'#6b655c',
+      art:(t, ink, rv) => { const id = ++TZ_UID, cols = [mix(ink.slice(1), 'ffffff', .55), '#e59a6b', '#6fa8cf', '#9cc58a', '#e6c35c'];
+        const ps = parts(t.art);
+        const wash = ps.map((p, i) => withAttr(p, 'fill="' + cols[i % cols.length] + '" fill-opacity="' + (closed(p) ? .55 : 0) + '" stroke="' + cols[i % cols.length] + '" stroke-opacity=".55" stroke-width="8"')).join('');
+        const edge = ps.map((p, i) => withAttr(p, 'stroke="' + mix(cols[i % cols.length].slice(1), '000000', .35) + '"')).join('');
+        let sp = ''; for (let i = 0; i < 9; i++){ const r = (Math.sin(id * 7 + i * 13) + 1) / 2, q = (Math.cos(id * 3 + i * 5) + 1) / 2; sp += '<circle cx="' + (8 + r * 84).toFixed(1) + '" cy="' + (6 + q * 88).toFixed(1) + '" r="' + (.6 + r * 1.6).toFixed(1) + '" fill="' + cols[i % 5] + '" opacity=".45"/>'; }
+        return S(sp
+          + rot(rv, '<g filter="url(#w' + id + ')" stroke-linecap="round" stroke-linejoin="round">' + wash + '</g>'
+          + '<g filter="url(#e' + id + ')" fill="none" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity=".85">' + edge + '</g>'),
+          '<filter id="w' + id + '" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="3" seed="' + id % 9 + '"/><feDisplacementMap in="SourceGraphic" scale="9"/><feGaussianBlur stdDeviation="1.3"/></filter>'
+          + '<filter id="e' + id + '" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".08" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="2.5"/></filter>'
+          + grain(id, .12)); } },
+
+    { id:'pencil', name:'鉛筆', bg:'#f7f5ef', paper:true, fg:'#2a2a2a', sub:'#66625a',
+      art:(t, ink, rv) => { const id = ++TZ_UID, ps = parts(t.art);
+        const hatch = ps.filter(closed).map(p => withAttr(p, 'fill="url(#h' + id + ')" stroke="none"')).join('');
+        const pass = (dx, dy, a, w) => '<g transform="translate(' + dx + ' ' + dy + ') rotate(' + a + ' 50 50)" fill="none" stroke="#2e2e2e" stroke-width="' + w + '" stroke-linecap="round" stroke-linejoin="round" opacity=".72">' + t.art + '</g>';
+        return S(rot(rv, '<g opacity=".7">' + hatch + '</g><g filter="url(#r' + id + ')">' + pass(0, 0, 0, 1.2) + pass(.7, -.5, .7, .8) + pass(-.6, .6, -.6, .7) + '</g>'),
+          '<pattern id="h' + id + '" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><path d="M0 0V3" stroke="#555" stroke-width=".45"/></pattern>'
+          + '<filter id="r' + id + '" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="1" seed="2"/><feDisplacementMap in="SourceGraphic" scale="1.4"/></filter>'
+          + grain(id, .16)); } },
+
+    { id:'sumi', name:'墨絵', bg:'#f3ede0', paper:true, seal:'縁', fg:'#1b1b1b', sub:'#5e574b',
+      art:(t, ink, rv) => { const id = ++TZ_UID;
+        return S(rot(rv, '<g filter="url(#b' + id + ')" fill="none" stroke="#1b1b1b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity=".16">' + t.art + '</g>'
+          + '<g filter="url(#s' + id + ')" fill="none" stroke="#151515" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">' + t.art + '</g>'),
+          '<filter id="s' + id + '" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".35" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="3.2"/></filter>'
+          + '<filter id="b' + id + '" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".06" numOctaves="2" seed="5"/><feDisplacementMap in="SourceGraphic" scale="6"/><feGaussianBlur stdDeviation="1.6"/></filter>'
+          + grain(id, .22)); } },
+
+    { id:'manga', name:'漫画', bg:'#ffffff', fg:'#111', sub:'#555',
+      art:(t, ink, rv) => { const id = ++TZ_UID, ps = parts(t.art);
+        let rays = ''; for (let i = 0; i < 36; i++){ const a = i / 36 * Math.PI * 2, r1 = 30 + (i % 3) * 6; rays += 'M' + (50 + Math.cos(a) * r1).toFixed(1) + ' ' + (50 + Math.sin(a) * r1).toFixed(1) + 'L' + (50 + Math.cos(a) * 75).toFixed(1) + ' ' + (50 + Math.sin(a) * 75).toFixed(1); }
+        const tone = ps.filter(closed).map(p => withAttr(p, 'fill="url(#d' + id + ')" stroke="none"')).join('');
+        return S('<path d="' + rays + '" stroke="#111" stroke-width=".5" opacity=".55"/>'
+          + rot(rv, '<g fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">' + t.art + '</g>' + tone
+          + '<g fill="none" stroke="#111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' + t.art + '</g>'),
+          '<pattern id="d' + id + '" width="2.6" height="2.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2.6" height="2.6" fill="#fff"/><circle cx="1.3" cy="1.3" r=".75" fill="#111"/></pattern>'); } },
+
+    { id:'neon', name:'ネオン', bg:'#0b1020', fg:'#ffffff', sub:'#a9b3d6', line:'#3ff2ff',
+      art:(t, ink, rv) => { const id = ++TZ_UID, ps = parts(t.art), cs = ['#ff4fd8', '#3ff2ff', '#ffe14f'];
+        const body = ps.map((p, i) => withAttr(p, 'stroke="' + cs[i % 3] + '"')).join('');
+        let grid = ''; for (let i = 0; i <= 100; i += 10) grid += 'M' + i + ' 0V100M0 ' + i + 'H100';
+        return S('<path d="' + grid + '" stroke="#3ff2ff" stroke-width=".25" opacity=".18"/>'
+          + rot(rv, '<g filter="url(#n' + id + ')" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + body + '</g>'),
+          '<filter id="n' + id + '" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="a"/><feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="a"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'); } },
+
+    { id:'kirie', name:'切り絵', bg:'#f4efe6', paper:true, fg:'#2b2620', sub:'#6d655a',
+      art:(t, ink, rv) => { const id = ++TZ_UID, c1 = mix(ink.slice(1), 'f4e3c8', .78), c2 = ink, c3 = '#e2774e';
+        const lay = (c, w, f) => '<g fill="none" stroke="' + c + '" stroke-width="' + w + '" stroke-linecap="round" stroke-linejoin="round" filter="url(#k' + id + ')"' + (f || '') + '>' + t.art + '</g>';
+        return S('<circle cx="50" cy="50" r="44" fill="' + c1 + '" opacity=".35" filter="url(#k' + id + ')"/>'
+          + rot(rv, lay(c3, 8.5) + lay(c2, 5) + lay('#fffaf0', 1.6)),
+          '<filter id="k' + id + '" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx=".9" dy="1.3" stdDeviation="1" flood-color="#000" flood-opacity=".35"/></filter>'); } },
+
+    { id:'blueprint', name:'設計図', bg:'#1d4e89', fg:'#ffffff', sub:'#bcd3f0', line:'#ffffff',
+      art:(t, ink, rv) => { let g1 = '', g2 = '';
+        for (let i = 0; i <= 100; i += 5) (i % 25 ? (g1 += 'M' + i + ' 0V100M0 ' + i + 'H100') : (g2 += 'M' + i + ' 0V100M0 ' + i + 'H100'));
+        return S('<path d="' + g1 + '" stroke="#fff" stroke-width=".18" opacity=".25"/><path d="' + g2 + '" stroke="#fff" stroke-width=".35" opacity=".4"/>'
+          + '<circle cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-width=".4" stroke-dasharray="2 2" opacity=".55"/><path d="M8 50H92M50 8V92" stroke="#fff" stroke-width=".3" stroke-dasharray="4 1.5 1 1.5" opacity=".5"/>'
+          + rot(rv, '<g fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">' + t.art + '</g>')
+          + '<path d="M10 96H90M10 94v4M90 94v4M10 96l3-1.5v3ZM90 96l-3-1.5v3Z" stroke="#fff" stroke-width=".4" fill="#fff" opacity=".7"/>'); } },
+
+    { id:'glass', name:'ステンドグラス', bg:'#22252e', fg:'#ffffff', sub:'#c8cbd6', line:'#e6c35c',
+      art:(t, ink, rv) => { const id = ++TZ_UID, cs = ['#d94f4f', '#3d7fd9', '#e6c35c', '#3fae7a', '#9b5fd0', '#e58a3a'], ps = parts(t.art);
+        let tiles = ''; const P = (i, j) => { const k = Math.sin(i * 12.9 + j * 78.2 + id) * 43758.5; const r = k - Math.floor(k); return [i * 20 + (i % 5 ? (r - .5) * 8 : 0), j * 20 + (j % 5 ? (Math.cos(k) * 4) : 0)]; };
+        for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++){ const a = P(i, j), b = P(i + 1, j), c = P(i + 1, j + 1), d = P(i, j + 1);
+          tiles += '<path d="M' + a + 'L' + b + 'L' + c + 'L' + d + 'Z" fill="' + cs[(i * 3 + j * 2) % cs.length] + '" opacity=".38"/>'; }
+        const fill = ps.filter(closed).map((p, i) => withAttr(p, 'fill="' + cs[i % cs.length] + '" stroke="none"')).join('');
+        return S('<g stroke="#111" stroke-width="1.6" stroke-linejoin="round">' + tiles + '</g><rect width="100" height="100" fill="url(#sh' + id + ')"/>'
+          + rot(rv, '<g opacity=".95">' + fill + '</g><g fill="none" stroke="#111" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">' + t.art + '</g>'
+          + '<g fill="none" stroke="#fff" stroke-width=".6" stroke-linecap="round" stroke-linejoin="round" opacity=".55" transform="translate(-.5 -.5)">' + t.art + '</g>'),
+          '<radialGradient id="sh' + id + '" cx="35%" cy="25%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient>'); } },
+
+    { id:'pixel', name:'ドット絵', bg:'#f3f0e6', fg:'#2b2b2b', sub:'#66625a',
+      art:async (t, ink, rv) => {
+        const N = 40, cv = document.createElement('canvas'); cv.width = cv.height = N;
+        const src = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="' + N + '" height="' + N + '"><g fill="none" stroke="#000" stroke-width="4.6" stroke-linecap="square" stroke-linejoin="miter"' + (rv ? ' transform="rotate(180 50 50)"' : '') + '>' + t.art + '</g></svg>';
+        const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(src);
+        try{ await img.decode(); }catch(e){ return S(''); }
+        const x = cv.getContext('2d'); x.drawImage(img, 0, 0, N, N);
+        const d = x.getImageData(0, 0, N, N).data, s = 100 / N, light = mix(ink.slice(1), 'ffffff', .6);
+        let px = '', sh = '';
+        for (let y = 0; y < N; y++) for (let i = 0; i < N; i++){ const a = d[(y * N + i) * 4 + 3];
+          if (a > 90){ const X = (i * s).toFixed(2), Y = (y * s).toFixed(2), W = (s + .05).toFixed(2);
+            sh += '<rect x="' + (i * s + s * .5).toFixed(2) + '" y="' + (y * s + s * .5).toFixed(2) + '" width="' + W + '" height="' + W + '"/>';
+            px += '<rect x="' + X + '" y="' + Y + '" width="' + W + '" height="' + W + '"/>'; } }
+        return S('<g fill="' + light + '">' + sh + '</g><g fill="' + ink + '">' + px + '</g>', '', ' shape-rendering="crispEdges"');
+      } }
+  ];
+})();
+const tzStyle = id => TZ_STYLES.find(s => s.id === id) || TZ_STYLES[0];
+
+const TZ_PAPER = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .25 0 0 0 .14 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
 /* あなたの仕事運：宿曜の日運（日ごと）と、九星の年・月の巡り */
 const Work = (()=>{
@@ -3026,15 +3200,21 @@ function tzBack(){
     + '<circle cx="75" cy="120" r="22" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="75" cy="120" r="4" fill="#fff"/>';
   return s;
 }
-function tzFace(t, rv){
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('aria-hidden', 'true'); svg.innerHTML = t.art;
-  return el('div', {class:'tz-face' + (rv ? ' rv' : ''), role:'img', 'aria-label':t.name + (rv ? '（逆向き）' : '') + 'のカード'},
-    el('div', {class:'tz-no'}, t.roman), svg, el('div', {class:'tz-nm'}, t.name), el('div', {class:'tz-en'}, t.en),
-    rv ? el('span', {class:'tz-rv'}, '逆向き') : null);
+function tzFace(t, rv, st, ink){
+  const box = el('div', {class:'tz-artbox', 'aria-hidden':'true'});
+  const f = el('div', {class:'tz-face st-' + st.id, role:'img', 'aria-label':t.name + (rv ? '（逆向き）' : '') + 'のカード・' + st.name,
+      style:'--fbg:' + st.bg + ';--ffg:' + st.fg + ';--fsub:' + st.sub + ';--fline:' + (st.line || ink) + (st.paper ? ';--fpaper:' + TZ_PAPER : '')},
+    el('div', {class:'tz-no'}, t.roman), box, el('div', {class:'tz-nm'}, t.name), el('div', {class:'tz-en'}, t.en),
+    rv ? el('span', {class:'tz-rv'}, '逆向き') : null, st.seal ? el('span', {class:'tz-seal'}, st.seal) : null);
+  f.ready = Promise.resolve(st.art(t, ink, rv)).then(svg => {
+    box.innerHTML = svg;
+    if (st.draw) box.querySelectorAll('.tz-art *').forEach(p => { try{ p.style.setProperty('--len', Math.ceil(p.getTotalLength()) + 2); }catch(e){} });
+  });
+  return f;
 }
 /* 結果を1枚の画像に（保存・共有用）*/
-async function tzImage(t, v, rv, who, ink){
+async function tzImage(t, v, rv, who, ink, st){
+  st = st || TZ_STYLES[0];
   const W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const x = cv.getContext('2d'), F = '-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif';
   x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
@@ -3043,18 +3223,17 @@ async function tzImage(t, v, rv, who, ink){
   x.fillStyle = '#1c1c1e'; x.font = '600 34px ' + F; x.fillText(who + 'と出会ったことは、何につながる？', W / 2, 150);
   // カード
   const cw = 330, ch = 528, cx = (W - cw) / 2, cy = 196;
-  x.save(); x.shadowColor = 'rgba(0,0,0,.14)'; x.shadowBlur = 40; x.shadowOffsetY = 16; x.fillStyle = '#fff';
+  x.save(); x.shadowColor = 'rgba(0,0,0,.14)'; x.shadowBlur = 40; x.shadowOffsetY = 16; x.fillStyle = st.bg;
   x.beginPath(); x.roundRect(cx, cy, cw, ch, 26); x.fill(); x.restore();
-  x.lineWidth = 3; x.strokeStyle = ink; x.beginPath(); x.roundRect(cx, cy, cw, ch, 26); x.stroke();
-  x.fillStyle = ink; x.font = '700 30px ' + F; x.fillText(t.roman, W / 2, cy + 62);
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="600" height="600"><g fill="none" stroke="' + ink + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"'
-    + (rv ? ' transform="rotate(180 50 50)"' : '') + '>' + t.art + '</g></svg>';
+  x.lineWidth = 3; x.strokeStyle = st.line || ink; x.beginPath(); x.roundRect(cx, cy, cw, ch, 26); x.stroke();
+  x.fillStyle = st.line || ink; x.font = '700 30px ' + F; x.fillText(t.roman, W / 2, cy + 62);
+  const svg = (await st.art(t, ink, rv)).replace('<svg ', '<svg width="600" height="600" ').replace(/class="tz-art"/, '');
   try{
     const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     await img.decode(); x.drawImage(img, cx + 25, cy + 90, cw - 50, cw - 50);
   }catch(e){}
-  x.fillStyle = '#1c1c1e'; x.font = '800 40px ' + F; x.fillText(t.name, W / 2, cy + ch - 72);
-  x.fillStyle = '#5f5f64'; x.font = '500 22px ' + F; x.fillText(t.en + (rv ? '  ・  逆向き' : ''), W / 2, cy + ch - 34);
+  x.fillStyle = st.fg; x.font = '800 40px ' + F; x.fillText(t.name, W / 2, cy + ch - 72);
+  x.fillStyle = st.sub; x.font = '500 22px ' + F; x.fillText(t.en + '  ・  ' + st.name + (rv ? '  ・  逆向き' : ''), W / 2, cy + ch - 34);
   // キーワードと話のネタ、次の一手
   x.fillStyle = '#5f5f64'; x.font = '700 28px ' + F; x.fillText('キーワード', W / 2, 800);
   x.fillStyle = '#1c1c1e'; x.font = '800 62px ' + F; x.fillText(v.k, W / 2, 874);
@@ -3123,6 +3302,18 @@ function showTarot(){
   }
   const rest = i => 'translate(' + (i * -1.2) + 'px,' + (i * -1.6) + 'px) rotate(' + (rnd(7) - 3) + 'deg)';
   const chip = () => el('span', {class:'tz-ai'}, el('i'), 'AIにて制作');
+  /* 画風：選んだものを覚えておく（「おまかせ」は引くたびに変わる）*/
+  let pick = LS.get('tzstyle', 'random');
+  if (pick !== 'random' && !TZ_STYLES.some(x => x.id === pick)) pick = 'random';
+  const styleNow = () => pick === 'random' ? TZ_STYLES[rnd(TZ_STYLES.length)] : tzStyle(pick);
+  function stylePicker(onPick, cur){
+    const row = el('div', {class:'tz-styles', role:'radiogroup', 'aria-label':'絵柄の画風'});
+    const opts = (onPick ? [] : [{id:'random', name:'おまかせ'}]).concat(TZ_STYLES);
+    const draw1 = () => row.replaceChildren(...opts.map(o => { const on = o.id === cur;
+      return el('button', {class:'tz-st' + (on ? ' on' : ''), role:'radio', 'aria-checked':on ? 'true' : 'false', onclick:() => { cur = o.id; draw1(); (onPick || (id => { pick = id; LS.set('tzstyle', id); }))(o.id); }},
+        el('i', {style:o.id === 'random' ? 'background:conic-gradient(#ff4fd8,#3ff2ff,#ffe14f,#9cc58a,#ff4fd8)' : 'background:' + o.bg + ';border-color:' + (o.line || 'var(--tz)')}), o.name); }));
+    draw1(); return row;
+  }
 
   /* 1. 導入 */
   function intro(){
@@ -3134,6 +3325,8 @@ function showTarot(){
         el('ol', {}, TZ_LBL.map(l => el('li', {}, l)))),
       el('p', {class:'tz-lead'}, '生年月日などは使わないので、相性占いではありません。今日のこの出会いそのものを占います。最後に、この場で聞いてみたい「話のネタ」が出ます。'),
       stage,
+      el('div', {class:'tz-stl'}, '絵柄の画風を選べます（どれも画面上でプログラムが描いています）'),
+      stylePicker(null, pick),
       el('button', {class:'tz-go', onclick:() => {
         try{ if (window.DeviceMotionEvent && DeviceMotionEvent.requestPermission) DeviceMotionEvent.requestPermission().catch(()=>{}); }catch(e){}
         shuffle();
@@ -3168,27 +3361,31 @@ function showTarot(){
     if (deck.dataset.done) return; deck.dataset.done = 1; deck.classList.remove('ready'); deck.removeAttribute('role'); deck.tabIndex = -1;
     try{ navigator.vibrate && navigator.vibrate(15); }catch(e){}
     const idx = rnd(22), rv = rnd(100) < 30, t = Tarot.get(idx), x = TAROT_TEXT[idx], v = rv ? x.rv : x.up;
-    const top = cards[cards.length - 1], f = tzFace(t, rv);
-    top.querySelector('.tz-fr').append(f);
+    let st = styleNow();
+    const top = cards[cards.length - 1], fr = top.querySelector('.tz-fr');
+    let f = tzFace(t, rv, st, ink); fr.append(f); fr.style.borderColor = st.line || ink;
     hint.textContent = '';
     cards.slice(0, -1).forEach(c => { c.style.opacity = '0'; c.style.transform += ' translateY(40px)'; });
     deck.classList.add('open');
     top.style.transform = 'rotateY(180deg)';
     await wait(450);
-    f.querySelectorAll('svg *').forEach(p => { try{ p.style.setProperty('--len', Math.ceil(p.getTotalLength()) + 2); }catch(e){} });
-    deck.classList.add('flat');   // めくり終えたら3Dを外して、線をくっきり描く
-    f.classList.add('draw');
+    await f.ready;
+    deck.classList.add('flat');   // めくり終えたら3Dを外して、くっきり描く
+    f.classList.add(st.draw ? 'draw' : 'tz-show');
     await wait(1100);
-    if (alive) result(t, v, rv);
+    // 結果の画面で、同じカードをほかの画風に描き替えられるように
+    const restyle = id => { st = tzStyle(id); const g = tzFace(t, rv, st, ink); fr.style.borderColor = st.line || ink;
+      g.ready.then(() => { f.replaceWith(g); f = g; requestAnimationFrame(() => g.classList.add(st.draw ? 'draw' : 'tz-show')); }); };
+    if (alive) result(t, v, rv, () => st, restyle, st.id);
   }
 
   /* 4. 結果：キーワード → 3行 → 話のネタ（吹き出し）→ 次の一手 */
-  async function result(t, v, rv){
+  async function result(t, v, rv, curStyle, restyle, stId){
     const bubble = el('div', {class:'tz-bub'}, el('span', {class:'tz-typing', 'aria-label':'入力中'}, el('i'), el('i'), el('i')));
     const saveBtn = el('button', {class:'tz-go ghost', onclick: async () => {
       saveBtn.disabled = true;
       try{
-        const blob = await tzImage(t, v, rv, who, ink), name = 'tarot-' + t.no + '.png';
+        const blob = await tzImage(t, v, rv, who, ink, curStyle()), name = 'tarot-' + t.no + '-' + curStyle().id + '.png';
         const file = new File([blob], name, {type:'image/png'});
         if (navigator.canShare && navigator.canShare({files:[file]})) await navigator.share({files:[file], title:'話のネタにタロット'});
         else { const a = el('a', {href:URL.createObjectURL(blob), download:name}); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('画像を保存しました'); }
@@ -3197,6 +3394,8 @@ function showTarot(){
     }}, '結果を画像で保存');
     const fortune = document.querySelector('details.fortune');
     const res = el('div', {class:'tz-res'},
+      el('div', {class:'tz-stl'}, '同じカードを、ほかの画風で見る'),
+      stylePicker(restyle, stId),
       el('div', {class:'tz-rq'}, who + 'と出会ったことは、この先、何につながる？'),
       el('div', {class:'tz-kwl'}, t.name + (rv ? '（逆向き）' : '') + 'のキーワード'),
       el('div', {class:'tz-kw'}, v.k),
@@ -3279,7 +3478,7 @@ function shukuWheel(r, done){
 function workView(w){
   const st = n => el('span', {class:'wst', 'aria-label':'3段階中' + n}, '★'.repeat(n) + '☆'.repeat(3 - n));
   const t = w.days[0];
-  return el('div', {class:'work'},
+  return el('div', {class:'wfort'},   // 仕事紹介の .work と名前がぶつからないように
     el('div', {class:'w-k'}, '仕事運'),
     el('div', {class:'w-today'}, el('div', {class:'w-d'}, '今日 ' + t.m + '/' + t.d + '（' + t.wd + '）'), el('div', {class:'w-l'}, t.label, ' ', st(t.stars)), el('p', {}, t.text)),
     el('div', {class:'w-sub'}, 'この先1週間'),
@@ -4414,7 +4613,7 @@ function ownerSettings(){
         const e2 = t => String(t).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
         const html = '<div style="font-family:sans-serif;font-size:13px;line-height:1.6;color:#333;border-left:3px solid ' + c.color + ';padding-left:10px">'
           + (c.company || c.title ? '<div style="color:#777">' + e2([c.company, c.title].filter(Boolean).join('　')) + '</div>' : '')
-          + '<div style="font-size:15px;font-weight:bold;color:#111">' + e2(pr.name) + (pr.nameEn ? ' <span style="font-weight:normal;color:#777;font-size:12px">' + e2(pr.nameEn) + '</span>' : '') + '</div>'
+          + '<div style="font-size:15px;font-weight:bold;color:#111">' + e2(pr.name) + (pr.nameEn ? ' <span style="font-weight:normal;color:#666;font-size:12px">' + e2(pr.nameEn) + '</span>' : '') + '</div>'
           + (c.phone ? '<div>TEL ' + e2(c.phone) + '</div>' : '') + (c.email ? '<div>Mail ' + e2(c.email) + '</div>' : '')
           + '<div><a href="' + e2(url) + '" style="color:' + c.color + '">デジタル名刺を見る</a></div></div>';
         pv.innerHTML = html;

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>タロット絵柄の試作</title>
+<style>
+body{margin:0;font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;color:#1c1c1e;background:#faf9f6}
+main{max-width:560px;margin:0 auto;padding:24px 18px 60px}
+h1{font-size:22px;margin:0 0 8px}
+p,li{font-size:15px;line-height:1.75;color:#3a3a3c}
+.note{font-size:14px;color:#5f5f64}
+label{display:block;font-size:14px;font-weight:700;margin:18px 0 6px}
+input,select{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:12px;border:1px solid #d8d6d0;border-radius:10px;background:#fff}
+button{display:block;width:100%;min-height:52px;margin-top:14px;border:0;border-radius:12px;background:#1f2a44;color:#fff;font:inherit;font-size:17px;font-weight:700}
+button.sub{background:#fff;color:#1f2a44;border:1.5px solid #1f2a44}
+button:disabled{opacity:.45}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
+.cell{background:#fff;border:1px solid #e4e2dd;border-radius:10px;padding:6px;text-align:center;font-size:13px}
+.cell img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:6px;background:#eee;display:block}
+.st{font-size:12px;color:#5f5f64;margin-top:4px;min-height:1.4em}
+#log{font-size:13px;color:#5f5f64;white-space:pre-wrap;margin-top:12px}
+</style>
+</head>
+<body>
+<main>
+<h1>タロット絵柄の試作（星のカード×3画風）</h1>
+<p>Pollinationsの無料アカウントで作ったキーを使い、このスマホから直接絵を描かせます。キーはこのスマホの中にだけ保存され、ほかには送られません。</p>
+<p class="note">使うモデル：Z-Image Turbo または Flux Schnell（どちらも商用OKのライセンス Apache 2.0）。3枚だけ作ります。</p>
+
+<label for="key">Pollinationsのキー（pk_ で始まるもの）</label>
+<input id="key" type="password" autocomplete="off" placeholder="pk_…">
+<label for="model">モデル</label>
+<select id="model"><option value="zimage">Z-Image Turbo（おすすめ）</option><option value="flux">Flux Schnell</option></select>
+<button id="go">3枚を作る</button>
+<div class="grid" id="grid"></div>
+<button id="zip" class="sub" disabled>3枚をまとめて保存（zip）</button>
+<div id="log"></div>
+</main>
+<script>
+/* 星のカード（XVII）を、構図も描き方も違う3つの画風で。文字は入れない */
+const SCENE = 'tarot card XVII The Star: a young woman in a flowing pale dress kneels at the edge of a calm pool at night, pouring water from two clay jugs, one into the pool and one onto the grass; above her a large radiant eight-pointed star surrounded by seven smaller stars; a small bird on a distant tree; serene, hopeful mood; vertical tarot card composition, ornate thin border, no text, no letters, no numbers';
+const STYLES = [
+  {id:'real', name:'リアル', p:'photorealistic cinematic photograph, natural moonlight, shallow depth of field, 85mm lens, highly detailed skin and fabric, film grain, ' + SCENE},
+  {id:'manga', name:'漫画', p:'Japanese manga illustration, bold black ink lines, screentone shading, dramatic speed lines around the star, expressive anime eyes, black and white with a single deep blue accent color, ' + SCENE},
+  {id:'water', name:'水彩', p:'delicate watercolor painting on textured cold-press paper, soft color bleeds and blooms, visible brush strokes, pastel blues and warm gold, hand-painted storybook illustration, ' + SCENE}
+];
+const $ = id => document.getElementById(id), log = t => $('log').textContent += t + '\n';
+try{ $('key').value = localStorage.getItem('pk') || ''; }catch(e){}
+const files = [];
+$('go').onclick = async () => {
+  const key = $('key').value.trim(), model = $('model').value;
+  if (!/^(pk|sk)_/.test(key)){ alert('キーを入れてください（pk_ で始まるもの）'); return; }
+  try{ localStorage.setItem('pk', key); }catch(e){}
+  $('go').disabled = true; $('grid').innerHTML = ''; files.length = 0; $('log').textContent = '';
+  for (const s of STYLES){
+    const cell = document.createElement('div'); cell.className = 'cell';
+    const img = document.createElement('img'); img.alt = s.name;
+    const st = document.createElement('div'); st.className = 'st'; st.textContent = '作成中…';
+    cell.append(img, document.createTextNode(s.name), st); $('grid').append(cell);
+    // キーはURLに付ける（ブラウザから呼ぶ用の pk_ キーの使い方）
+    const url = 'https://gen.pollinations.ai/image/' + encodeURIComponent(s.p) + '?model=' + model + '&width=768&height=1152&seed=17&nologo=true&enhance=false&safe=true&key=' + encodeURIComponent(key);
+    try{
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 160));
+      const b = await r.blob();
+      img.src = URL.createObjectURL(b); st.textContent = Math.round(b.size / 1024) + 'KB';
+      files.push({name:'star-' + s.id + '-' + model + '.' + (b.type.includes('png') ? 'png' : 'jpg'), data:new Uint8Array(await b.arrayBuffer())});
+    }catch(e){
+      // 読み込みを断られた場合は、画像として表示だけする（長押しで保存できる）
+      log(s.name + '：' + e.message + '（画像として表示を試します）');
+      img.onload = () => { st.textContent = '表示のみ・長押しで保存'; };
+      img.onerror = () => { st.textContent = '失敗'; };
+      img.src = url;
+      await new Promise(r => { img.addEventListener('load', r, {once:true}); img.addEventListener('error', r, {once:true}); setTimeout(r, 90000); });
+    }
+  }
+  $('go').disabled = false; $('zip').disabled = !files.length;
+  log(files.length + '枚できました。');
+};
+/* zip（無圧縮）をこのスマホの中で作る */
+function crc32(u){ let c, t = crc32.t || (crc32.t = Array.from({length:256}, (_, n) => { c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; }));
+  let x = -1; for (let i = 0; i < u.length; i++) x = t[(x ^ u[i]) & 255] ^ (x >>> 8); return (x ^ -1) >>> 0; }
+function zip(fs){
+  const enc = new TextEncoder(), parts = [], cen = []; let off = 0;
+  for (const f of fs){ const n = enc.encode(f.name), c = crc32(f.data), h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint32(14, c, true); h.setUint32(18, f.data.length, true); h.setUint32(22, f.data.length, true); h.setUint16(26, n.length, true);
+    parts.push(new Uint8Array(h.buffer), n, f.data);
+    const d = new DataView(new ArrayBuffer(46)); d.setUint32(0, 0x02014b50, true); d.setUint16(4, 20, true); d.setUint16(6, 20, true); d.setUint32(16, c, true); d.setUint32(20, f.data.length, true); d.setUint32(24, f.data.length, true); d.setUint16(28, n.length, true); d.setUint32(42, off, true);
+    cen.push(new Uint8Array(d.buffer), n); off += 30 + n.length + f.data.length; }
+  const cs = cen.reduce((a, b) => a + b.length, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, fs.length, true); e.setUint16(10, fs.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, new Uint8Array(e.buffer)], {type:'application/zip'});
+}
+$('zip').onclick = async () => {
+  const blob = zip(files), file = new File([blob], 'tarot-star-trial.zip', {type:'application/zip'});
+  if (navigator.canShare && navigator.canShare({files:[file]})) { try{ await navigator.share({files:[file]}); return; }catch(e){ if (e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.append(a); a.click(); a.remove();
+};
+</script>
+</body>
+</html>

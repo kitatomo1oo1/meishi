@@ -29,13 +29,15 @@ button:disabled{opacity:.45}
 <p>Pollinationsの無料アカウントで作ったキーを使い、このスマホから直接絵を描かせます。キーはこのスマホの中にだけ保存され、ほかには送られません。</p>
 <p class="note">使うモデル：Z-Image Turbo または Flux Schnell（どちらも商用OKのライセンス Apache 2.0）。3枚だけ作ります。</p>
 
-<label for="key">Pollinationsのキー（pk_ で始まるもの）</label>
-<input id="key" type="password" autocomplete="off" placeholder="pk_…">
+<label for="key">Pollinationsのキー（sk_ で始まるもの）</label>
+<input id="key" type="password" autocomplete="off" placeholder="sk_…">
+<p class="note">キーはこのスマホの中にだけ保存されます。使い終わったら「キーを消す」を押してください。</p>
 <label for="model">モデル</label>
 <select id="model"><option value="zimage">Z-Image Turbo（おすすめ）</option><option value="flux">Flux Schnell</option></select>
 <button id="go">3枚を作る</button>
 <div class="grid" id="grid"></div>
 <button id="zip" class="sub" disabled>3枚をまとめて保存（zip）</button>
+<button id="del" class="sub">このスマホからキーを消す</button>
 <div id="log"></div>
 </main>
 <script>
@@ -51,7 +53,7 @@ try{ $('key').value = localStorage.getItem('pk') || ''; }catch(e){}
 const files = [];
 $('go').onclick = async () => {
   const key = $('key').value.trim(), model = $('model').value;
-  if (!/^(pk|sk)_/.test(key)){ alert('キーを入れてください（pk_ で始まるもの）'); return; }
+  if (!/^(pk|sk)_/.test(key)){ alert('キーを入れてください（sk_ で始まるもの）'); return; }
   try{ localStorage.setItem('pk', key); }catch(e){}
   $('go').disabled = true; $('grid').innerHTML = ''; files.length = 0; $('log').textContent = '';
   for (const s of STYLES){
@@ -59,7 +61,7 @@ $('go').onclick = async () => {
     const img = document.createElement('img'); img.alt = s.name;
     const st = document.createElement('div'); st.className = 'st'; st.textContent = '作成中…';
     cell.append(img, document.createTextNode(s.name), st); $('grid').append(cell);
-    // キーはURLに付ける（ブラウザから呼ぶ用の pk_ キーの使い方）
+    // キーはURLに付ける（ブラウザから直接呼ぶため。キーは本人のスマホの中だけ）
     const url = 'https://gen.pollinations.ai/image/' + encodeURIComponent(s.p) + '?model=' + model + '&width=768&height=1152&seed=17&nologo=true&enhance=false&safe=true&key=' + encodeURIComponent(key);
     try{
       const r = await fetch(url);
@@ -93,6 +95,7 @@ function zip(fs){
   e.setUint32(0, 0x06054b50, true); e.setUint16(8, fs.length, true); e.setUint16(10, fs.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
   return new Blob([...parts, ...cen, new Uint8Array(e.buffer)], {type:'application/zip'});
 }
+$('del').onclick = () => { try{ localStorage.removeItem('pk'); }catch(e){} $('key').value = ''; alert('キーを消しました'); };
 $('zip').onclick = async () => {
   const blob = zip(files), file = new File([blob], 'tarot-star-trial.zip', {type:'application/zip'});
   if (navigator.canShare && navigator.canShare({files:[file]})) { try{ await navigator.share({files:[file]}); return; }catch(e){ if (e.name === 'AbortError') return; } }

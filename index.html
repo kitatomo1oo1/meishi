@@ -382,7 +382,7 @@ button[disabled]{opacity:.45;cursor:default}
 @keyframes fadeIn{from{opacity:0}}
 .showcard .rot{display:flex;flex-direction:column;align-items:center;gap:14px}
 .showcard.portrait .rot{transform:rotate(90deg)}
-.big-stage{position:relative;perspective:1600px;cursor:pointer;transform-style:preserve-3d}
+.big-stage{position:relative;perspective:1600px;cursor:pointer;transform-style:preserve-3d;touch-action:none}
 .flipper{position:absolute;left:0;top:0;width:360px;height:205.7px;transform-origin:0 0}
 .flipper>.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform .6s cubic-bezier(.6,0,.2,1)}
 .flipper .front{width:360px;margin:0;box-shadow:0 30px 60px -30px rgba(0,0,0,.8)}
@@ -397,6 +397,24 @@ button[disabled]{opacity:.45;cursor:default}
 .big-hint{color:rgba(255,255,255,.55);font-size:13px;letter-spacing:.08em}
 .big-close{position:absolute;right:14px;top:calc(env(safe-area-inset-top) + 12px);width:44px;height:44px;padding:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:24px;font-weight:300;line-height:44px}
 @media (prefers-reduced-motion:reduce){.flipper>.face{transition:none}}
+/* スワイプで相手の画面へ送る（ntfy.sh で合図だけ中継） */
+.big-hint.live{color:#fff;animation:hintPulse 1.6s ease-in-out infinite}
+@keyframes hintPulse{50%{opacity:.55}}
+.big-hint .arr{display:inline-block;margin-right:6px;animation:arrUp 1.2s ease-in-out infinite}
+@keyframes arrUp{50%{transform:translateY(-4px)}}
+.showcard.portrait .big-hint .arr{transform:rotate(-90deg);animation:arrLeft 1.2s ease-in-out infinite}
+@keyframes arrLeft{0%,100%{transform:rotate(-90deg)}50%{transform:rotate(-90deg) translateY(-4px)}}
+.big-sent{position:absolute;left:0;right:0;top:44%;text-align:center;color:#fff;font-family:var(--serif);font-size:20px;letter-spacing:.06em;opacity:0;pointer-events:none}
+.big-sent.on{animation:sentIn 1.8s ease forwards}
+@keyframes sentIn{15%{opacity:1;transform:translateY(-6px)}75%{opacity:1}to{opacity:0}}
+.arrive{position:fixed;inset:0;z-index:130;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:radial-gradient(ellipse at 50% 42%, #2a2a2e 0%, #0e0e10 72%);animation:fadeIn .2s ease}
+.arrive .a-stage{position:relative}
+.arrive .a-card{position:absolute;left:0;top:0;width:360px;transform-origin:0 0}
+.arrive .a-card .card{width:360px;margin:0;box-shadow:0 30px 70px -28px rgba(0,0,0,.9)}
+.arrive .a-ring{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;border:1.5px solid rgba(255,255,255,.7);box-shadow:0 0 18px rgba(255,255,255,.25);opacity:0;pointer-events:none}
+.arrive .a-txt{color:#fff;text-align:center;font-family:var(--serif);font-size:18px;line-height:1.7;opacity:0;transition:opacity .5s}
+.arrive .a-txt small{display:block;font-family:var(--sans);font-size:13px;color:rgba(255,255,255,.6);margin-top:4px}
+.arrive.done .a-txt{opacity:1}
 /* 紹介文 */
 .aboutx{margin-top:34px}
 .ax-eyebrow{font-size:12px;letter-spacing:.2em;color:var(--accent-ink,var(--accent));font-weight:700;margin-bottom:10px}
@@ -3823,6 +3841,12 @@ function tarotCall(){
 function renderVisitor(){
   const c = CONFIG.CARDS[0];
   setAccent(c);
+  const room = params.get('r');
+  if (Relay.ok(room)){
+    let got = false;
+    Relay.listen(room, m => { if (m === 'send' && !got){ got = true; arriveCard(c); } }, '15s');
+    setTimeout(() => Relay.send(room, 'open'), 600);
+  }
   document.title = CONFIG.NAME + '｜' + c.label;
   const biz = params.get('m') === 'b';
   const msgBox = el('div');
@@ -4036,12 +4060,69 @@ function ownerShow(){
   drawQr();
   return el('div', {}, car, dots, qrArea);
 }
+/* ── スワイプで相手の画面へ送る ──
+   QRに交換ごとの合言葉（r）を入れ、ntfy.sh で「開いた」「送った」の合図だけを中継する。
+   名刺の中身はQRのリンクで相手に届いているので、中継には載せない。つながらなくても何も壊れない。 */
+const Relay = (()=>{
+  const HOST = 'https://ntfy.sh/';
+  const ok = r => /^[A-Za-z0-9]{16,32}$/.test(r || '');
+  const topic = r => 'meishi-' + r;
+  function newRoom(){ const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789', u = new Uint32Array(20); crypto.getRandomValues(u); return Array.from(u, x => a[x % a.length]).join(''); }
+  function withRoom(url, r){ if (!ok(r)) return url; const i = url.indexOf('#'), h = i < 0 ? url : url.slice(0, i), t = i < 0 ? '' : url.slice(i); return h + (h.includes('?') ? '&' : '?') + 'r=' + r + t; }
+  function send(r, msg){ if (!ok(r)) return; try{ fetch(HOST + topic(r), {method:'POST', body:msg, keepalive:true}).catch(()=>{}); }catch(e){} }
+  // since で数秒前の合図も拾う（相手が先にスワイプした場合のため）。同じ合図は一度だけ扱う
+  function listen(r, on, since){
+    if (!ok(r) || typeof EventSource !== 'function') return () => {};
+    let es = null, seen = new Set(), stop = false, tries = 0;
+    const open = () => {
+      if (stop) return;
+      try{ es = new EventSource(HOST + topic(r) + '/sse' + (since ? '?since=' + since : '')); }catch(e){ return; }
+      es.onmessage = ev => { try{ const d = JSON.parse(ev.data); if (d.event !== 'message' || seen.has(d.id)) return; seen.add(d.id); on(String(d.message || ''), d); }catch(e){} };
+      es.onerror = () => { try{ es.close(); }catch(e){} if (!stop && ++tries < 6) setTimeout(open, 1500 * tries); };
+    };
+    open();
+    return () => { stop = true; try{ es && es.close(); }catch(e){} };
+  }
+  return {ok, newRoom, withRoom, send, listen};
+})();
+
+/* 相手の画面：名刺が上から飛んできて、着地する */
+function arriveCard(c){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const k = Math.min(innerWidth * .88 / 360, innerHeight * .5 / (360 / 1.75));
+  const inner = el('div', {class:'a-card'}, cardView(c, true));
+  inner.style.zoom = k.toFixed(3);
+  const stage = el('div', {class:'a-stage', style:'width:' + (360 * k) + 'px;height:' + (360 / 1.75 * k) + 'px'}, inner);
+  const rings = [0, 1].map(() => el('div', {class:'a-ring'}));
+  rings.forEach(x => stage.append(x));
+  const ov = el('div', {class:'arrive', role:'dialog', 'aria-label':'名刺が届きました'}, stage,
+    el('div', {class:'a-txt'}, CONFIG.NAME + ' さんの名刺が届きました', el('small', {}, 'タップで名刺のページへ')));
+  let gone = false;
+  const close = () => { if (gone) return; gone = true; const a = ov.animate([{opacity:1}, {opacity:0}], {duration:350, easing:'ease', fill:'forwards'}); a.onfinish = () => ov.remove(); };
+  ov.addEventListener('click', close);
+  document.body.append(ov);
+  try{ navigator.vibrate && navigator.vibrate([18, 60, 30]); }catch(e){}
+  if (reduce){ ov.classList.add('done'); setTimeout(close, 3500); return; }
+  stage.animate([
+    {transform:'translateY(-' + (innerHeight * .9) + 'px) rotate(-14deg) scale(.82)', opacity:0, filter:'blur(6px)'},
+    {transform:'translateY(18px) rotate(2deg) scale(1.02)', opacity:1, filter:'blur(0)', offset:.62},
+    {transform:'translateY(-6px) rotate(-.6deg) scale(1)', offset:.82},
+    {transform:'none', opacity:1}], {duration:1100, easing:'cubic-bezier(.2,.8,.25,1)', fill:'both'})
+    .onfinish = () => {
+      rings.forEach((x, i) => { const R = (innerWidth + innerHeight) * (.7 + i * .35); x.animate([{opacity:.8, width:'10px', height:'10px', margin:'-5px 0 0 -5px'}, {opacity:0, width:R + 'px', height:R + 'px', margin:(-R / 2) + 'px 0 0 ' + (-R / 2) + 'px'}], {duration:1000 + i * 300, delay:i * 140, easing:'cubic-bezier(.1,.7,.3,1)'}); });
+      const front = inner.querySelector('.card'); if (front){ front.append(el('div', {class:'sweep', 'aria-hidden':'true'})); front.classList.add('live', 'shine'); }
+      ov.classList.add('done');
+      setTimeout(close, 4200);
+    };
+}
+
 function showCard(c, url, opts){
   opts = opts || {};
   let wake = null;
+  const room = OWNER ? Relay.newRoom() : '';
   const front = cardView(c, true); front.classList.add('face', 'front');
   const back = el('div', {class:'face back'},
-    el('div', {class:'qrwrap'}, qrSvg(url)),
+    el('div', {class:'qrwrap'}, qrSvg(Relay.withRoom(url, room))),
     el('div', {class:'qrtxt'}, el('b', {}, 'カメラで読み取ってください'), el('span', {}, 'アプリは不要です。そのまま連絡先に登録できます')));
   const flip = el('div', {class:'flipper'}, front, back);
   const stageEl = el('div', {class:'big-stage'}, flip);
@@ -4049,10 +4130,11 @@ function showCard(c, url, opts){
   const rot = el('div', {class:'rot'}, stageEl, hint);
   let smode = LS.get('mode', 'c');
   const modeBar = (OWNER && c.fortune) ? el('div', {class:'big-mode', role:'group', 'aria-label':'見せ方'}) : null;
-  const drawMode = () => { if (!modeBar) return; modeBar.replaceChildren(...[['c','カジュアル'],['b','ビジネス']].map(([k, t]) => el('button', {class:smode === k ? 'on' : '', 'aria-pressed':smode === k ? 'true' : 'false', onclick:ev => { ev.stopPropagation(); smode = k; LS.set('mode', k); back.querySelector('.qrwrap').replaceChildren(qrSvg(cardUrl(c, k))); drawMode(); }}, t))); };
+  const drawMode = () => { if (!modeBar) return; modeBar.replaceChildren(...[['c','カジュアル'],['b','ビジネス']].map(([k, t]) => el('button', {class:smode === k ? 'on' : '', 'aria-pressed':smode === k ? 'true' : 'false', onclick:ev => { ev.stopPropagation(); smode = k; LS.set('mode', k); back.querySelector('.qrwrap').replaceChildren(qrSvg(Relay.withRoom(cardUrl(c, k), room))); drawMode(); }}, t))); };
   drawMode();
+  const sent = el('div', {class:'big-sent', 'aria-live':'polite'});
   const ov = el('div', {class:'showcard', role:'dialog', 'aria-label':c.label + 'の名刺'},
-    rot, el('button', {class:'big-close', 'aria-label':'閉じる', onclick:close}, '×'), modeBar);
+    rot, sent, el('button', {class:'big-close', 'aria-label':'閉じる', onclick:close}, '×'), modeBar);
   function fit(){
     // 縦持ちのときは名刺を90°回して、画面いっぱいに出す
     const portrait = innerHeight > innerWidth;
@@ -4098,8 +4180,40 @@ function showCard(c, url, opts){
     ov.addEventListener('pointermove', onPtr);
     stageEl.addEventListener('click', () => { try{ if (window.DeviceMotionEvent && DeviceMotionEvent.requestPermission) DeviceMotionEvent.requestPermission().catch(()=>{}); }catch(e){} }, {once:true});
   }
-  function close(){ removeEventListener('devicemotion', onMot); removeEventListener('resize', fit); try{ wake && wake.release(); }catch(e){} if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); ov.remove(); }
-  stageEl.addEventListener('click', () => { flip.classList.toggle('flipped'); hint.textContent = flip.classList.contains('flipped') ? 'タップで名刺に戻る' : 'タップで QRコード'; });
+  let unlisten = () => {};
+  function close(){ unlisten(); removeEventListener('devicemotion', onMot); removeEventListener('resize', fit); try{ wake && wake.release(); }catch(e){} if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); ov.remove(); }
+  let linked = false, swiped = false;
+  const setHint = () => {
+    if (linked && !flip.classList.contains('flipped')){ hint.replaceChildren(el('span', {class:'arr', 'aria-hidden':'true'}, '↑'), '画面の上の方へスワイプで、相手に送る'); hint.classList.add('live'); }
+    else { hint.classList.remove('live'); hint.textContent = flip.classList.contains('flipped') ? 'タップで名刺に戻る' : 'タップで QRコード'; }
+  };
+  stageEl.addEventListener('click', () => { if (swiped){ swiped = false; return; } flip.classList.toggle('flipped'); setHint(); });
+  // 相手が開いたら名刺の面に戻し、スワイプを案内する
+  if (room){
+    unlisten = Relay.listen(room, m => {
+      if (m !== 'open' || linked) return;
+      linked = true; flip.classList.remove('flipped'); setHint();
+      try{ navigator.vibrate && navigator.vibrate(20); }catch(e){}
+    });
+    // 画面の上方向へ払うと送る（縦持ちで名刺を回していても、画面の上＝相手の方向）
+    let sy = null, sx = 0, t0 = 0;
+    stageEl.addEventListener('pointerdown', e => { sy = e.clientY; sx = e.clientX; t0 = Date.now(); try{ stageEl.setPointerCapture(e.pointerId); }catch(er){} });
+    stageEl.addEventListener('pointerup', e => {
+      if (sy == null) return; const dy = e.clientY - sy, dx = e.clientX - sx; sy = null;
+      if (dy > -70 || Math.abs(dx) > Math.abs(dy) || Date.now() - t0 > 1200 || flip.classList.contains('flipped')) return;
+      swiped = true; setTimeout(() => swiped = false, 400);
+      Relay.send(room, 'send');
+      try{ navigator.vibrate && navigator.vibrate(25); }catch(e){}
+      const R = ov.classList.contains('portrait') ? ' rotate(90deg)' : '';
+      if (rot.animate){
+        rot.animate([{transform:'translateY(0)' + R, opacity:1}, {transform:'translateY(-' + (innerHeight * 1.1) + 'px)' + R + ' scale(.9)', opacity:0, offset:.45},
+          {transform:'translateY(' + (innerHeight * .4) + 'px)' + R, opacity:0, offset:.62}, {transform:'translateY(0)' + R, opacity:1}],
+          {duration:2200, easing:'cubic-bezier(.4,0,.2,1)'});
+      }
+      sent.textContent = '送りました'; sent.classList.remove('on'); void sent.offsetWidth; sent.classList.add('on');
+    });
+    stageEl.addEventListener('pointercancel', () => sy = null);
+  }
   addEventListener('resize', fit);
   document.body.append(ov); fit();
   try{ ov.requestFullscreen && ov.requestFullscreen({navigationUI:'hide'}).catch(()=>{}); }catch(e){}

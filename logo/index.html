@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>ロゴメーカー｜無料でロゴを作って、そのまま名刺に</title>
+<meta name="description" content="社名と業種を入れるだけで、ロゴ案を何十案も作れます。紙の名刺やロゴ画像からのデジタル化も。作ったロゴは、そのままデジタル名刺に使えます。">
+<style>
+:root{--ink:#1c1c1e;--sub:#5f5f66;--line:#e4e4e8;--bg:#fff;--soft:#f6f6f4;--accent:#1f2a44;--serif:'Noto Serif JP','Hiragino Mincho ProN','Yu Mincho',serif;--sans:'Noto Sans JP','Hiragino Sans','Yu Gothic UI','Yu Gothic',system-ui,sans-serif}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+main{max-width:720px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 28px) 20px 80px}
+.eyebrow{font-size:12px;letter-spacing:.24em;color:var(--sub)}
+h1{font-family:var(--serif);font-weight:600;font-size:30px;line-height:1.35;margin:6px 0 10px;letter-spacing:.02em}
+h2{font-family:var(--serif);font-weight:600;font-size:20px;margin:0 0 12px}
+p.lead{color:var(--sub);margin:0 0 22px}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin:0 0 22px}
+.tabs button{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:12px 6px;font:inherit;font-size:15px;color:var(--sub);cursor:pointer;min-height:44px}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--ink);font-weight:600}
+label.f{display:block;font-size:13px;color:var(--sub);margin:16px 0 6px}
+label.f b{font-weight:500;color:#b3261e;margin-left:6px;font-size:12px}
+input[type=text],select{width:100%;font:inherit;font-size:16px;padding:12px 14px;border:1px solid #cfcfd4;border-radius:10px;background:#fff;color:var(--ink)}
+input[type=text]:focus,select:focus{outline:2px solid var(--ink);outline-offset:1px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{font:inherit;font-size:14px;padding:9px 14px;border-radius:999px;border:1px solid #cfcfd4;background:#fff;color:var(--ink);cursor:pointer;min-height:40px;display:inline-flex;align-items:center;gap:7px}
+.chips button i{width:14px;height:14px;border-radius:50%;display:inline-block}
+.chips button.on{border-color:var(--ink);background:var(--ink);color:#fff}
+.btn{display:block;width:100%;font:inherit;font-size:16px;font-weight:600;padding:15px;border-radius:12px;border:0;background:var(--ink);color:#fff;cursor:pointer;text-align:center;text-decoration:none;min-height:48px}
+.btn.sub{background:#fff;color:var(--ink);border:1px solid #cfcfd4;font-weight:500}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:22px 0 14px}
+@media(min-width:620px){.grid{grid-template-columns:repeat(3,1fr)}}
+.opt{background:var(--soft);border:1px solid transparent;border-radius:14px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;padding:14px;cursor:pointer;opacity:0;transform:translateY(8px);animation:up .45s forwards}
+.opt:focus-visible{outline:2px solid var(--ink)}
+.opt svg{width:100%;height:100%}
+@keyframes up{to{opacity:1;transform:none}}
+.note{font-size:13px;color:var(--sub);margin:10px 0 0}
+.sheet{position:fixed;inset:0;background:rgba(20,20,22,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.sheet>div{background:#fff;width:100%;max-width:720px;max-height:94vh;overflow:auto;border-radius:20px 20px 0 0;padding:20px 20px calc(env(safe-area-inset-bottom) + 24px);animation:rise .3s cubic-bezier(.2,.8,.3,1)}
+@keyframes rise{from{transform:translateY(40px)}}
+.big{background:var(--soft);border-radius:16px;padding:28px;display:flex;align-items:center;justify-content:center;aspect-ratio:16/10;margin-bottom:14px}
+.big.dark{background:#17171a}
+.big svg{width:100%;height:100%}
+.close{float:right;width:44px;height:44px;border-radius:50%;border:0;background:var(--soft);font-size:22px;cursor:pointer;margin:-6px -6px 0 0}
+.stack{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.card-prev{margin:12px 0 4px;border-radius:12px;box-shadow:0 10px 30px -14px rgba(0,0,0,.35);background:#fff;padding:16px 18px;display:flex;align-items:center;gap:10px}
+.card-prev svg{height:30px;width:auto;max-width:150px}
+.card-prev span{font-size:13px;font-weight:600;letter-spacing:.06em}
+.consult{margin-top:34px;padding:22px;border-radius:16px;background:var(--soft)}
+.consult h3{font-family:var(--serif);font-size:18px;margin:0 0 6px}
+.consult p{margin:0 0 14px;color:var(--sub);font-size:14px}
+.drop{border:1.5px dashed #c4c4ca;border-radius:14px;padding:26px 16px;text-align:center;color:var(--sub);position:relative}
+.drop input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.crop{position:relative;margin-top:14px;touch-action:none;user-select:none}
+.crop canvas{width:100%;display:block;border-radius:10px}
+.crop .box{position:absolute;border:2px solid #0a84ff;background:rgba(10,132,255,.08);border-radius:4px;pointer-events:none}
+.msg{padding:12px 14px;border-radius:10px;font-size:14px;margin-top:12px}
+.msg.ok{background:#e9f6ee;color:#1d5e33}.msg.ng{background:#fdecea;color:#8a1c14}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;z-index:40;animation:fade .2s;max-width:90vw}
+footer{margin-top:40px;font-size:12px;color:var(--sub);text-align:center}
+footer a{color:inherit}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+/* ── 名刺の写真を読み取る：切り出し・ロゴの線データ化・色 ──
+   すべてスマホの中で計算する（画像はどこにも送らない） */
+const Scan = (()=>{
+  const cnv = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, w|0); c.height = Math.max(1, h|0); return c; };
+  const ctx = c => c.getContext('2d', {willReadFrequently:true});
+
+  /* 写真を読み込む（向きは写真の情報どおり、長い辺を最大 maxSide に） */
+  async function load(file, maxSide = 3200){
+    let src;
+    try{ src = await createImageBitmap(file, {imageOrientation:'from-image'}); }
+    catch(e){ src = await new Promise((ok, ng) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ng; im.src = URL.createObjectURL(file); }); }
+    const w = src.width || src.naturalWidth, h = src.height || src.naturalHeight, s = Math.min(1, maxSide / Math.max(w, h));
+    const c = cnv(w * s, h * s); ctx(c).drawImage(src, 0, 0, c.width, c.height);
+    return c;
+  }
+  function rotate(c){ const r = cnv(c.height, c.width), g = ctx(r); g.translate(r.width, 0); g.rotate(Math.PI / 2); g.drawImage(c, 0, 0); return r; }
+
+  /* 小さくしたグレースケール */
+  function small(c, maxW){
+    const s = Math.min(1, maxW / Math.max(c.width, c.height)), o = cnv(c.width * s, c.height * s);
+    ctx(o).drawImage(c, 0, 0, o.width, o.height);
+    return {c:o, s, d:ctx(o).getImageData(0, 0, o.width, o.height).data, w:o.width, h:o.height};
+  }
+
+  /* 名刺の四隅を探す：まわり（机）と違う色のいちばん大きな塊の、四方の端 */
+  function findCard(c){
+    const {d, w, h, s} = small(c, 360);
+    const lab = new Float32Array(w * h * 3);
+    for (let i = 0, j = 0; i < d.length; i += 4, j += 3){ lab[j] = d[i]; lab[j+1] = d[i+1]; lab[j+2] = d[i+2]; }
+    // 縁の色を集めて、机の色の平均とばらつきを出す
+    let n = 0, m = [0,0,0], v = 0;
+    const border = [];
+    for (let x = 0; x < w; x++){ border.push(x, x + (h-1) * w); }
+    for (let y = 0; y < h; y++){ border.push(y * w, y * w + w - 1); }
+    for (const p of border){ m[0] += lab[p*3]; m[1] += lab[p*3+1]; m[2] += lab[p*3+2]; n++; }
+    m = m.map(x => x / n);
+    for (const p of border){ const a = lab[p*3]-m[0], b = lab[p*3+1]-m[1], cc = lab[p*3+2]-m[2]; v += a*a + b*b + cc*cc; }
+    const sd = Math.sqrt(v / n), T = Math.max(28, sd * 2.6);
+    // 机の色とのちがい＋輪郭の強さで「名刺らしさ」を出す
+    const fg = new Uint8Array(w * h);
+    for (let p = 0; p < w * h; p++){
+      const a = lab[p*3]-m[0], b = lab[p*3+1]-m[1], cc = lab[p*3+2]-m[2];
+      if (Math.sqrt(a*a + b*b + cc*cc) > T) fg[p] = 1;
+    }
+    // 閉じる（すき間を埋める）
+    const close = (src, r) => morph(morph(src, w, h, r, 1), w, h, r, 0);
+    const f2 = close(fg, 3);
+    // いちばん大きな塊
+    const {lbl, sizes} = label(f2, w, h);
+    let best = 0, bi = -1; sizes.forEach((sz, i) => { if (sz > best){ best = sz; bi = i; } });
+    if (bi < 0 || best < w * h * 0.08) return fallback(c);
+    let tl = [0,0,1e9], tr = [0,0,-1e9], br = [0,0,-1e9], bl = [0,0,1e9];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+      if (lbl[y*w+x] !== bi + 1) continue;
+      if (x + y < tl[2]) tl = [x, y, x + y];
+      if (x + y > br[2]) br = [x, y, x + y];
+      if (x - y > tr[2]) tr = [x, y, x - y];
+      if (x - y < bl[2]) bl = [x, y, x - y];
+    }
+    const q = [tl, tr, br, bl].map(([x, y]) => [(x + .5) / s, (y + .5) / s]);
+    // 塊が写真の端まで届いている（名刺だけを大きく写した）ときは、全体を名刺とみなす
+    if (best > w * h * 0.9) return fallback(c, 0.02);
+    return q;
+  }
+  function fallback(c, k = 0.08){ const W = c.width, H = c.height; return [[W*k, H*k], [W*(1-k), H*k], [W*(1-k), H*(1-k)], [W*k, H*(1-k)]]; }
+
+  function morph(src, w, h, r, dil){
+    // 横→縦の2回で四角い膨張／収縮
+    const t = new Uint8Array(w * h), o = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++){ let run = 0;
+      for (let x = 0; x < w; x++){ let hit = dil ? 0 : 1;
+        for (let k = -r; k <= r; k++){ const xx = x + k; if (xx < 0 || xx >= w){ if (!dil){ hit = 0; break; } continue; } const val = src[y*w+xx]; if (dil && val){ hit = 1; break; } if (!dil && !val){ hit = 0; break; } }
+        t[y*w+x] = hit; } }
+    for (let x = 0; x < w; x++) for (let y = 0; y < h; y++){ let hit = dil ? 0 : 1;
+      for (let k = -r; k <= r; k++){ const yy = y + k; if (yy < 0 || yy >= h){ if (!dil){ hit = 0; break; } continue; } const val = t[yy*w+x]; if (dil && val){ hit = 1; break; } if (!dil && !val){ hit = 0; break; } }
+      o[y*w+x] = hit; }
+    return o;
+  }
+  function label(m, w, h){
+    const lbl = new Int32Array(w * h), sizes = [], st = new Int32Array(w * h);
+    let id = 0;
+    for (let p = 0; p < w * h; p++){
+      if (!m[p] || lbl[p]) continue;
+      id++; let sp = 0, sz = 0; st[sp++] = p; lbl[p] = id;
+      while (sp){ const q = st[--sp]; sz++; const x = q % w, y = (q / w) | 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){
+          if (!dx && !dy) continue; const xx = x + dx, yy = y + dy;
+          if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue; const r = yy * w + xx;
+          if (m[r] && !lbl[r]){ lbl[r] = id; st[sp++] = r; } } }
+      sizes.push(sz);
+    }
+    return {lbl, sizes};
+  }
+
+  /* 四隅から名刺をまっすぐに切り出す（射影変換） */
+  function homography(src, dst){
+    // dst → src の変換を求める（出力の各画素が、写真のどこから来るか）
+    const A = [], b = [];
+    for (let i = 0; i < 4; i++){
+      const [x, y] = dst[i], [u, v] = src[i];
+      A.push([x, y, 1, 0, 0, 0, -u*x, -u*y]); b.push(u);
+      A.push([0, 0, 0, x, y, 1, -v*x, -v*y]); b.push(v);
+    }
+    for (let i = 0; i < 8; i++){
+      let mx = i; for (let r = i + 1; r < 8; r++) if (Math.abs(A[r][i]) > Math.abs(A[mx][i])) mx = r;
+      [A[i], A[mx]] = [A[mx], A[i]]; [b[i], b[mx]] = [b[mx], b[i]];
+      for (let r = 0; r < 8; r++){ if (r === i) continue; const f = A[r][i] / A[i][i]; for (let k = i; k < 8; k++) A[r][k] -= f * A[i][k]; b[r] -= f * b[i]; }
+    }
+    return b.map((x, i) => x / A[i][i]).concat(1);
+  }
+  function warp(c, q, outW = 2000){
+    const dist = (a, b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
+    const qw = (dist(q[0], q[1]) + dist(q[3], q[2])) / 2, qh = (dist(q[0], q[3]) + dist(q[1], q[2])) / 2;
+    let ratio = qw / qh;
+    const STD = 91 / 55;                                       // 日本の名刺 91×55mm
+    if (ratio >= 1 && Math.abs(ratio / STD - 1) < .16) ratio = STD;
+    if (ratio < 1 && Math.abs(ratio * STD - 1) < .16) ratio = 1 / STD;
+    const W = ratio >= 1 ? outW : Math.round(outW * ratio), H = Math.round(W / ratio);
+    const Hm = homography(q, [[0,0],[W,0],[W,H],[0,H]]);
+    const sd = ctx(c).getImageData(0, 0, c.width, c.height), S = sd.data, sw = c.width, sh = c.height;
+    const o = cnv(W, H), od = ctx(o).createImageData(W, H), D = od.data;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
+      const z = Hm[6]*x + Hm[7]*y + 1, u = (Hm[0]*x + Hm[1]*y + Hm[2]) / z, v = (Hm[3]*x + Hm[4]*y + Hm[5]) / z;
+      const x0 = Math.max(0, Math.min(sw - 2, u | 0)), y0 = Math.max(0, Math.min(sh - 2, v | 0)), fx = Math.min(1, Math.max(0, u - x0)), fy = Math.min(1, Math.max(0, v - y0));
+      const i00 = (y0*sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw*4, i11 = i01 + 4, o4 = (y*W + x) * 4;
+      for (let k = 0; k < 3; k++) D[o4+k] = (S[i00+k]*(1-fx) + S[i10+k]*fx) * (1-fy) + (S[i01+k]*(1-fx) + S[i11+k]*fx) * fy;
+      D[o4+3] = 255;
+    }
+    ctx(o).putImageData(od, 0, 0);
+    return o;
+  }
+
+  /* 名刺の地の色と、地の明るさのむら（光）を求める */
+  function analyze(card, workW = 700){
+    const {c, d, w, h, s} = small(card, workW);
+    const L = new Float32Array(w * h);
+    for (let p = 0, i = 0; p < w * h; p++, i += 4) L[p] = .299*d[i] + .587*d[i+1] + .114*d[i+2];
+    const sorted = Float32Array.from(L).sort(), med = sorted[(sorted.length / 2) | 0];
+    const dark = med < 110;                                    // 濃い色の名刺（文字が明るい）
+    // 地の明るさ：文字を消すように大きめの最大値（濃い名刺は最小値）→ ぼかし
+    const r = Math.max(6, Math.round(w / 45));
+    const bgL = blur(extremum(L, w, h, r, !dark), w, h, r * 2);
+    // 地の色：地らしい画素（明るさが地に近い）の中央値
+    const R = [], G = [], B = [];
+    for (let p = 0, i = 0; p < w * h; p++, i += 4) if (Math.abs(L[p] - bgL[p]) < 12 && (p % 7 === 0)){ R.push(d[i]); G.push(d[i+1]); B.push(d[i+2]); }
+    const mid = a => { a.sort((x, y) => x - y); return a[(a.length / 2) | 0] || 0; };
+    const bgRGB = [mid(R), mid(G), mid(B)];
+    // 文字・ロゴの画素：地の明るさから十分に離れている、または地の色から色が大きく離れている
+    const fg = new Uint8Array(w * h);
+    for (let p = 0, i = 0; p < w * h; p++, i += 4){
+      const dl = dark ? L[p] - bgL[p] : bgL[p] - L[p];
+      const dc = Math.hypot(d[i] - bgRGB[0], d[i+1] - bgRGB[1], d[i+2] - bgRGB[2]);
+      if (dl > 38 || (dc > 70 && sat(d[i], d[i+1], d[i+2]) > .28)) fg[p] = 1;
+    }
+    return {c, d, w, h, s, L, bgL, bgRGB, dark, fg};
+  }
+  function sat(r, g, b){ const mx = Math.max(r, g, b), mn = Math.min(r, g, b); return mx ? (mx - mn) / mx : 0; }
+  function extremum(src, w, h, r, max){
+    const t = new Float32Array(w * h), o = new Float32Array(w * h), f = max ? Math.max : Math.min;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){ let v = src[y*w+x]; for (let k = Math.max(0, x-r); k <= Math.min(w-1, x+r); k++) v = f(v, src[y*w+k]); t[y*w+x] = v; }
+    for (let x = 0; x < w; x++) for (let y = 0; y < h; y++){ let v = t[y*w+x]; for (let k = Math.max(0, y-r); k <= Math.min(h-1, y+r); k++) v = f(v, t[k*w+x]); o[y*w+x] = v; }
+    return o;
+  }
+  function blur(src, w, h, r){
+    const t = new Float32Array(w * h), o = new Float32Array(w * h);
+    for (let y = 0; y < h; y++){ let acc = 0, n = 0; for (let x = -r; x < w; x++){ const a = x + r, b = x - r - 1; if (a < w){ acc += src[y*w+a]; n++; } if (b >= 0){ acc -= src[y*w+b]; n--; } if (x >= 0) t[y*w+x] = acc / n; } }
+    for (let x = 0; x < w; x++){ let acc = 0, n = 0; for (let y = -r; y < h; y++){ const a = y + r, b = y - r - 1; if (a < h){ acc += t[a*w+x]; n++; } if (b >= 0){ acc -= t[b*w+x]; n--; } if (y >= 0) o[y*w+x] = acc / n; } }
+    return o;
+  }
+
+  /* ロゴの場所の候補：文字や絵をまとまりにして、ロゴらしいものを選ぶ */
+  function findLogo(A){
+    const {w, h, d, fg} = A;
+    const grow = morph(fg, w, h, Math.max(3, Math.round(w / 110)), 1);
+    const {lbl, sizes} = label(grow, w, h);
+    const B = sizes.map(() => ({x0:1e9, y0:1e9, x1:-1, y1:-1, n:0, sat:0, cnt:0}));
+    for (let p = 0; p < w * h; p++){
+      const id = lbl[p]; if (!id) continue; const b = B[id-1], x = p % w, y = (p / w) | 0;
+      if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y;
+      if (fg[p]){ b.n++; b.sat += sat(d[p*4], d[p*4+1], d[p*4+2]); }
+    }
+    const blocks = B.filter(b => b.n > w * h * 0.0008).map(b => Object.assign(b, {bw:b.x1-b.x0+1, bh:b.y1-b.y0+1, sat:b.sat/b.n}));
+    if (!blocks.length) return null;
+    const hs = blocks.map(b => b.bh).sort((a, b) => a - b), medH = hs[(hs.length / 2) | 0];
+    let best = null, bs = 0;
+    for (const b of blocks){
+      const asp = b.bw / b.bh, fill = b.n / (b.bw * b.bh);
+      let sc = 0;
+      if (b.sat > .22) sc += 2.2;                                // 色がついている
+      if (asp > .55 && asp < 2.6) sc += 1.4;                     // ほぼ四角
+      else if (asp >= 2.6 && asp < 4.5) sc += .4;
+      if (b.bh > medH * 1.7) sc += 1;                            // 文字より大きい
+      if (fill > .3) sc += .6;                                   // 線がつまっている（文字列はすかすか）
+      if (b.y0 < h * .45) sc += .5;                              // 上のほう
+      if ((b.x0 < w * .3 && b.y0 < h * .5) || (b.x1 > w * .7 && b.y0 < h * .5)) sc += .5;   // 角のあたり
+      if (b.bh > h * .55 || b.bw > w * .8) sc -= 3;             // 大きすぎる（名刺の縁など）
+      if (sc > bs){ bs = sc; best = b; }
+    }
+    if (!best || bs < 2.4) return null;
+    const pad = Math.round(Math.max(best.bw, best.bh) * .08), sx = 1 / w, sy = 1 / h;
+    return { x:Math.max(0, best.x0 - pad) * sx, y:Math.max(0, best.y0 - pad) * sy, w:Math.min(w, best.bw + pad*2) * sx, h:Math.min(h, best.bh + pad*2) * sy, score:bs };
+  }
+
+  /* ロゴの切り出し範囲を、線データ（SVGのpath）にする。色は2色まで */
+  function vectorize(card, box, A, budget = 900){
+    const X = Math.round(box.x * card.width), Y = Math.round(box.y * card.height), W = Math.round(box.w * card.width), H = Math.round(box.h * card.height);
+    const scale = Math.min(4, 560 / Math.max(W, H));                 // なめらかに拡大して、輪郭を細かくたどる
+    const w = Math.max(8, Math.round(W * scale)), h = Math.max(8, Math.round(H * scale));
+    const c = cnv(w, h); ctx(c).drawImage(card, X, Y, W, H, 0, 0, w, h);
+    const d = ctx(c).getImageData(0, 0, w, h).data;
+    // この範囲の地の明るさ（全体の解析結果から）
+    const bgAt = (x, y) => { const ax = Math.min(A.w - 1, Math.round((X + x / scale) * A.s)), ay = Math.min(A.h - 1, Math.round((Y + y / scale) * A.s)); return A.bgL[ay * A.w + ax]; };
+    // 地との違いの強さ。ぼやけた縁は、いちばん濃い所の半分の強さを境目にする（線が太らない）
+    const str = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+      const i = (y * w + x) * 4, L = .299*d[i] + .587*d[i+1] + .114*d[i+2], bl = bgAt(x, y);
+      const dl = A.dark ? L - bl : bl - L, dc = Math.hypot(d[i]-A.bgRGB[0], d[i+1]-A.bgRGB[1], d[i+2]-A.bgRGB[2]);
+      str[y*w+x] = Math.max(dl, sat(d[i], d[i+1], d[i+2]) > .25 ? dc * .8 : 0);
+    }
+    const srt = Float32Array.from(str).sort(), p97 = srt[Math.floor(srt.length * .97)];
+    const thr = Math.max(30, p97 * .5);
+    const mask = new Uint8Array(w * h), cols = [];
+    for (let p = 0; p < w * h; p++) if (str[p] > thr){ mask[p] = 1; cols.push([d[p*4], d[p*4+1], d[p*4+2], p, str[p]]); }
+    if (cols.length < 30) return null;
+    // 色を決めるのは、ロゴの芯（地とはっきり違う画素）だけ。縁のにじみは色にしない
+    const strong = cols.slice().sort((a, b) => b[4] - a[4]);
+    const core = strong.slice(0, Math.max(30, Math.round(strong.length * .55)));
+    // 色を2つに分ける（k-means）。ほとんど同じ色なら1色
+    let k1 = core[0], k2 = core[core.length - 1];
+    let fur = 0; for (const p of core){ const dd = Math.hypot(p[0]-k1[0], p[1]-k1[1], p[2]-k1[2]); if (dd > fur){ fur = dd; k2 = p; } }
+    let c1 = k1.slice(0, 3), c2 = k2.slice(0, 3);
+    const near = p => Math.hypot(p[0]-c1[0], p[1]-c1[1], p[2]-c1[2]) <= Math.hypot(p[0]-c2[0], p[1]-c2[1], p[2]-c2[2]) ? 0 : 1;
+    for (let it = 0; it < 10; it++){
+      const s1 = [0,0,0,0], s2 = [0,0,0,0];
+      core.forEach(p => { const s = near(p) ? s2 : s1; s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3]++; });
+      if (s1[3]) c1 = s1.slice(0, 3).map(v => v / s1[3]); if (s2[3]) c2 = s2.slice(0, 3).map(v => v / s2[3]);
+    }
+    let n1 = 0, n2 = 0; core.forEach(p => near(p) ? n2++ : n1++);
+    // 縁の画素も含めて、近いほうの色に振り分ける。地の色と混ざった縁は、地から遠いほうの色に寄せる
+    const as = new Uint8Array(cols.length);
+    const bgd = c => Math.hypot(c[0]-A.bgRGB[0], c[1]-A.bgRGB[1], c[2]-A.bgRGB[2]);
+    cols.forEach((p, j) => {
+      const t = Math.min(1, p[4] / 120), mix = cc => cc.map((v, k) => A.bgRGB[k] + (v - A.bgRGB[k]) * t);
+      as[j] = Math.hypot(...p.slice(0,3).map((v,k)=>v-mix(c1)[k])) <= Math.hypot(...p.slice(0,3).map((v,k)=>v-mix(c2)[k])) ? 0 : 1;
+    });
+    if (bgd(c2) > bgd(c1) && n2 < n1 * .05){ [c1, c2] = [c2, c1]; [n1, n2] = [n2, n1]; as.forEach((v, j) => as[j] = 1 - v); }
+    const twoColors = Math.hypot(c1[0]-c2[0], c1[1]-c2[1], c1[2]-c2[2]) > 80 && Math.min(n1, n2) > cols.length * .08;
+    // 縁のにじみ（地と中間の色）は、濃いほうの色に寄せる
+    const layers = [];
+    if (twoColors){
+      const m1 = new Uint8Array(w * h), m2 = new Uint8Array(w * h);
+      cols.forEach((p, j) => { (as[j] ? m2 : m1)[p[3]] = 1; });
+      layers.push([pure(c1), m1], [pure(c2), m2]);
+    } else {
+      const all = core.reduce((s, p) => (s[0] += p[0], s[1] += p[1], s[2] += p[2], s), [0,0,0]).map(v => v / core.length);
+      layers.push([pure(all), mask]);
+    }
+    // 大きさをそろえる：長い辺を 240 に
+    const unit = 240 / Math.max(w, h), vw = Math.round(w * unit), vh = Math.round(h * unit);
+    let tol = 1.4, out = null;
+    for (let tries = 0; tries < 8; tries++){
+      const paths = layers.map(([col, m]) => [col, trace(clean(m, w, h), w, h, tol, unit)]).filter(x => x[1]);
+      const len = paths.reduce((a, p) => a + p[1].length, 0);
+      out = {w:vw, h:vh, p:paths};
+      if (len <= budget) break;
+      tol *= 1.5;
+    }
+    if (!out || !out.p.length) return null;
+    out.color = mainColor(out.p);
+    return out;
+  }
+  function pure(c){
+    // 写真の色は、光で白っぽく・くすんで写るので、少しだけ締める
+    const [r, g, b] = c.map(v => Math.max(0, Math.min(255, v)));
+    const L = (r + g + b) / 3, k = 1.18;
+    return '#' + [r, g, b].map(v => Math.round(Math.max(0, Math.min(255, L + (v - L) * k - (255 - L) * .06))).toString(16).padStart(2, '0')).join('');
+  }
+  function mainColor(paths){
+    // 名刺の色に使う色：彩度が高いほう、なければ1色目
+    const hex = paths.map(p => p[0]);
+    const s = h => { const n = parseInt(h.slice(1), 16); return sat(n >> 16, (n >> 8) & 255, n & 255); };
+    return hex.slice().sort((a, b) => s(b) - s(a))[0];
+  }
+  function clean(m, w, h){
+    // 小さなゴミを消し、穴を少し埋める
+    const o = morph(morph(m, w, h, 1, 1), w, h, 1, 0);
+    const {lbl, sizes} = label(o, w, h), min = Math.max(20, w * h * .002);
+    for (let p = 0; p < w * h; p++) if (lbl[p] && sizes[lbl[p]-1] < min) o[p] = 0;
+    return o;
+  }
+
+  /* 2値の画像の輪郭をたどって、なめらかな線にする */
+  function trace(m, w, h, tol, unit){
+    const at = (x, y) => x >= 0 && y >= 0 && x < w && y < h && m[y*w+x];
+    // 画素の辺のうち、内側が塗り・外側が地のものを、向きつきでつなぐ（塗りを右に見て進む）
+    const out = new Map(), key = (x, y) => y * (w + 1) + x;
+    const add = (x1, y1, x2, y2) => { const k = key(x1, y1); let a = out.get(k); if (!a) out.set(k, a = []); a.push([x2, y2]); };
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){
+      if (!at(x, y)) continue;
+      if (!at(x, y - 1)) add(x, y, x + 1, y);
+      if (!at(x + 1, y)) add(x + 1, y, x + 1, y + 1);
+      if (!at(x, y + 1)) add(x + 1, y + 1, x, y + 1);
+      if (!at(x - 1, y)) add(x, y + 1, x, y);
+    }
+    const loops = [];
+    for (const [k0, arr] of out){
+      while (arr.length){
+        const x0 = k0 % (w + 1), y0 = (k0 / (w + 1)) | 0;
+        const pts = [[x0, y0]]; let cur = arr.pop(), prev = [x0, y0], guard = 0;
+        while (guard++ < 1e6){
+          if (cur[0] === x0 && cur[1] === y0) break;
+          pts.push(cur);
+          const nx = out.get(key(cur[0], cur[1]));
+          if (!nx || !nx.length) break;
+          let pick = 0;
+          if (nx.length > 1){
+            // 斜めにつながる所は、右に曲がるほうを選ぶ（塗りを分けたままにする）
+            const dx = cur[0] - prev[0], dy = cur[1] - prev[1];
+            pick = nx.findIndex(n => (n[0] - cur[0]) === -dy && (n[1] - cur[1]) === dx); if (pick < 0) pick = 0;
+          }
+          prev = cur; cur = nx.splice(pick, 1)[0];
+        }
+        if (pts.length >= 8) loops.push(pts);
+      }
+    }
+    if (!loops.length) return '';
+    let d = '';
+    for (const L of loops){
+      const s = simplify(L, tol);
+      if (s.length < 3) continue;
+      d += smooth(s.map(([x, y]) => [x * unit, y * unit]));
+    }
+    return d;
+  }
+  function simplify(pts, tol){
+    // 閉じた線：いちばん遠い2点で2つに分けて、それぞれを間引く（Douglas–Peucker）
+    const n = pts.length; let a = 0, b = 0, best = -1;
+    for (let i = 0; i < n; i += Math.max(1, (n / 60) | 0)){ const dd = (pts[i][0]-pts[0][0])**2 + (pts[i][1]-pts[0][1])**2; if (dd > best){ best = dd; b = i; } }
+    const dp = (seg) => {
+      if (seg.length < 3) return seg;
+      const [p, q] = [seg[0], seg[seg.length - 1]], L = Math.hypot(q[0]-p[0], q[1]-p[1]) || 1;
+      let mx = -1, mi = 0;
+      for (let i = 1; i < seg.length - 1; i++){ const dd = Math.abs((q[0]-p[0])*(p[1]-seg[i][1]) - (p[0]-seg[i][0])*(q[1]-p[1])) / L; if (dd > mx){ mx = dd; mi = i; } }
+      if (mx <= tol) return [p, q];
+      const l = dp(seg.slice(0, mi + 1)), r = dp(seg.slice(mi));
+      return l.slice(0, -1).concat(r);
+    };
+    const s1 = dp(pts.slice(a, b + 1)), s2 = dp(pts.slice(b).concat([pts[0]]));
+    return s1.slice(0, -1).concat(s2.slice(0, -1));
+  }
+  function smooth(p){
+    // 角が鋭いところはそのまま、ゆるいところは曲線でつなぐ。座標は前の点からの差で書く（短くなる）
+    const n = p.length, r = v => Math.round(v);
+    const mid = (a, b) => [(a[0]+b[0])/2, (a[1]+b[1])/2];
+    const sharp = i => { const a = p[(i-1+n)%n], b = p[i], c = p[(i+1)%n];
+      const v1 = [a[0]-b[0], a[1]-b[1]], v2 = [c[0]-b[0], c[1]-b[1]];
+      const cos = (v1[0]*v2[0] + v1[1]*v2[1]) / ((Math.hypot(...v1) * Math.hypot(...v2)) || 1);
+      return cos > -.35 || Math.min(Math.hypot(...v1), Math.hypot(...v2)) > 26; };
+    const num = v => (v < 0 ? String(v) : ' ' + v);
+    const pair = (x, y) => num(x) + num(y);
+    let cx = r(mid(p[n-1], p[0])[0]), cy = r(mid(p[n-1], p[0])[1]);
+    let s = 'M' + cx + ' ' + cy, last = '';
+    const cmd = (c, coords) => { s += (c === last ? '' : c) + coords; last = c; };
+    for (let i = 0; i < n; i++){
+      const m = mid(p[i], p[(i+1)%n]), px = r(p[i][0]), py = r(p[i][1]), mx = r(m[0]), my = r(m[1]);
+      if (sharp(i)){ cmd('l', pair(px - cx, py - cy) + pair(mx - px, my - py)); }
+      else cmd('q', pair(px - cx, py - cy) + pair(mx - cx, my - cy));
+      cx = mx; cy = my;
+    }
+    return (s + 'z').replace(/([lqM]) /g, '$1');
+  }
+
+  /* 文字読み取り用：光のむらを消した白黒の画像 */
+  function forOcr(card, A, hideBox){
+    const W = Math.min(1800, card.width), H = Math.round(card.height * W / card.width);
+    const c = cnv(W, H), g = ctx(c); g.drawImage(card, 0, 0, W, H);
+    const id = g.getImageData(0, 0, W, H), D = id.data;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
+      const i = (y*W + x) * 4, L = .299*D[i] + .587*D[i+1] + .114*D[i+2];
+      const ax = Math.min(A.w - 1, (x * A.w / W) | 0), ay = Math.min(A.h - 1, (y * A.h / H) | 0), bl = A.bgL[ay*A.w + ax];
+      let v = A.dark ? 255 - Math.min(255, Math.max(0, (L - bl) * 2.2)) : 255 - Math.min(255, Math.max(0, (bl - L) * 2.2));
+      if (hideBox && x >= hideBox.x*W && x <= (hideBox.x+hideBox.w)*W && y >= hideBox.y*H && y <= (hideBox.y+hideBox.h)*H) v = 255;
+      D[i] = D[i+1] = D[i+2] = v;
+    }
+    g.putImageData(id, 0, 0);
+    return c;
+  }
+
+  /* 文字読み取り：Tesseract.js（初回だけ日本語データを取得） */
+  let tessP = null;
+  function loadTess(){
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (!tessP) tessP = new Promise((ok, ng) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload = () => ok(window.Tesseract); s.onerror = () => { tessP = null; ng(new Error('文字読み取りの部品を読み込めませんでした（ネット接続を確認してください）')); }; document.head.append(s); });
+    return tessP;
+  }
+  async function ocr(canvas, onProgress, psm){
+    const T = await loadTess();
+    const worker = await T.createWorker(['jpn', 'eng'], 1, { logger: m => { if (onProgress && m.status === 'recognizing text') onProgress(m.progress); } });
+    try{
+      if (psm) await worker.setParameters({tessedit_pageseg_mode:String(psm)});   // 7=1行、6=数行のまとまり
+      const r = await worker.recognize(canvas); return tidy(r.data.text || '');
+    }
+    finally{ worker.terminate(); }
+  }
+  function tidy(t){
+    // 日本語の文字のあいだに入る余分な空白を消す
+    const J = '[\\u3040-\\u30ff\\u3400-\\u9fff\\uff00-\\uffef〒ー]';
+    return t.replace(new RegExp('(' + J + ') +(?=' + J + ')', 'g'), '$1').replace(/[ \t]+\n/g, '\n').replace(/\n{2,}/g, '\n').trim();
+  }
+
+  return {load, rotate, findCard, warp, analyze, findLogo, vectorize, forOcr, ocr, tidy};
+})();
+
+(()=>{
+'use strict';
+/* 相談の行き先（STカンパニーのデジタル名刺）。空なら相談の案内を出さない */
+const CONSULT_URL = '';
+const MEISHI_URL = '../';
+const $app = document.getElementById('app');
+function el(tag, attrs, ...kids){
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})){ if (v == null || v === false) continue; if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? '' : v); }
+  for (const c of kids.flat(Infinity)){ if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(t){ const n = el('div', {class:'toast', role:'status'}, t); document.body.append(n); setTimeout(() => n.remove(), 2600); }
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem('meishi.' + k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('meishi.' + k, JSON.stringify(v)); }catch(e){} }
+};
+
+/* ── 材料：業種・雰囲気・書体・図形・アイコン ── */
+const INDUSTRIES = {
+  food:['飲食・カフェ', ['cup','leaf','sun','bowl']],
+  beauty:['美容・サロン', ['flower','spark','leaf','drop']],
+  travel:['宿泊・旅行', ['wave','mountain','sun','house']],
+  estate:['不動産・建築', ['house','mountain','frame','key']],
+  it:['IT・Web', ['code','gear','spark','node']],
+  photo:['写真・映像', ['camera','aperture','sun','spark']],
+  edu:['教育・スクール', ['book','spark','sun','pen']],
+  care:['医療・介護', ['heart','cross','leaf','hands']],
+  money:['金融・士業', ['chart','coin','pillar','spark']],
+  shop:['小売・ネットショップ', ['bag','heart','spark','shop']],
+  design:['デザイン・制作', ['pen','spark','flower','frame']],
+  other:['その他', ['spark','sun','leaf','wave']]
+};
+const MOODS = {
+  trust:['信頼・誠実', [['#1f3a5f','#4a90c2'],['#1c2b4a','#c9a227'],['#23395b','#5aa9a4']]],
+  warm:['あたたかい', [['#b5562b','#e8a25b'],['#8a4b2a','#d98c5f'],['#a4452c','#f0b44c']]],
+  nature:['自然・やさしい', [['#2f5d46','#9cc28a'],['#3d6b4f','#d9b86c'],['#4f7a5a','#a7c7a0']]],
+  lux:['上質・高級', [['#1a1a1a','#b8975a'],['#2b2420','#c3a46b'],['#111111','#8c8c8c']]],
+  pop:['元気・明るい', [['#d6452f','#f2b134'],['#e0603a','#2f80c4'],['#c4386a','#f0a03c']]],
+  soft:['ふんわり', [['#b0607e','#e7b7c8'],['#7a6aa8','#c9bde6'],['#c0727a','#f1c6b2']]],
+  modern:['モダン・シンプル', [['#222428','#2bb0a1'],['#2a2d34','#e85d4a'],['#1d1f24','#6f7bf7']]]
+};
+const FONTS = [
+  {f:"'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif", w:800, t:'太ゴシック'},
+  {f:"'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif", w:500, t:'ゴシック'},
+  {f:"'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif", w:300, t:'細ゴシック'},
+  {f:"'Noto Serif JP','Hiragino Mincho ProN','Yu Mincho',serif", w:700, t:'太明朝'},
+  {f:"'Noto Serif JP','Hiragino Mincho ProN','Yu Mincho',serif", w:400, t:'明朝'}
+];
+/* アイコン：100×100 の中に描く。c=主色、a=差し色 */
+const ICON = {
+  leaf:(c,a)=>`<path d="M18 82C18 42 46 16 86 14c0 40-26 68-68 68z" fill="${c}"/><path d="M22 78L66 34" stroke="#fff" stroke-width="5" stroke-linecap="round"/>`,
+  wave:(c,a)=>`<path d="M8 46c14-14 28-14 42 0s28 14 42 0" fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"/><path d="M8 72c14-14 28-14 42 0s28 14 42 0" fill="none" stroke="${a}" stroke-width="10" stroke-linecap="round"/>`,
+  mountain:(c,a)=>`<path d="M6 84L38 30l18 28 12-18 26 44z" fill="${c}"/><circle cx="74" cy="22" r="9" fill="${a}"/>`,
+  sun:(c,a)=>`<circle cx="50" cy="50" r="20" fill="${a}"/>${Array.from({length:12},(_,i)=>{const t=i*Math.PI/6;return `<line x1="${50+30*Math.cos(t)}" y1="${50+30*Math.sin(t)}" x2="${50+42*Math.cos(t)}" y2="${50+42*Math.sin(t)}" stroke="${c}" stroke-width="7" stroke-linecap="round"/>`;}).join('')}`,
+  spark:(c,a)=>`<path d="M50 6C54 36 64 46 94 50 64 54 54 64 50 94 46 64 36 54 6 50 36 46 46 36 50 6z" fill="${c}"/><path d="M80 12c1.5 8 4 10.5 12 12-8 1.5-10.5 4-12 12-1.5-8-4-10.5-12-12 8-1.5 10.5-4 12-12z" fill="${a}"/>`,
+  house:(c,a)=>`<path d="M10 48L50 14l40 34v38H10z" fill="${c}"/><rect x="40" y="58" width="20" height="28" fill="#fff"/><rect x="66" y="22" width="10" height="18" fill="${c}"/>`,
+  cup:(c,a)=>`<path d="M16 40h56v18c0 18-12 30-28 30S16 76 16 58z" fill="${c}"/><path d="M72 46h6a12 12 0 0 1 0 24h-8" fill="none" stroke="${c}" stroke-width="8"/><path d="M34 30c-6-8 6-12 0-20M50 30c-6-8 6-12 0-20" fill="none" stroke="${a}" stroke-width="5" stroke-linecap="round"/>`,
+  bowl:(c,a)=>`<path d="M8 46h84c0 24-18 40-42 40S8 70 8 46z" fill="${c}"/><path d="M30 38L70 10M44 38L84 16" stroke="${a}" stroke-width="5" stroke-linecap="round"/>`,
+  camera:(c,a)=>`<path d="M10 32h20l8-12h24l8 12h20v50H10z" fill="${c}"/><circle cx="50" cy="56" r="18" fill="#fff"/><circle cx="50" cy="56" r="10" fill="${a}"/>`,
+  aperture:(c,a)=>`<circle cx="50" cy="50" r="40" fill="${c}"/>${Array.from({length:6},(_,i)=>`<path d="M50 50L50 12" stroke="#fff" stroke-width="5" transform="rotate(${i*60+15} 50 50) translate(10 0)"/>`).join('')}<circle cx="50" cy="50" r="13" fill="${a}"/>`,
+  book:(c,a)=>`<path d="M8 22c16-6 30-4 40 4v60c-10-8-24-10-40-4z" fill="${c}"/><path d="M92 22c-16-6-30-4-40 4v60c10-8 24-10 40-4z" fill="${a}"/>`,
+  pen:(c,a)=>`<path d="M50 6l22 40-22 48-22-48z" fill="${c}"/><circle cx="50" cy="46" r="6" fill="#fff"/><path d="M50 52v42" stroke="#fff" stroke-width="3"/>`,
+  heart:(c,a)=>`<path d="M50 88S8 62 8 34a20 20 0 0 1 42-10 20 20 0 0 1 42 10c0 28-42 54-42 54z" fill="${c}"/><path d="M28 36a10 10 0 0 1 10-10" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>`,
+  cross:(c,a)=>`<rect x="36" y="10" width="28" height="80" rx="8" fill="${c}"/><rect x="10" y="36" width="80" height="28" rx="8" fill="${c}"/><circle cx="50" cy="50" r="8" fill="#fff"/>`,
+  hands:(c,a)=>`<path d="M10 60c10-8 22-6 30 2l10 10 10-10c8-8 20-10 30-2L50 92z" fill="${c}"/><circle cx="50" cy="32" r="16" fill="${a}"/>`,
+  chart:(c,a)=>`<rect x="12" y="56" width="16" height="30" fill="${c}"/><rect x="38" y="40" width="16" height="46" fill="${c}"/><rect x="64" y="22" width="16" height="64" fill="${c}"/><path d="M10 44L44 18l14 10 30-20" fill="none" stroke="${a}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`,
+  coin:(c,a)=>`<circle cx="50" cy="50" r="40" fill="${c}"/><circle cx="50" cy="50" r="28" fill="none" stroke="#fff" stroke-width="5"/><path d="M50 34v32M40 44h20" stroke="${a}" stroke-width="7" stroke-linecap="round"/>`,
+  pillar:(c,a)=>`<path d="M8 34L50 10l42 24z" fill="${c}"/>${[20,40,60,80].map(x=>`<rect x="${x-5}" y="40" width="10" height="38" fill="${c}"/>`).join('')}<rect x="8" y="82" width="84" height="8" fill="${a}"/>`,
+  bag:(c,a)=>`<path d="M16 34h68l-6 54H22z" fill="${c}"/><path d="M34 34v-6a16 16 0 0 1 32 0v6" fill="none" stroke="${a}" stroke-width="7"/>`,
+  shop:(c,a)=>`<path d="M10 16h80l6 22H4z" fill="${a}"/><rect x="14" y="38" width="72" height="48" fill="${c}"/><rect x="42" y="56" width="16" height="30" fill="#fff"/>`,
+  flower:(c,a)=>`${Array.from({length:5},(_,i)=>{const t=i*2*Math.PI/5-Math.PI/2;return `<circle cx="${50+24*Math.cos(t)}" cy="${50+24*Math.sin(t)}" r="18" fill="${c}"/>`;}).join('')}<circle cx="50" cy="50" r="12" fill="${a}"/>`,
+  drop:(c,a)=>`<path d="M50 8C30 38 20 52 20 64a30 30 0 0 0 60 0C80 52 70 38 50 8z" fill="${c}"/><path d="M36 66a14 14 0 0 0 14 14" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>`,
+  code:(c,a)=>`<path d="M34 24L10 50l24 26M66 24l24 26-24 26" fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M56 16L44 84" stroke="${a}" stroke-width="8" stroke-linecap="round"/>`,
+  gear:(c,a)=>`${Array.from({length:8},(_,i)=>`<rect x="43" y="4" width="14" height="22" rx="3" fill="${c}" transform="rotate(${i*45} 50 50)"/>`).join('')}<circle cx="50" cy="50" r="32" fill="${c}"/><circle cx="50" cy="50" r="13" fill="${a}"/>`,
+  node:(c,a)=>`<path d="M24 24L76 50 24 76" fill="none" stroke="${c}" stroke-width="6"/><circle cx="24" cy="24" r="13" fill="${c}"/><circle cx="76" cy="50" r="13" fill="${a}"/><circle cx="24" cy="76" r="13" fill="${c}"/>`,
+  frame:(c,a)=>`<path d="M10 10h34v12H22v22H10zM90 90H56V78h22V56h12z" fill="${c}"/><rect x="34" y="34" width="32" height="32" fill="${a}"/>`,
+  key:(c,a)=>`<circle cx="32" cy="50" r="22" fill="${c}"/><circle cx="32" cy="50" r="8" fill="#fff"/><path d="M50 50h42v14M78 50v10" fill="none" stroke="${c}" stroke-width="10"/>`
+};
+/* 図形（字を入れる台）：100×100 */
+const SHAPES = {
+  circle:c=>`<circle cx="50" cy="50" r="48" fill="${c}"/>`,
+  roundsq:c=>`<rect x="2" y="2" width="96" height="96" rx="24" fill="${c}"/>`,
+  hex:c=>`<path d="M50 2l42 24v48L50 98 8 74V26z" fill="${c}"/>`,
+  diamond:c=>`<rect x="17" y="17" width="66" height="66" rx="8" fill="${c}" transform="rotate(45 50 50)"/>`,
+  shield:c=>`<path d="M50 2l44 14v30c0 28-20 44-44 52C26 90 6 74 6 46V16z" fill="${c}"/>`,
+  arch:c=>`<path d="M6 98V48a44 44 0 0 1 88 0v50z" fill="${c}"/>`
+};
+const RINGS = {
+  circle:c=>`<circle cx="50" cy="50" r="45" fill="none" stroke="${c}" stroke-width="6"/>`,
+  roundsq:c=>`<rect x="5" y="5" width="90" height="90" rx="22" fill="none" stroke="${c}" stroke-width="6"/>`,
+  hex:c=>`<path d="M50 5l39 22.5v45L50 95 11 72.5v-45z" fill="none" stroke="${c}" stroke-width="6"/>`,
+  double:c=>`<circle cx="50" cy="50" r="46" fill="none" stroke="${c}" stroke-width="3"/><circle cx="50" cy="50" r="39" fill="none" stroke="${c}" stroke-width="1.5"/>`
+};
+
+/* ── 文字の幅（キャンバスで測る）── */
+const mctx = document.createElement('canvas').getContext('2d');
+function tw(text, font, size, ls){ mctx.font = font.w + ' ' + size + 'px ' + font.f; return mctx.measureText(text).width + Math.max(0, [...text].length - 1) * (ls || 0); }
+function textEl(text, x, y, font, size, fill, opt){
+  opt = opt || {};
+  return `<text x="${x}" y="${y}" font-family="${esc(font.f)}" font-weight="${font.w}" font-size="${size}" fill="${fill}"${opt.ls ? ` letter-spacing="${opt.ls}"` : ''}${opt.anchor ? ` text-anchor="${opt.anchor}"` : ''} dominant-baseline="central">${esc(text)}</text>`;
+}
+function svg(w, h, inner){ return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${inner}</svg>`; }
+
+/* 頭文字：英字なら単語の頭（2文字まで）、日本語なら最初の1文字 */
+function initials(name){
+  const s = String(name || '').trim();
+  const words = s.split(/[\s　・]+/).filter(Boolean);
+  if (/^[A-Za-z0-9]/.test(s)){
+    const ini = words.filter(w => /^[A-Za-z0-9]/.test(w)).map(w => w[0].toUpperCase()).join('');
+    if (ini.length >= 2) return ini.slice(0, 2);
+    const caps = s.replace(/[^A-Z]/g, ''); if (caps.length >= 2) return caps.slice(0, 2);
+    return s.slice(0, 1).toUpperCase();
+  }
+  return [...s.replace(/^(株式会社|有限会社|合同会社)/, '').trim()][0] || '';
+}
+
+/* ── 1案を組み立てる。mark=名刺の左上に入れる部分、full=ロゴ全体 ── */
+function compose(o){
+  const {name, letters, tag, font, c, a, kind, shape, icon} = o;
+  const lsz = letters.length > 1 ? 40 : 50;
+  const markBadge = () => SHAPES[shape](c) + textEl(letters, 50, 52, font, lsz, '#fff', {anchor:'middle'});
+  const markRing = () => RINGS[shape](c) + textEl(letters, 50, 52, font, lsz - 4, c, {anchor:'middle'});
+  const markIcon = () => ICON[icon](c, a);
+  const markOf = {badge:markBadge, ring:markRing, icon:markIcon, word:null, spaced:null};
+  const nameFont = font, nsz = 44;
+  const nw = tw(name, nameFont, nsz, kind === 'spaced' ? 10 : 1);
+  const tsz = 15, tf = FONTS[1], tW = tag ? tw(tag, tf, tsz, 3) : 0;
+  let full;
+  if (kind === 'word'){
+    // 文字だけのロゴ：最初の1文字を差し色、下に短い線
+    const chars = [...name], first = chars[0], rest = chars.slice(1).join('');
+    const fw = tw(first, nameFont, nsz, 1), W = Math.max(nw, tW) + 20, H = tag ? 120 : 90;
+    full = svg(Math.ceil(W), H, textEl(first, 10, 42, nameFont, nsz, a, {ls:1}) + textEl(rest, 10 + fw, 42, nameFont, nsz, c, {ls:1})
+      + `<rect x="10" y="74" width="${Math.min(70, nw * .3)}" height="5" fill="${a}"/>` + (tag ? textEl(tag, 10 + Math.min(70, nw * .3) + 12, 77, tf, tsz, c, {ls:3}) : ''));
+    return {full, mark:null, kind};
+  }
+  if (kind === 'spaced'){
+    const W = Math.max(nw, tW) + 40, H = tag ? 130 : 104;
+    full = svg(Math.ceil(W), H, `<rect x="20" y="10" width="${W - 40}" height="2" fill="${c}"/>` + textEl(name, W / 2, 52, nameFont, nsz, c, {anchor:'middle', ls:10})
+      + `<rect x="20" y="92" width="${W - 40}" height="2" fill="${a}"/>` + (tag ? textEl(tag, W / 2, 114, tf, tsz, c, {anchor:'middle', ls:4}) : ''));
+    return {full, mark:null, kind};
+  }
+  const mark = markOf[kind]();
+  if (o.layout === 'stack'){
+    const W = Math.max(160, nw + 24, tW + 24), H = tag ? 250 : 220;
+    full = svg(Math.ceil(W), H, `<g transform="translate(${W / 2 - 55} 6) scale(1.1)">${mark}</g>` + textEl(name, W / 2, 162, nameFont, nsz * .9, c, {anchor:'middle', ls:1}) + (tag ? textEl(tag, W / 2, 210, tf, tsz, a === '#fff' ? c : a, {anchor:'middle', ls:3}) : ''));
+  } else {
+    const W = 120 + Math.max(nw, tW) + 16, H = 110;
+    full = svg(Math.ceil(W), H, `<g transform="translate(6 5)">${mark}</g>` + textEl(name, 122, tag ? 44 : 56, nameFont, nsz, c, {ls:1}) + (tag ? textEl(tag, 124, 84, tf, tsz, a, {ls:3}) : ''));
+  }
+  return {full, mark:svg(100, 100, mark), kind};
+}
+
+/* 種から乱数（同じ入力なら同じ案。「もっと見る」で種を変える） */
+function rng(seed){ let s = seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
+function hash(s){ let h = 2166136261; for (const ch of s) h = Math.imul(h ^ ch.codePointAt(0), 16777619); return h >>> 0; }
+function ideas(input, round){
+  const r = rng(hash(JSON.stringify(input)) + round * 7919), pick = arr => arr[Math.floor(r() * arr.length)];
+  const icons = INDUSTRIES[input.ind][1], pals = MOODS[input.mood][1];
+  const plan = ['badge','icon','word','ring','icon','spaced','badge','icon','ring','word','icon','badge'];
+  const out = [];
+  plan.forEach((kind, i) => {
+    const [c, a] = pals[(i + round) % pals.length];
+    const font = kind === 'spaced' ? pick([FONTS[2], FONTS[4]]) : kind === 'badge' ? pick([FONTS[0], FONTS[3], FONTS[1]]) : pick(FONTS);
+    out.push(compose({name:input.name, letters:input.letters || initials(input.name), tag:input.tag, font, c, a, kind,
+      shape: kind === 'ring' ? pick(Object.keys(RINGS)) : pick(Object.keys(SHAPES)),
+      icon: icons[(i + round * 3) % icons.length],
+      layout: r() < .35 ? 'stack' : 'side'}));
+  });
+  return out;
+}
+
+/* ── 名刺アプリ用の線データにする（文字も輪郭にする）── */
+function toCanvas(svgText, scale){
+  return new Promise((ok, ng) => {
+    const m = svgText.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/), w = +m[1], h = +m[2];
+    const im = new Image();
+    im.onload = () => { const c = document.createElement('canvas'); c.width = Math.round(w * scale); c.height = Math.round(h * scale); const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height); ok(c); };
+    im.onerror = ng;
+    im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
+  });
+}
+async function vectorOf(svgText){
+  const c = await toCanvas(svgText, 4), A = Scan.analyze(c);
+  return Scan.vectorize(c, {x:0, y:0, w:1, h:1}, A, 2400);
+}
+function logoSvg(L){ return svg(L.w, L.h, L.p.map(p => `<path d="${p[1]}" fill="${p[0]}" fill-rule="evenodd"/>`).join('')); }
+
+/* ── 名刺へ渡す（同じサイトの名刺アプリが受け取る）── */
+function sendToMeishi(L, label){
+  LS.set('logoInbox', {w:L.w, h:L.h, p:L.p, color:L.color || '', label:label || '', at:Date.now()});
+  location.href = MEISHI_URL;
+}
+function download(name, blob){ const a = el('a', {href:URL.createObjectURL(blob), download:name}); document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+async function savePng(svgText, name){ const c = await toCanvas(svgText, 4); c.toBlob(b => download(name + '.png', b), 'image/png'); }
+
+/* ── 画面 ── */
+let tab = 'make';
+const state = {name:'', letters:'', tag:'', ind:'other', mood:'trust', round:0};
+function render(){
+  $app.replaceChildren(
+    el('div', {class:'eyebrow'}, 'LOGO MAKER'),
+    el('h1', {}, 'ロゴを作って、', el('br'), 'そのまま名刺に。'),
+    el('p', {class:'lead'}, '名前と業種を入れるだけで、ロゴ案がすぐに出ます。持っているロゴの画像や紙の名刺からの取り込みもできます。無料・登録不要です。'),
+    el('div', {class:'tabs', role:'tablist'},
+      [['make','情報から作る'],['scan','画像から取り込む']].map(([k, t]) => el('button', {class:tab === k ? 'on' : null, role:'tab', 'aria-selected':String(tab === k), onclick:() => { tab = k; render(); }}, t))),
+    tab === 'make' ? makeView() : scanView(),
+    consultBox(),
+    el('footer', {}, el('a', {href:MEISHI_URL}, 'デジタル名刺（無料）'), '　｜　画像や入力した内容は、このスマホの中だけで処理します'));
+}
+function consultBox(){
+  if (!CONSULT_URL) return null;
+  return el('div', {class:'consult'},
+    el('h3', {}, 'プロに仕上げてもらう'),
+    el('p', {}, '気に入った案の細かな調整、色やバランスの仕上げ、名刺への反映まで、STカンパニーがお手伝いします。まずは気軽にご相談ください。'),
+    el('a', {class:'btn sub', href:consultHref(''), target:'_blank', rel:'noopener'}, '仕上げを相談する'));
+}
+function consultHref(note){
+  const msg = 'ロゴメーカーから：ロゴの仕上げを相談したいです' + (note ? '（' + note + '）' : '');
+  const i = CONSULT_URL.indexOf('#'), h = i < 0 ? CONSULT_URL : CONSULT_URL.slice(0, i), t = i < 0 ? '' : CONSULT_URL.slice(i);
+  return h + (h.includes('?') ? '&' : '?') + 'msg=' + encodeURIComponent(msg) + t;
+}
+
+function makeView(){
+  const name = el('input', {type:'text', maxlength:'24', value:state.name, placeholder:'例：STカンパニー', autocomplete:'organization'});
+  const letters = el('input', {type:'text', maxlength:'2', value:state.letters, placeholder:'自動'});
+  const tag = el('input', {type:'text', maxlength:'24', value:state.tag, placeholder:'例：SHIRAHAMA / Design Studio'});
+  const ind = el('select', {}, Object.entries(INDUSTRIES).map(([k, v]) => el('option', {value:k, selected:state.ind === k}, v[0])));
+  const moods = el('div', {class:'chips', role:'radiogroup', 'aria-label':'雰囲気'});
+  const drawMoods = () => moods.replaceChildren(...Object.entries(MOODS).map(([k, v]) => el('button', {class:state.mood === k ? 'on' : null, role:'radio', 'aria-checked':String(state.mood === k), onclick:() => { state.mood = k; drawMoods(); }}, el('i', {style:`background:linear-gradient(135deg,${v[1][0][0]} 50%,${v[1][0][1]} 50%)`}), v[0])));
+  drawMoods();
+  const grid = el('div', {class:'grid', 'aria-live':'polite'});
+  const more = el('button', {class:'btn sub hidden'}, 'ほかの案を見る');
+  const go = el('button', {class:'btn', style:'margin-top:22px'}, 'ロゴ案を作る');
+  const sync = () => { state.name = name.value.trim(); state.letters = letters.value.trim(); state.tag = tag.value.trim(); state.ind = ind.value; };
+  const show = () => {
+    sync();
+    if (!state.name){ name.focus(); toast('名前を入れてください'); return; }
+    grid.replaceChildren(...ideas(state, state.round).map((d, i) => {
+      const b = el('button', {class:'opt', style:`animation-delay:${i * 40}ms`, 'aria-label':'ロゴ案 ' + (i + 1)});
+      b.innerHTML = d.full; b.addEventListener('click', () => detail(d)); return b;
+    }));
+    more.classList.remove('hidden');
+    grid.scrollIntoView({behavior:'smooth', block:'start'});
+  };
+  go.addEventListener('click', () => { state.round = 0; show(); });
+  more.addEventListener('click', () => { state.round++; show(); });
+  name.addEventListener('keydown', e => { if (e.key === 'Enter') go.click(); });
+  return el('section', {},
+    el('label', {class:'f'}, '名前（会社名・屋号・お店の名前）', el('b', {}, '必須')), name,
+    el('div', {class:'row'},
+      el('div', {}, el('label', {class:'f'}, 'マークの文字'), letters),
+      el('div', {style:'flex:2'}, el('label', {class:'f'}, '業種'), ind)),
+    el('label', {class:'f'}, 'ひとこと（任意）'), tag,
+    el('label', {class:'f'}, '雰囲気'), moods,
+    go, grid, more,
+    el('p', {class:'note'}, '同じ入力なら同じ案が出ます。「ほかの案を見る」で、色・書体・形が入れ替わります。'));
+}
+
+function detail(d){
+  const big = el('div', {class:'big'}); big.innerHTML = d.full;
+  const status = el('div', {'aria-live':'polite'});
+  const prev = el('div', {class:'card-prev'});
+  const useMark = el('input', {type:'checkbox', id:'um', checked:!!d.mark});
+  let L = null, busy = false;
+  const build = async () => {
+    busy = true; status.replaceChildren(el('p', {class:'note'}, '名刺用のデータを作っています…'));
+    try{ L = await vectorOf(useMark.checked && d.mark ? d.mark : d.full); }catch(e){ L = null; }
+    busy = false;
+    if (!L){ status.replaceChildren(el('div', {class:'msg ng'}, '名刺用のデータを作れませんでした。別の案でお試しください。')); return; }
+    prev.innerHTML = logoSvg(L); prev.append(el('span', {}, state.name));
+    status.replaceChildren();
+  };
+  const sh = el('div', {class:'sheet', role:'dialog', 'aria-label':'ロゴ案'}, el('div', {},
+    el('button', {class:'close', 'aria-label':'閉じる', onclick:() => sh.remove()}, '×'),
+    el('h2', {}, 'このロゴ案'), big,
+    el('div', {class:'row'},
+      el('button', {class:'btn sub', onclick:() => savePng(d.full, 'logo')}, 'PNGで保存'),
+      el('button', {class:'btn sub', onclick:() => download('logo.svg', new Blob([d.full], {type:'image/svg+xml'}))}, 'SVGで保存')),
+    el('h2', {style:'margin-top:22px'}, '名刺に入れると'),
+    d.mark ? el('label', {class:'chips', for:'um', style:'gap:8px;align-items:center;font-size:14px'}, useMark, 'マークだけを名刺に使う（おすすめ）') : null,
+    prev, status,
+    el('div', {class:'stack'},
+      el('button', {class:'btn', onclick:() => { if (!busy && L) sendToMeishi(L, state.name); }}, 'デジタル名刺に使う'),
+      CONSULT_URL ? el('a', {class:'btn sub', href:consultHref('この案をもとに'), target:'_blank', rel:'noopener'}, 'この案の仕上げを相談する') : null)));
+  useMark.addEventListener('change', build);
+  sh.addEventListener('click', e => { if (e.target === sh) sh.remove(); });
+  document.body.append(sh); build();
+}
+
+function scanView(){
+  const status = el('div', {'aria-live':'polite'});
+  const crop = el('div', {class:'crop hidden'});
+  const out = el('div');
+  let src = null, box = null;
+  const file = el('input', {type:'file', accept:'image/*', 'aria-label':'画像を選ぶ'});
+  const cv = el('canvas'), bx = el('div', {class:'box'}); crop.append(cv, bx);
+  const drawBox = () => { if (!box){ bx.style.display = 'none'; return; } bx.style.display = ''; Object.assign(bx.style, {left:box.x * 100 + '%', top:box.y * 100 + '%', width:box.w * 100 + '%', height:box.h * 100 + '%'}); };
+  let st = null;
+  const pos = e => { const r = cv.getBoundingClientRect(); return [Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)), Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))]; };
+  crop.addEventListener('pointerdown', e => { st = pos(e); crop.setPointerCapture(e.pointerId); });
+  crop.addEventListener('pointermove', e => { if (!st) return; const p = pos(e); box = {x:Math.min(st[0], p[0]), y:Math.min(st[1], p[1]), w:Math.abs(p[0] - st[0]), h:Math.abs(p[1] - st[1])}; drawBox(); });
+  crop.addEventListener('pointerup', () => { st = null; if (box && (box.w < .02 || box.h < .02)) box = null; drawBox(); });
+  file.addEventListener('change', async () => {
+    const f = file.files[0]; if (!f) return;
+    status.replaceChildren(el('p', {class:'note'}, '読み込んでいます…')); out.replaceChildren();
+    try{
+      src = await Scan.load(f, 2400);
+      const A = Scan.analyze(src); box = Scan.findLogo(A);
+      cv.width = src.width; cv.height = src.height; cv.getContext('2d').drawImage(src, 0, 0);
+      crop.classList.remove('hidden'); drawBox();
+      status.replaceChildren(el('p', {class:'note'}, box ? '青い枠をロゴと判断しました。違うときは、画像の上を指でなぞって囲み直してください。' : 'ロゴの部分を、画像の上で指でなぞって囲んでください。ロゴだけの画像なら、そのまま「線のロゴにする」を押せます。'));
+    }catch(e){ status.replaceChildren(el('div', {class:'msg ng'}, '画像を読み込めませんでした。')); }
+  });
+  const go = el('button', {class:'btn', style:'margin-top:14px'}, '線のロゴにする');
+  go.addEventListener('click', () => {
+    if (!src){ toast('先に画像を選んでください'); return; }
+    const A = Scan.analyze(src), L = Scan.vectorize(src, box || {x:0, y:0, w:1, h:1}, A, 2400);
+    if (!L){ out.replaceChildren(el('div', {class:'msg ng'}, 'ロゴを取り出せませんでした。ロゴの部分だけを囲んでお試しください。')); return; }
+    const s = logoSvg(L), big = el('div', {class:'big'}); big.innerHTML = s;
+    out.replaceChildren(el('h2', {style:'margin-top:22px'}, '取り込んだロゴ'), big,
+      el('p', {class:'note'}, '色は2色まで、細かい部分は少しなめらかになります。'),
+      el('div', {class:'stack'},
+        el('button', {class:'btn', onclick:() => sendToMeishi(L, '')}, 'デジタル名刺に使う'),
+        el('div', {class:'row'},
+          el('button', {class:'btn sub', onclick:() => savePng(s, 'logo')}, 'PNGで保存'),
+          el('button', {class:'btn sub', onclick:() => download('logo.svg', new Blob([s], {type:'image/svg+xml'}))}, 'SVGで保存')),
+        CONSULT_URL ? el('a', {class:'btn sub', href:consultHref('取り込んだロゴの仕上げ'), target:'_blank', rel:'noopener'}, 'きれいに作り直してもらう（相談）') : null));
+    out.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+  return el('section', {},
+    el('div', {class:'drop'}, file, el('b', {}, '画像を選ぶ'), el('br'), 'ロゴの画像、または紙の名刺の写真'),
+    status, crop, go, out);
+}
+render();
+})();
+</script>
+</body>
+</html>

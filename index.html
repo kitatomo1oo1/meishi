@@ -3857,7 +3857,7 @@ function renderVisitor(){
       el('label', {}, 'ふりがな'), el('input', {name:'kana', maxlength:'60'}),
       el('label', {}, '会社・屋号'), el('input', {name:'company', maxlength:'100', autocomplete:'organization'}),
       el('label', {}, '肩書き'), el('input', {name:'title', maxlength:'60', autocomplete:'organization-title'}),
-      el('label', {}, 'ひとこと'), el('textarea', {name:'message', maxlength:'500'})),
+      el('label', {}, 'ひとこと'), el('textarea', {name:'message', maxlength:'500'}, String(params.get('msg') || '').slice(0, 300))),
     el('input', {class:'hp', name:'website', tabindex:'-1', autocomplete:'off', 'aria-hidden':'true'}),
     el('p', {class:'note'}, Store.remote ? '入力した内容は ' + CONFIG.NAME + ' にだけ届きます。' : '次の画面で、お使いのスマホのSMSかメールのアプリから ' + CONFIG.NAME + ' に送ります。'),
     el('button', {class:'btn-main', type:'submit'}, Store.remote ? '送信する' : '次へ')
@@ -3905,7 +3905,8 @@ function renderVisitor(){
   const promo = (c.promo && P) ? el('div', {class:'promo fade d4'},
     el('h3', {}, P.head),
     el('p', {}, P.body),
-    el('a', {class:'btn btn-sub', href:BASE, target:'_blank', rel:'noopener'}, P.button)) : null;
+    el('a', {class:'btn btn-sub', href:BASE, target:'_blank', rel:'noopener'}, P.button),
+    el('a', {href:BASE + 'logo/', target:'_blank', rel:'noopener', style:'display:block;text-align:center;margin-top:12px;font-size:14px;color:inherit'}, 'ロゴも無料で作れます（ロゴメーカー）')) : null;
 
   let fortune = null;
   if (c.fortune && CONFIG.FORTUNE){
@@ -4058,7 +4059,25 @@ function ownerShow(){
   }, 80); }, {passive:true});
   requestAnimationFrame(()=>{ const v = cards.find(x=>x.dataset.id===cur.id); if (v) car.scrollLeft = v.offsetLeft - (car.clientWidth - v.offsetWidth)/2; });
   drawQr();
-  return el('div', {}, car, dots, qrArea);
+  return el('div', {}, logoInbox(), car, dots, qrArea);
+}
+/* ロゴメーカーから届いたロゴを、名刺に入れる */
+function logoInbox(){
+  const L0 = LS.get('logoInbox', null);
+  if (!L0 || Date.now() - (+L0.at || 0) > 7 * 864e5){ if (L0) LS.set('logoInbox', null); return null; }
+  const L = safeLogo(L0); if (!L){ LS.set('logoInbox', null); return null; }
+  const prev = logoMark(false, {logo:L, label:'ロゴ'}, false); prev.style.height = '40px';
+  const p = Profile.get();
+  const apply = async id => {
+    const pr = Profile.get(), c = pr.cards.find(x => x.id === id); if (!c) return;
+    c.logo = L; c.mark = true;
+    LS.set('logoInbox', null); await Profile.save(pr); LS.set('card', id); renderOwner(); toast('「' + (c.label || '名刺') + '」にロゴを入れました');
+  };
+  return el('div', {class:'msg ok', style:'margin:0 0 16px'},
+    el('div', {style:'display:flex;align-items:center;gap:12px;margin-bottom:10px'}, prev, el('b', {}, 'ロゴメーカーで作ったロゴが届いています')),
+    el('div', {style:'font-size:14px;margin-bottom:10px'}, 'どの名刺に入れますか？'),
+    el('div', {class:'stack'}, (p && p.cards || []).map(c => el('button', {class:'btn-sub', onclick:()=>apply(c.id)}, c.label || '名刺'))),
+    el('button', {class:'btn-sub', style:'margin-top:10px;opacity:.75', onclick:ev => { LS.set('logoInbox', null); ev.target.closest('.msg').remove(); }}, '入れない'));
 }
 /* ── スワイプで相手の画面へ送る ──
    QRに交換ごとの合言葉（r）を入れ、ntfy.sh で「開いた」「送った」の合図だけを中継する。
@@ -4816,6 +4835,7 @@ function cardEditor(card, opts){
       el('label', {}, 'リンク（SNS・ポートフォリオなど）'), linkBox,
       el('h2', {}, 'オプション'),
       toggle('mark', c.logo ? 'ロゴを表示する' : 'マークを表示する', c.logo ? '名刺の写真から取り込んだロゴを出します' : '名刺の左上に、頭文字のマークを出します'),
+      el('a', {class:'btn-sub', href:'./logo/', style:'margin-top:8px;display:block;text-align:center;text-decoration:none'}, 'ロゴメーカーでロゴを作る（無料）'),
       c.logo ? el('button', {class:'btn-sub', style:'margin-top:8px', onclick:ev=>{ c.logo = null; redraw(); ev.target.replaceWith(el('p', {class:'note'}, '取り込んだロゴを外しました。保存すると、頭文字のマークに戻ります。')); }}, '取り込んだロゴを外す') : [el('label', {}, 'マークの文字（1〜2文字）'), mk],
       toggle('fortune', '占いを付ける', opts.hasBirth ? '相手の画面に「話のネタにタロット」と、生年月日で見る仕事運・相性が出ます' : '使うには「設定」で生年月日を入れてください'),
       toggle('promo', '「このデジタル名刺について」を下に出す', '見た人が、同じ名刺を無料で作れる案内です'),

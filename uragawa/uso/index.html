@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05080b">
+<title>ウラガワ｜心拍計測 試作</title>
+<style>
+  :root{
+    --bg:#05080b; --line:#5ff5d0; --dim:#2a3a40; --text:#cfe9e2; --sub:#6f8a86; --warn:#ffb86b;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP",serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--text);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;
+    -webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+  body{min-height:100svh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 16px calc(16px + env(safe-area-inset-bottom))}
+  header{display:flex;justify-content:space-between;align-items:center;padding:14px 0 8px;font-size:12px;letter-spacing:.2em;color:var(--sub)}
+  #preview{width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--dim);background:#000}
+  #guide{font-size:17px;line-height:1.6;min-height:3.2em;margin:6px 0 10px;text-align:center}
+  #guide.warn{color:var(--warn)}
+  .scope{position:relative;border:1px solid var(--dim);border-radius:10px;overflow:hidden;background:#03060a}
+  #wave{display:block;width:100%;height:170px}
+  .scope .tag{position:absolute;top:8px;left:10px;font-size:10px;letter-spacing:.15em;color:var(--sub)}
+  .readout{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:16px 0 4px}
+  #bpm{font-size:64px;font-weight:200;font-variant-numeric:tabular-nums;color:var(--line);text-shadow:0 0 18px rgba(95,245,208,.45)}
+  .unit{font-size:14px;color:var(--sub);letter-spacing:.1em}
+  #delta{text-align:center;font-size:15px;color:var(--sub);min-height:1.4em;font-variant-numeric:tabular-nums}
+  .bar{height:4px;background:var(--dim);border-radius:2px;margin:14px 0;overflow:hidden;opacity:0;transition:opacity .2s}
+  .bar.on{opacity:1}
+  .bar i{display:block;height:100%;width:0;background:var(--line);box-shadow:0 0 10px var(--line)}
+  .btns{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  button{font:inherit;font-size:16px;padding:15px;border-radius:12px;border:1px solid var(--dim);background:#0c1418;color:var(--text)}
+  button.primary{background:var(--line);color:#03110d;border-color:var(--line);font-weight:600}
+  button:disabled{opacity:.35}
+  .row{display:flex;gap:10px}.row button{flex:1;font-size:14px;padding:12px}
+  #result{display:none;margin:14px 0 0;background:#fbfaf6;color:#1b1b1b;border-radius:4px;padding:18px 20px;font-family:var(--mincho)}
+  #result h3{font-weight:600;font-size:15px;letter-spacing:.3em;text-align:center;border-bottom:1px solid #1b1b1b;padding-bottom:8px;margin-bottom:12px}
+  #result{position:relative;overflow:hidden}
+  .odai{margin-top:14px;border:1px solid var(--dim);border-radius:12px;padding:12px 14px;background:#0a1216}
+  .cats{display:flex;gap:6px;margin-bottom:10px}
+  .cats button{flex:1;font-size:12px;padding:7px 4px;border-radius:20px}
+  .cats button.on{background:var(--line);color:#03110d;border-color:var(--line)}
+  #odaiText{font-family:var(--mincho);font-size:19px;line-height:1.6;text-align:center;min-height:3.2em;display:flex;align-items:center;justify-content:center}
+  #odaiNext{width:100%;margin-top:8px;font-size:13px;padding:9px}
+  .who{text-align:center;font-size:12px;color:var(--sub);letter-spacing:.1em;margin-top:6px}
+  input#pname{flex:1;font:inherit;font-size:14px;padding:12px;border-radius:12px;border:1px solid var(--dim);background:#0c1418;color:var(--text);min-width:0}
+  .rank{display:none;margin-top:14px;background:#fbfaf6;color:#1b1b1b;border-radius:4px;padding:14px 18px;font-family:var(--mincho)}
+  .rank h4{font-size:14px;letter-spacing:.3em;text-align:center;border-bottom:1px solid #1b1b1b;padding-bottom:6px;margin-bottom:8px}
+  .rank ol{list-style:none}
+  .rank li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dotted #ccc;font-size:15px}
+  .rank li small{display:block;font-size:11px;color:#777}
+  .rank li b{font-variant-numeric:tabular-nums;white-space:nowrap}
+  #rName{text-align:center;font-size:13px;color:#555;margin:-6px 0 8px}
+  #rQ{text-align:center;font-size:14px;color:#333;margin-bottom:4px}
+  .stampWrap{display:flex;justify-content:center;margin:16px 0 4px}
+  #stamp{display:inline-block;padding:6px 18px;border:3px solid #b3261e;border-radius:6px;color:#b3261e;font-size:30px;font-weight:700;
+    letter-spacing:.12em;transform:rotate(-10deg);opacity:0}
+  #stamp.hit{animation:stamp .38s cubic-bezier(.2,1.6,.4,1) forwards}
+  @keyframes stamp{0%{opacity:0;transform:scale(2.6) rotate(-22deg)}100%{opacity:.9;transform:scale(1) rotate(-10deg)}}
+  .big{display:flex;align-items:baseline;justify-content:center;gap:6px;margin-top:10px}
+  .big span{font-size:13px;color:#555}
+  .big b{font-size:46px;font-weight:600;font-variant-numeric:tabular-nums}
+  #rLevel{text-align:center;font-size:17px;font-weight:600;margin-top:2px}
+  #rComment{text-align:center;font-size:16px;line-height:1.7;margin:10px 0 12px}
+  #rGraph{display:block;width:100%;height:auto;border-top:1px solid #ccc;padding-top:8px}
+  #rEvidence{font-size:12px;color:#444;text-align:center;margin-top:4px;font-variant-numeric:tabular-nums}
+  #result .note{font-size:10px;color:#888;text-align:center;margin-top:8px}
+  details{margin-top:18px;font-size:12px;color:var(--sub)}
+  details pre{white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;margin-top:6px}
+  footer{margin-top:auto;padding-top:18px;font-size:11px;line-height:1.7;color:var(--sub);text-align:center}
+  /* u-home-pad: トップへ戻るボタンと重ならないように */
+  header{padding-left:76px}
+</style>
+</head>
+<body>
+<header>
+  <span>URAGAWA ／ 心拍計測 試作</span>
+  <video id="preview" playsinline muted autoplay></video>
+</header>
+
+<div id="guide">スタートを押すと、背面カメラとライトを使います</div>
+
+<div class="scope">
+  <span class="tag">PULSE</span>
+  <canvas id="wave"></canvas>
+</div>
+
+<div id="who" class="who"></div>
+<div class="readout"><span id="bpm">--</span><span class="unit">BPM</span></div>
+<div id="delta"></div>
+<div class="bar" id="bar"><i id="barFill"></i></div>
+
+<div class="btns">
+  <button class="primary" id="startBtn">スタート</button>
+  <div class="row">
+    <button id="lieBtn" disabled>嘘発見器（7秒）</button>
+    <button id="dokiBtn" disabled>ドキドキ度（10秒）</button>
+  </div>
+  <div class="row">
+    <button id="soundBtn">心音：ON</button>
+    <button id="resetBtn" disabled>基準を測り直す</button>
+  </div>
+  <div class="row">
+    <input id="pname" placeholder="次の人の名前（なくてもOK）" maxlength="12">
+    <button id="swapBtn" disabled style="flex:0 0 7em">交代する</button>
+  </div>
+</div>
+
+<div class="odai">
+  <div class="cats">
+    <button data-cat="shop" class="on">お店で</button><button data-cat="friends">友達と</button><button data-cat="work">職場・家族</button>
+  </div>
+  <div id="odaiText"></div>
+  <button id="odaiNext">次のお題</button>
+</div>
+
+<div id="result">
+  <h3 id="rTitle">鑑 定 書</h3>
+  <p id="rName"></p>
+  <p id="rQ"></p>
+  <div class="stampWrap"><div id="stamp">シロ</div></div>
+  <div class="big"><span id="rLabel">怪しい度</span><b id="rScore">0</b><span>%</span></div>
+  <div id="rLevel"></div>
+  <p id="rComment"></p>
+  <svg id="rGraph" viewBox="0 0 300 96"></svg>
+  <p id="rEvidence"></p>
+  <p class="note">心拍の変化から出した遊び用の推定です</p>
+</div>
+
+<div id="rank" class="rank"><h4>動 揺 ラ ン キ ン グ</h4><ol id="rankList"></ol></div>
+
+<details>
+  <summary>計測の詳細（調整用）</summary>
+  <pre id="debug">-</pre>
+</details>
+
+<footer>遊び用の推定です。医療目的ではありません。<br>カメラ映像は保存も送信もしません（スマホの中だけで処理）。</footer>
+
+<script>
+// ==PULSE-CORE==
+// 指先の明るさの変化（脈波）から拍を検出する部分。カメラに依存しないので単体で検証できる。
+function median(a){ if(!a.length) return NaN; const s=[...a].sort((x,y)=>x-y); const m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+
+class PulseCore{
+  constructor(){ this.reset(); }
+  reset(){
+    this.raw=[];      // {t,v} 直近1.2秒（ゆっくりした明るさの変化を取り除く用）
+    this.hp=[];       // 平滑化用
+    this.sig=[];      // {t,s} 描画・判定用の脈波（直近6秒）
+    this.cand=null;   // 拍の候補（山の頂点）
+    this.lastCandT=-1e9;
+    this.lastBeat=-1e9;
+    this.beats=[];    // {t,ok}
+    this.ibis=[];     // 採用した拍の間隔（秒）
+    this.ibiTimes=[]; // その拍の時刻
+    this.rejectStreak=0;
+    this.amp=0;
+  }
+  push(t,v){
+    const raw=this.raw; raw.push({t,v});
+    while(raw.length && t-raw[0].t>1.2) raw.shift();
+    let sum=0,n=0; for(const p of raw){ if(t-p.t<=1.0){sum+=p.v;n++;} }
+    const x=v-sum/n;
+    this.hp.push(x); if(this.hp.length>4) this.hp.shift();
+    const s=-(this.hp.reduce((a,b)=>a+b,0)/this.hp.length); // 血液が増えると暗くなるので反転して山にする
+    const prev=this.sig.length?this.sig[this.sig.length-1].s:s;
+    this.sig.push({t,s}); while(this.sig.length && t-this.sig[0].t>6) this.sig.shift();
+
+    let amp=0; for(const p of this.sig){ if(t-p.t<=2.5) amp=Math.max(amp,Math.abs(p.s)); }
+    this.amp=amp;
+    const thresh=0.3*amp;
+
+    let beat=null;
+    if(this.cand){
+      if(s>this.cand.s && t-this.cand.t0<0.3){ this.cand.s=s; this.cand.t=t; }
+      else if(t-this.cand.t>=0.15){ const c=this.cand; this.cand=null; this.lastCandT=c.t; beat=this._accept(c.t); }
+    }else if(amp>0 && s>thresh && s>prev && t-this.lastCandT>this._refractory()){
+      this.cand={t,t0:t,s};
+    }
+    return beat;
+  }
+  _refractory(){ // 拍の直後は少し待つ（脈の2つ目の小さな山を拍と間違えないため）
+    return this.ibis.length>=3 ? Math.max(0.3, 0.55*median(this.ibis.slice(-5))) : 0.3;
+  }
+  _accept(tb){
+    const ibi=tb-this.lastBeat; this.lastBeat=tb;
+    let ok=true;
+    if(ibi<0.33||ibi>1.5) ok=false;               // 180bpm超 / 40bpm未満は捨てる
+    else if(this.ibis.length>=3){
+      const med=median(this.ibis.slice(-5));
+      if(Math.abs(ibi-med)/med>0.3){               // 前後と比べて飛びすぎ → ノイズ扱い
+        ok=false;
+        if(++this.rejectStreak>=4){ this.ibis=[]; this.ibiTimes=[]; this.rejectStreak=0; } // リズム自体が変わった
+      }
+    }
+    if(ok){ this.rejectStreak=0; this.ibis.push(ibi); this.ibiTimes.push(tb); if(this.ibis.length>30){this.ibis.shift();this.ibiTimes.shift();} }
+    const b={t:tb,ok}; this.beats.push(b); if(this.beats.length>30) this.beats.shift();
+    return b;
+  }
+  bpm(){ return this.ibis.length>=3 ? 60/median(this.ibis.slice(-6)) : null; }
+  quality(){
+    if(this.ibis.length<4) return 0;
+    const a=this.ibis.slice(-6), m=a.reduce((x,y)=>x+y,0)/a.length;
+    const sd=Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/a.length);
+    return Math.max(0,Math.min(1,1-(sd/m)/0.2));
+  }
+  ibisSince(t0,t1=Infinity){ const r=[]; this.ibiTimes.forEach((t,i)=>{ if(t>=t0&&t<=t1) r.push(this.ibis[i]); }); return r; }
+}
+// ==/PULSE-CORE==
+
+// ---------- 画面とカメラ ----------
+const $=id=>document.getElementById(id);
+const video=$('preview'), cv=$('wave'), ctx=cv.getContext('2d');
+const grab=document.createElement('canvas'); grab.width=40; grab.height=30;
+const gctx=grab.getContext('2d',{willReadFrequently:true});
+
+const core=new PulseCore();
+let stream=null, track=null, torchOn=false, running=false;
+let state='idle';           // idle / nofinger / warmup / baseline / ready / question
+let stateT=0, fingerSince=null, fingerLostAt=null, channel='r';
+let baseline=null, qStart=0;
+let soundOn=true, ac=null;
+let fpsCount=0, fpsT=0, fps=0, last={r:0,g:0,b:0,finger:false};
+
+const BASE_SEC=8, WARM_SEC=2;
+
+function setGuide(text,warn=false){ const g=$('guide'); g.textContent=text; g.classList.toggle('warn',warn); }
+function setBar(p){ $('bar').classList.toggle('on',p!=null); $('barFill').style.width=((p||0)*100)+'%'; }
+function setState(s,t){ state=s; stateT=t; }
+
+async function start(){
+  $('startBtn').disabled=true;
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)(); ac.resume();
+  }catch(e){}
+  try{
+    const base={width:{ideal:320},height:{ideal:240},frameRate:{ideal:30}};
+    try{ stream=await navigator.mediaDevices.getUserMedia({video:{...base,facingMode:{exact:'environment'}},audio:false}); }
+    catch(e){ stream=await navigator.mediaDevices.getUserMedia({video:{...base,facingMode:'environment'},audio:false}); }
+  }catch(e){
+    setGuide('カメラを使えませんでした。ブラウザのカメラ許可を確認してください（https のページでのみ動きます）',true);
+    $('startBtn').disabled=false; return;
+  }
+  track=stream.getVideoTracks()[0];
+  video.srcObject=stream; await video.play().catch(()=>{});
+  await setTorch(true);
+  running=true; core.reset(); setState('nofinger',performance.now()/1000);
+  $('startBtn').textContent='計測中'; $('resetBtn').disabled=false; $('swapBtn').disabled=false;
+  setGuide('人差し指の腹で、背面カメラとライトを軽く覆ってください');
+  loop();
+}
+
+async function setTorch(on){
+  try{
+    const caps=track.getCapabilities?track.getCapabilities():{};
+    if(caps.torch){ await track.applyConstraints({advanced:[{torch:on}]}); torchOn=on; return; }
+  }catch(e){}
+  torchOn=false;
+}
+
+function stop(){
+  running=false;
+  if(track){ setTorch(false).finally(()=>{ stream&&stream.getTracks().forEach(t=>t.stop()); stream=null; track=null; }); }
+  setState('idle',0); setBar(null);
+  $('startBtn').disabled=false; $('startBtn').textContent='スタート'; setQ(false);
+  setGuide('止めました。スタートで再開します');
+}
+
+function loop(){
+  if(!running) return;
+  if(video.requestVideoFrameCallback) video.requestVideoFrameCallback(()=>{ sample(); loop(); });
+  else requestAnimationFrame(()=>{ sample(); loop(); });
+}
+
+function sample(){
+  const t=performance.now()/1000;
+  if(video.readyState<2){ draw(t); return; }
+  gctx.drawImage(video,0,0,40,30);
+  const d=gctx.getImageData(10,7,20,16).data; // 中央部分だけ使う
+  let r=0,g=0,b=0; const n=d.length/4;
+  for(let i=0;i<d.length;i+=4){ r+=d[i]; g+=d[i+1]; b+=d[i+2]; }
+  r/=n; g/=n; b/=n;
+  const finger = r>60 && r>g*1.3 && r>b*1.3;  // 指で覆うと赤一色になる
+  last={r,g,b,finger};
+  fpsCount++; if(t-fpsT>=1){ fps=fpsCount/(t-fpsT); fpsCount=0; fpsT=t; }
+
+  if(finger){
+    fingerLostAt=null;
+    if(fingerSince==null){ fingerSince=t; core.reset(); channel = r<240?'r':'g'; } // 赤が飽和していたら緑で測る
+    const beat=core.push(t, channel==='r'?r:g);
+    if(beat && state!=='nofinger') onBeat();
+  }else{
+    if(fingerSince!=null && fingerLostAt==null) fingerLostAt=t;
+    if(fingerLostAt!=null && t-fingerLostAt>0.6){ fingerSince=null; fingerLostAt=null; core.reset(); }
+  }
+  step(t, finger || (fingerLostAt!=null));
+  draw(t);
+}
+
+function step(t,fingerOn){
+  const bpm=core.bpm();
+  if(state==='analyzing'){ if(t-stateT>=1.5) showResult(t); return; } // 解析中の「ため」。指が離れても結果は出す
+  if(!fingerOn){
+    if(state!=='nofinger'){
+      if(inCtrl){ inCtrl=false; $('odaiText').textContent=qText; }
+      setState('nofinger',t); setBar(null); setQ(false);
+      setGuide(baseline?'指が離れました。もう一度覆うと続きから測れます':'指が離れました。もう一度覆ってください',true);
+    }
+    $('bpm').textContent='--'; return;
+  }
+  $('bpm').textContent = bpm?Math.round(bpm):'--';
+  if(baseline && bpm){ const dlt=bpm-baseline; $('delta').textContent=`基準 ${Math.round(baseline)}  ／  変化 ${dlt>=0?'+':''}${dlt.toFixed(1)}`; }
+
+  switch(state){
+    case 'nofinger':
+      setState('warmup',t); setGuide('そのまま動かさずに…（脈を探しています）'); break;
+    case 'warmup':
+      setBar((t-stateT)/WARM_SEC);
+      if(t-stateT>=WARM_SEC){
+        if(baseline){ setState('ready',t); setBar(null); setGuide('準備OK。質問を読み上げてから「嘘発見器」か「ドキドキ度」を押してください'); setQ(true); }
+        else { setState('baseline',t); setGuide('落ち着いた状態を測っています（8秒）。深呼吸して楽に'); }
+      }
+      break;
+    case 'baseline':{
+      const el=t-stateT; setBar(Math.min(1,el/BASE_SEC));
+      if(el>=BASE_SEC){
+        const ib=core.ibisSince(stateT);
+        if(ib.length>=6){ baseline=60/median(ib); setState('ready',t); setBar(null); setQ(true);
+          setGuide('基準が取れました。「嘘発見器」か「ドキドキ度」を選んでください'); }
+        else if(el>=BASE_SEC*2){ setState('baseline',t); setGuide('うまく脈が取れません。押さえる強さを少し弱めてみてください',true); }
+      }
+      break;}
+    case 'question':{
+      const el=t-qStart; setBar(Math.min(1,el/qDur));
+      const left=Math.ceil(qDur-el);
+      setGuide((inCtrl?'練習問題です。声に出して答えてください':qMode==='lie'?'答えてください':'見つめ合ってください')+`　残り ${Math.max(0,left)} 秒`);
+      if(el>=qDur) finishQuestion(t);
+      break;}
+  }
+}
+
+// ==RESULT-CORE==
+// 心拍の変化 → 判定・一言。カメラに依存しないので単体で検証できる。
+const LIE_TIERS=[
+  {min:85,stamp:'真っ黒',lines:['心臓が大騒ぎしています','これは追及が必要です','動揺が針を振り切りました','心臓だけは嘘がつけないみたいです','今の答え、もう一回言ってみて？','質問した瞬間、心臓が跳び上がりました','完全に何かあります','平静を装っても、脈はごまかせません','本日いちばんの動揺かもしれません','この話、あとでゆっくり聞かせてください']},
+  {min:60,stamp:'怪しい',lines:['口は落ち着いてても、心臓は正直でした','何か隠してる…かも？','この質問、もう一回聞いてみましょう','ちょっと間があった気がします','目は泳いでいなくても、脈が泳いでいます','答える前に心臓が先に反応しました','完全否定するには、脈が速すぎます','半分本当、半分ごまかし？','思い当たる節がありそうです','笑ってごまかすなら今です']},
+  {min:30,stamp:'グレー',lines:['ちょっと揺れました。何か思い当たる？','心臓が一瞬だけ反応しました','ほぼ本音。でも少しだけ盛った？','白に近いグレーです','動揺というより、照れかもしれません','本当のことを言うのが少し恥ずかしかった？','判定に迷う、絶妙なライン','信じてもいいけど、念のためもう一問','心臓が小さく「えっ」と言いました','セーフ寄りのグレーです']},
+  {min:0, stamp:'シロ', lines:['動揺なし。この答えは信じてよさそう','心臓まで落ち着いています。本音っぽい','まっすぐな答え。逆に怖いくらい','脈が静かすぎて、清々しいです','今の答えに嘘はなさそうです','堂々としています。正直者の脈です','迷いのない心拍でした','これは本音。拍手を送りましょう','落ち着き払っています','疑ってごめんなさいレベルの潔白']},
+];
+const CALM_LINES=['質問されて逆に落ち着いた…大物か、慣れているか','むしろ心拍が下がりました。只者ではありません','動じないにも程があります','この落ち着き、何者ですか','修羅場をくぐってきた心拍です'];
+const DOKI_TIERS=[
+  {min:25,stamp:'限界突破',level:'バンジージャンプ直前レベル',lines:['測定史上まれに見るドキドキ','今日いちばんの記録かも','心臓、大丈夫ですか','これ以上見つめたら危険です','ドキドキが画面からあふれています','完全にやられています','隠しきれないドキドキ','心臓が全力疾走しています']},
+  {min:15,stamp:'バクバク',level:'告白の返事待ちレベル',lines:['心臓の音が聞こえてきそう','落ち着いて、深呼吸して','目を合わせるのが精一杯','これは本物のドキドキです','顔に出ていなくても脈に出ています','かなり意識しています','照れているのがバレバレです','見つめ合いに弱いタイプ']},
+  {min:10,stamp:'ドキドキ',level:'初デートの待ち合わせ5分前レベル',lines:['これは完全にドキドキしてます','目が合うたびに上がってます','素直な心臓です','ちゃんとときめいています','平静を装ってもムダでした','いい反応です','胸が高鳴っています','ドキドキ、しっかり記録しました']},
+  {min:6, stamp:'ドキッ',  level:'好きな人からLINEが来たレベル',lines:['しっかりドキッとしてます','通知を待っている時の心臓です','少しだけ意識しました','一瞬グッときた瞬間あり','かわいい反応です','ちょっとうれしかった？','心臓が小さく跳ねました','じわじわ来ています']},
+  {min:3, stamp:'ちょいドキ',level:'エレベーターで上司と二人きりレベル',lines:['ほんのり反応あり','照れ隠し、バレてます','まだ様子見の心臓','ほんの少し、揺れました','恥ずかしさが少しだけ','余裕の中にドキッが一粒','静かにときめいています','もう少しで本気のドキドキ']},
+  {min:-1e9,stamp:'平常心',level:'お昼寝前レベル',lines:['余裕のある大人の心拍です','まだまだ本気を出していない？','動じない、さすがです','次はもっと近くで見つめてみて','落ち着きのある大人の心臓','手強い相手です','心臓が昼寝しています','リベンジを待っています']},
+];
+const pick=a=>{ let x; do{ x=a[Math.floor(Math.random()*a.length)]; }while(a.length>1 && x===a._last); a._last=x; return x; }; // 同じ言葉を続けて出さない
+
+// 質問中の拍から、平均・最高（3拍ずつの中央値）・最高の時刻・グラフ用の点を出す
+function windowStats(ibis,times,t0,base){
+  const pts=[]; ibis.forEach((v,i)=>{ if(times[i]>=t0) pts.push({x:times[i]-t0,y:60/v}); });
+  if(pts.length<3) return null;
+  const sm=pts.map((p,i)=>({x:p.x,y:median(pts.slice(Math.max(0,i-1),i+2).map(q=>q.y))}));
+  let pk=sm[0]; for(const p of sm) if(p.y>pk.y) pk=p;
+  const avg=60/median(pts.map(p=>60/p.y));
+  return {avg,peak:pk.y,peakAt:pk.x,pts:sm,dAvg:avg-base,dPeak:pk.y-base};
+}
+// ref = 練習問題（答えの決まった質問）を答えたときの心拍。話すだけで上がる分を差し引くため、これと比べる
+function judgeLie(st,ref){
+  const dPeak=ref?st.peak-ref.peak:st.dPeak, dAvg=ref?st.avg-ref.avg:st.dAvg;
+  const s=0.6*dPeak+0.4*dAvg;                             // 上がり幅（bpm）
+  const score=Math.round(Math.max(3,Math.min(97,100/(1+Math.exp(-(s-4)/1.8)))));
+  if(dAvg<-1.5 && dPeak<1) return {score,stamp:'大物',line:pick(CALM_LINES)};
+  const tier=LIE_TIERS.find(x=>score>=x.min);
+  return {score,stamp:tier.stamp,line:pick(tier.lines)};
+}
+function judgeDoki(st,base){
+  const pct=((0.5*st.peak+0.5*st.avg)-base)/base*100;
+  const tier=DOKI_TIERS.find(x=>pct>=x.min);
+  return {score:Math.max(0,Math.round(pct)),stamp:tier.stamp,level:tier.level,line:pick(tier.lines)};
+}
+// ==/RESULT-CORE==
+
+let qMode='lie', qDur=7, pending=null, qText='', ctrl=null, inCtrl=false;
+const CTRL_Q=['今日は何曜日？','今いるお店（場所）の名前は？','1たす1は？','今日の天気は？','あなたの名前は？'];
+let players=[{name:'1人目',lie:null,doki:null}], cur=0;
+function who(){ $('who').textContent='いま測っている人：'+players[cur].name; }
+function swapPlayer(){
+  const nm=$('pname').value.trim()||`${players.length+1}人目`;
+  players.push({name:nm,lie:null,doki:null}); cur=players.length-1; $('pname').value='';
+  who(); resetBaseline(); renderRank();
+  if(state==='nofinger'||state==='idle') setGuide(`${nm}さんの番です。指でカメラとライトを覆ってください`);
+}
+function renderRank(){
+  const ps=players.filter(p=>p.lie||p.doki);
+  $('rank').style.display=players.length>=2&&ps.length?'block':'none';
+  ps.sort((a,b)=>(b.lie?b.lie.score:-1)-(a.lie?a.lie.score:-1));
+  $('rankList').innerHTML=ps.map((p,i)=>`<li><span>${i+1}位　${p.name.replace(/[<>&]/g,'')}${p.lie&&p.lie.q?`<small>Q. ${p.lie.q}</small>`:''}</span><b>${p.lie?'怪しい '+p.lie.score+'%':''}${p.doki?`<small>ドキドキ ${p.doki.score}%</small>`:''}</b></li>`).join('');
+}
+
+// ---------- お題カード（嘘発見器用。自分で考えた質問でも遊べる） ----------
+const ODAI={
+  shop:['私の第一印象、正直に何点？','今日、ここに来るの楽しみにしてた？','私のこと、タイプ？','私の名前、ちゃんと覚えてる？','今日の私、いつもよりかわいい？','正直、もう一杯飲みたい？','次も私に会いに来てくれる？','今、仕事のこと忘れてる？','最近、誰かにドキッとした？','さっきの話、ちょっと盛ったでしょ？','私と話してて、時間忘れてた？','このアプリ、ちょっと怪しいと思ってる？'],
+  friends:['この中でいちばんイケてるの、自分だと思ってる？','今日の服、気合い入れてきた？','SNSの写真、加工してる？','最近、こっそり贅沢した？','実は今日、ちょっと帰りたいと思ってた？','この店を選んだ人のセンス、正直いいと思う？','好きな人のSNS、最近見た？','最後に泣いたの、1か月以内？','寝る前にスマホ1時間以上見てる？','今週、二度寝した？','誰かの誕生日、忘れたことある？','実は自分、ちょっとモテると思ってる？'],
+  work:['会議中に別のこと考えてたことある？','「了解です」と送って、内心了解してなかったことある？','月曜の朝、本当はテンション低い？','有給、全部使い切りたい？','誰かのLINE、既読のままにしてる？','実は隠れてお菓子食べてる？','本当は朝が苦手？','最近、自分にご褒美買った？','机の引き出し、人に見せられる？','カラオケの十八番、本当はもう飽きてる？','今日の晩ごはん、実はもう決めてる？','家でいちばん偉いの、自分だと思ってる？']
+};
+let odaiCat='shop', odaiBag=[];
+function nextOdai(){
+  if(!odaiBag.length) odaiBag=[...ODAI[odaiCat]].sort(()=>Math.random()-0.5); // 一巡するまで同じお題は出さない
+  qText=odaiBag.pop(); $('odaiText').textContent=qText;
+}
+document.querySelectorAll('.cats button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.cats button').forEach(x=>x.classList.toggle('on',x===b));
+  odaiCat=b.dataset.cat; odaiBag=[]; nextOdai();
+});
+function askQuestion(mode){
+  if(state!=='ready') return;
+  qMode=mode; qDur=mode==='lie'?7:10;
+  inCtrl = mode==='lie' && !ctrl;   // その人の最初の嘘発見器は、練習問題から
+  if(inCtrl) $('odaiText').textContent='練習：'+pick(CTRL_Q);
+  qStart=performance.now()/1000; setState('question',qStart); setQ(false);
+  $('result').style.display='none';
+}
+
+function finishQuestion(t){
+  const st=windowStats(core.ibis,core.ibiTimes,qStart,baseline);
+  if(!st){ setState('ready',t); setBar(null); setQ(true); setGuide('心臓が隠れました。指をそのままにして、もう一度どうぞ',true); if(inCtrl) $('odaiText').textContent=qText; return; }
+  if(inCtrl){
+    ctrl=st; inCtrl=false; setState('ready',t); setBar(null); setQ(true); $('odaiText').textContent=qText;
+    setGuide(`練習OK（話しているときの心拍 ${Math.round(st.avg)}）。本番の質問を読んで「嘘発見器」を押してください`);
+    return;
+  }
+  pending=st; setState('analyzing',t); setBar(null); setGuide('解析中…');
+}
+
+function showResult(t){
+  const st=pending, lie=qMode==='lie';
+  const j=lie?judgeLie(st,ctrl):judgeDoki(st,baseline);
+  const pl=players[cur];
+  if(lie){ if(!pl.lie||j.score>pl.lie.score) pl.lie={score:j.score,q:qText}; }
+  else if(!pl.doki||j.score>pl.doki.score) pl.doki={score:j.score};
+  $('rName').textContent=pl.name+' さん';
+  renderRank();
+  $('rTitle').textContent=lie?'鑑 定 書':'ド キ ド キ 鑑 定';
+  $('rQ').textContent=lie&&qText?'Q. '+qText:'';
+  $('rLabel').textContent=lie?'怪しい度':'ドキドキ度';
+  $('rScore').textContent=j.score;
+  $('rLevel').textContent=lie?'':j.level;
+  $('rComment').textContent=j.line;
+  const sgn=v=>(v>=0?'+':'')+v.toFixed(0);
+  const ref=lie&&ctrl?ctrl.peak:baseline, refName=lie&&ctrl?'練習問題の最高':'落ち着いた心拍';
+  $('rEvidence').textContent=`${refName} ${Math.round(ref)} → この質問の最高 ${Math.round(st.peak)}（${st.peakAt.toFixed(1)}秒目で ${sgn(st.peak-ref)}）`;
+  drawGraph(st, lie&&ctrl?ctrl.peak:baseline, lie&&ctrl?'練習問題':'落ち着いた心拍');
+  const stp=$('stamp'); stp.textContent=j.stamp; stp.classList.remove('hit'); $('result').style.display='block'; void stp.offsetWidth; stp.classList.add('hit');
+  if(ac){ const w=ac.currentTime+0.02; thump(w,60,1.0); }
+  if(navigator.vibrate) navigator.vibrate([80,60,40]);
+  $('result').scrollIntoView({behavior:'smooth',block:'center'});
+  setState('ready',t); setQ(true);
+  if(lie) setTimeout(nextOdai,0);
+  setGuide(lie?'次の質問も「嘘発見器」で。人を変えるときは名前を入れて「交代する」':'もう一度、または名前を入れて「交代する」');
+}
+
+function drawGraph(st,refV,refLabel){
+  const W=300,H=96,pad=8, xs=x=>pad+x/qDur*(W-2*pad);
+  const ys=[refV,...st.pts.map(p=>p.y)], lo=Math.min(...ys)-3, hi=Math.max(...ys)+3;
+  const y=v=>H-14-(v-lo)/(hi-lo)*(H-28);
+  const line=st.pts.map(p=>`${xs(p.x).toFixed(1)},${y(p.y).toFixed(1)}`).join(' ');
+  $('rGraph').innerHTML=
+    `<line x1="${pad}" x2="${W-pad}" y1="${y(refV)}" y2="${y(refV)}" stroke="#999" stroke-dasharray="3 3"/>`+
+    `<text x="${W-pad}" y="${y(refV)-3}" font-size="9" text-anchor="end" fill="#999">${refLabel}</text>`+
+    `<polyline points="${line}" fill="none" stroke="#1b1b1b" stroke-width="1.6"/>`+
+    `<circle cx="${xs(st.peakAt)}" cy="${y(st.peak)}" r="4" fill="#b3261e"/>`+
+    `<text x="${Math.min(W-40,Math.max(30,xs(st.peakAt)))}" y="${Math.max(10,y(st.peak)-7)}" font-size="10" text-anchor="middle" fill="#b3261e">ここ</text>`+
+    `<text x="${pad}" y="${H-2}" font-size="9" fill="#999">0秒</text><text x="${W-pad}" y="${H-2}" font-size="9" text-anchor="end" fill="#999">${qDur}秒</text>`;
+}
+
+function setQ(on){ $('lieBtn').disabled=!on; $('dokiBtn').disabled=!on; }
+
+function resetBaseline(){
+  baseline=null; ctrl=null; inCtrl=false; $('delta').textContent=''; $('result').style.display='none'; setQ(false);
+  if(state!=='nofinger'&&state!=='idle'){ setState('baseline',performance.now()/1000); setGuide('落ち着いた状態を測っています（8秒）。深呼吸して楽に'); }
+}
+
+// ---------- 心音・振動 ----------
+function thump(when,f0,vol){
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type='triangle'; o.frequency.setValueAtTime(f0,when); o.frequency.exponentialRampToValueAtTime(f0*0.55,when+0.12);
+  g.gain.setValueAtTime(0.0001,when); g.gain.exponentialRampToValueAtTime(vol,when+0.012); g.gain.exponentialRampToValueAtTime(0.0001,when+0.15);
+  o.connect(g).connect(ac.destination); o.start(when); o.stop(when+0.17);
+}
+function onBeat(){
+  if(soundOn && ac){ const w=ac.currentTime+0.01; thump(w,95,0.7); thump(w+0.14,80,0.4); }
+  if(navigator.vibrate) navigator.vibrate(35); // Androidのみ（iPhoneは非対応）
+}
+
+// ---------- 波形の描画 ----------
+function fit(){ const dpr=window.devicePixelRatio||1; cv.width=cv.clientWidth*dpr; cv.height=cv.clientHeight*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
+function draw(t){
+  const W=cv.clientWidth, H=cv.clientHeight, span=5;
+  ctx.fillStyle='#03060a'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(95,245,208,.07)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=W/10){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for(let y=0;y<H;y+=H/5){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  const mid=H/2, amp=core.amp||1, X=tt=>W-(t-tt)/span*W, Y=s=>mid-s/amp*H*0.36;
+  ctx.save(); ctx.strokeStyle='#5ff5d0'; ctx.lineWidth=2; ctx.shadowColor='#5ff5d0'; ctx.shadowBlur=12;
+  ctx.beginPath();
+  if(core.sig.length>1 && state!=='nofinger'){ core.sig.forEach((p,i)=>{ const x=X(p.t),y=Y(p.s); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); }
+  else { ctx.moveTo(0,mid); ctx.lineTo(W,mid); }
+  ctx.stroke(); ctx.restore();
+  ctx.fillStyle='#fff';
+  for(const b of core.beats){ if(t-b.t<span && b.ok){ ctx.beginPath(); ctx.arc(X(b.t),10,2.5,0,7); ctx.fill(); } }
+  $('debug').textContent=
+`状態: ${state}   fps: ${fps.toFixed(0)}
+ライト: ${track?(torchOn?'点灯':'点灯できない端末'):'-'}   指: ${last.finger?'あり':'なし'}   使う色: ${channel}
+明るさ R ${last.r.toFixed(0)} / G ${last.g.toFixed(0)} / B ${last.b.toFixed(0)}
+脈の大きさ: ${core.amp.toFixed(2)}   安定度: ${(core.quality()*100).toFixed(0)}%
+採用した拍: ${core.ibis.length}   直近の間隔: ${core.ibis.slice(-4).map(v=>v.toFixed(2)).join(' ')}`;
+}
+
+// ---------- ボタン ----------
+$('startBtn').onclick=start;
+$('lieBtn').onclick=()=>askQuestion('lie');
+$('dokiBtn').onclick=()=>askQuestion('doki');
+$('odaiNext').onclick=nextOdai;
+$('swapBtn').onclick=swapPlayer;
+who();
+nextOdai();
+$('resetBtn').onclick=resetBaseline;
+$('soundBtn').onclick=()=>{ soundOn=!soundOn; $('soundBtn').textContent='心音：'+(soundOn?'ON':'OFF'); if(ac) ac.resume(); };
+document.addEventListener('visibilitychange',()=>{ if(document.hidden && running) stop(); });
+window.addEventListener('resize',fit);
+fit(); draw(0);
+</script>
+<script src="../lib/nav.js"></script>
+</body>
+</html>

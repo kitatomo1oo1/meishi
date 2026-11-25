@@ -42,6 +42,7 @@
   .big { font-size:17px; }
   .big em { font-style:normal; font-size:22px; color:#8a2b2b; }
   .c-foot { font-size:10px !important; color:#888; border-top:1px solid #ddd; margin-top:18px !important; padding-top:8px; line-height:1.6 !important; }
+  /* u-home-pad */ header{padding-left:84px}
 </style>
 </head>
 <body>
@@ -946,5 +947,6 @@ function renderCert(o) {
 $('btnDebug').onclick = () => { const d = $('debug'); d.style.display = d.style.display === 'block' ? 'none' : 'block'; };
 $('btnBack').onclick = () => { showResult(false); if (stream) { live = true; requestAnimationFrame(loop); } window.scrollTo({ top:0, behavior:'smooth' }); };
 </script>
+<script src="../lib/nav.js"></script>
 </body>
 </html>

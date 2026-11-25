@@ -36,7 +36,14 @@
   #result{display:none;margin:14px 0 0;background:#fbfaf6;color:#1b1b1b;border-radius:4px;padding:18px 20px;font-family:var(--mincho)}
   #result h3{font-weight:600;font-size:15px;letter-spacing:.3em;text-align:center;border-bottom:1px solid #1b1b1b;padding-bottom:8px;margin-bottom:12px}
   #result{position:relative;overflow:hidden}
-  .stampWrap{display:flex;justify-content:center;margin:6px 0 4px}
+  .odai{margin-top:14px;border:1px solid var(--dim);border-radius:12px;padding:12px 14px;background:#0a1216}
+  .cats{display:flex;gap:6px;margin-bottom:10px}
+  .cats button{flex:1;font-size:12px;padding:7px 4px;border-radius:20px}
+  .cats button.on{background:var(--line);color:#03110d;border-color:var(--line)}
+  #odaiText{font-family:var(--mincho);font-size:19px;line-height:1.6;text-align:center;min-height:3.2em;display:flex;align-items:center;justify-content:center}
+  #odaiNext{width:100%;margin-top:8px;font-size:13px;padding:9px}
+  #rQ{text-align:center;font-size:14px;color:#333;margin-bottom:4px}
+  .stampWrap{display:flex;justify-content:center;margin:16px 0 4px}
   #stamp{display:inline-block;padding:6px 18px;border:3px solid #b3261e;border-radius:6px;color:#b3261e;font-size:30px;font-weight:700;
     letter-spacing:.12em;transform:rotate(-10deg);opacity:0}
   #stamp.hit{animation:stamp .38s cubic-bezier(.2,1.6,.4,1) forwards}
@@ -83,8 +90,17 @@
   </div>
 </div>
 
+<div class="odai">
+  <div class="cats">
+    <button data-cat="shop" class="on">お店で</button><button data-cat="friends">友達と</button><button data-cat="work">職場・家族</button>
+  </div>
+  <div id="odaiText"></div>
+  <button id="odaiNext">次のお題</button>
+</div>
+
 <div id="result">
   <h3 id="rTitle">鑑 定 書</h3>
+  <p id="rQ"></p>
   <div class="stampWrap"><div id="stamp">シロ</div></div>
   <div class="big"><span id="rLabel">怪しい度</span><b id="rScore">0</b><span>%</span></div>
   <div id="rLevel"></div>
@@ -344,7 +360,23 @@ function judgeDoki(st,base){
 }
 // ==/RESULT-CORE==
 
-let qMode='lie', qDur=7, pending=null;
+let qMode='lie', qDur=7, pending=null, qText='';
+
+// ---------- お題カード（嘘発見器用。自分で考えた質問でも遊べる） ----------
+const ODAI={
+  shop:['私の第一印象、正直に何点？','今日、ここに来るの楽しみにしてた？','私のこと、タイプ？','私の名前、ちゃんと覚えてる？','今日の私、いつもよりかわいい？','正直、もう一杯飲みたい？','次も私に会いに来てくれる？','今、仕事のこと忘れてる？','最近、誰かにドキッとした？','さっきの話、ちょっと盛ったでしょ？','私と話してて、時間忘れてた？','このアプリ、ちょっと怪しいと思ってる？'],
+  friends:['この中でいちばんイケてるの、自分だと思ってる？','今日の服、気合い入れてきた？','SNSの写真、加工してる？','最近、こっそり贅沢した？','実は今日、ちょっと帰りたいと思ってた？','この店を選んだ人のセンス、正直いいと思う？','好きな人のSNS、最近見た？','最後に泣いたの、1か月以内？','寝る前にスマホ1時間以上見てる？','今週、二度寝した？','誰かの誕生日、忘れたことある？','実は自分、ちょっとモテると思ってる？'],
+  work:['会議中に別のこと考えてたことある？','「了解です」と送って、内心了解してなかったことある？','月曜の朝、本当はテンション低い？','有給、全部使い切りたい？','誰かのLINE、既読のままにしてる？','実は隠れてお菓子食べてる？','本当は朝が苦手？','最近、自分にご褒美買った？','机の引き出し、人に見せられる？','カラオケの十八番、本当はもう飽きてる？','今日の晩ごはん、実はもう決めてる？','家でいちばん偉いの、自分だと思ってる？']
+};
+let odaiCat='shop', odaiBag=[];
+function nextOdai(){
+  if(!odaiBag.length) odaiBag=[...ODAI[odaiCat]].sort(()=>Math.random()-0.5); // 一巡するまで同じお題は出さない
+  qText=odaiBag.pop(); $('odaiText').textContent=qText;
+}
+document.querySelectorAll('.cats button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.cats button').forEach(x=>x.classList.toggle('on',x===b));
+  odaiCat=b.dataset.cat; odaiBag=[]; nextOdai();
+});
 function askQuestion(mode){
   if(state!=='ready') return;
   qMode=mode; qDur=mode==='lie'?7:10;
@@ -362,6 +394,7 @@ function showResult(t){
   const st=pending, lie=qMode==='lie';
   const j=lie?judgeLie(st):judgeDoki(st,baseline);
   $('rTitle').textContent=lie?'鑑 定 書':'ド キ ド キ 鑑 定';
+  $('rQ').textContent=lie&&qText?'Q. '+qText:'';
   $('rLabel').textContent=lie?'怪しい度':'ドキドキ度';
   $('rScore').textContent=j.score;
   $('rLevel').textContent=lie?'':j.level;
@@ -374,6 +407,7 @@ function showResult(t){
   if(navigator.vibrate) navigator.vibrate([80,60,40]);
   $('result').scrollIntoView({behavior:'smooth',block:'center'});
   setState('ready',t); setQ(true);
+  if(lie) setTimeout(nextOdai,0);
   setGuide(lie?'次の質問も「嘘発見器」で。交代するなら「基準を測り直す」':'もう一度、または相手と交代してどうぞ');
 }
 
@@ -438,6 +472,8 @@ function draw(t){
 $('startBtn').onclick=start;
 $('lieBtn').onclick=()=>askQuestion('lie');
 $('dokiBtn').onclick=()=>askQuestion('doki');
+$('odaiNext').onclick=nextOdai;
+nextOdai();
 $('resetBtn').onclick=resetBaseline;
 $('soundBtn').onclick=()=>{ soundOn=!soundOn; $('soundBtn').textContent='心音：'+(soundOn?'ON':'OFF'); if(ac) ac.resume(); };
 document.addEventListener('visibilitychange',()=>{ if(document.hidden && running) stop(); });

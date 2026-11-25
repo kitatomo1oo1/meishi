@@ -35,9 +35,20 @@
   .row{display:flex;gap:10px}.row button{flex:1;font-size:14px;padding:12px}
   #result{display:none;margin:14px 0 0;background:#fbfaf6;color:#1b1b1b;border-radius:4px;padding:18px 20px;font-family:var(--mincho)}
   #result h3{font-weight:600;font-size:15px;letter-spacing:.3em;text-align:center;border-bottom:1px solid #1b1b1b;padding-bottom:8px;margin-bottom:12px}
-  #result dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:15px}
-  #result dd{text-align:right;font-variant-numeric:tabular-nums}
-  #result p{font-size:11px;color:#666;margin-top:10px;line-height:1.6}
+  #result{position:relative;overflow:hidden}
+  .stampWrap{display:flex;justify-content:center;margin:6px 0 4px}
+  #stamp{display:inline-block;padding:6px 18px;border:3px solid #b3261e;border-radius:6px;color:#b3261e;font-size:30px;font-weight:700;
+    letter-spacing:.12em;transform:rotate(-10deg);opacity:0}
+  #stamp.hit{animation:stamp .38s cubic-bezier(.2,1.6,.4,1) forwards}
+  @keyframes stamp{0%{opacity:0;transform:scale(2.6) rotate(-22deg)}100%{opacity:.9;transform:scale(1) rotate(-10deg)}}
+  .big{display:flex;align-items:baseline;justify-content:center;gap:6px;margin-top:10px}
+  .big span{font-size:13px;color:#555}
+  .big b{font-size:46px;font-weight:600;font-variant-numeric:tabular-nums}
+  #rLevel{text-align:center;font-size:17px;font-weight:600;margin-top:2px}
+  #rComment{text-align:center;font-size:16px;line-height:1.7;margin:10px 0 12px}
+  #rGraph{display:block;width:100%;height:auto;border-top:1px solid #ccc;padding-top:8px}
+  #rEvidence{font-size:12px;color:#444;text-align:center;margin-top:4px;font-variant-numeric:tabular-nums}
+  #result .note{font-size:10px;color:#888;text-align:center;margin-top:8px}
   details{margin-top:18px;font-size:12px;color:var(--sub)}
   details pre{white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;margin-top:6px}
   footer{margin-top:auto;padding-top:18px;font-size:11px;line-height:1.7;color:var(--sub);text-align:center}
@@ -62,7 +73,10 @@
 
 <div class="btns">
   <button class="primary" id="startBtn">スタート</button>
-  <button id="qBtn" disabled>1問テスト（7秒）</button>
+  <div class="row">
+    <button id="lieBtn" disabled>嘘発見器（7秒）</button>
+    <button id="dokiBtn" disabled>ドキドキ度（10秒）</button>
+  </div>
   <div class="row">
     <button id="soundBtn">心音：ON</button>
     <button id="resetBtn" disabled>基準を測り直す</button>
@@ -70,13 +84,14 @@
 </div>
 
 <div id="result">
-  <h3>計 測 結 果</h3>
-  <dl>
-    <dt>落ち着いた心拍</dt><dd id="rBase">-</dd>
-    <dt>質問中の平均</dt><dd id="rAvg">-</dd>
-    <dt>質問中の最高</dt><dd id="rPeak">-</dd>
-  </dl>
-  <p>※ 試作の生データ表示です。「怪しい度」などへの変換はこれから決めます。</p>
+  <h3 id="rTitle">鑑 定 書</h3>
+  <div class="stampWrap"><div id="stamp">シロ</div></div>
+  <div class="big"><span id="rLabel">怪しい度</span><b id="rScore">0</b><span>%</span></div>
+  <div id="rLevel"></div>
+  <p id="rComment"></p>
+  <svg id="rGraph" viewBox="0 0 300 96"></svg>
+  <p id="rEvidence"></p>
+  <p class="note">心拍の変化から出した遊び用の推定です</p>
 </div>
 
 <details>
@@ -172,7 +187,7 @@ let baseline=null, qStart=0;
 let soundOn=true, ac=null;
 let fpsCount=0, fpsT=0, fps=0, last={r:0,g:0,b:0,finger:false};
 
-const BASE_SEC=10, WARM_SEC=3, Q_SEC=7;
+const BASE_SEC=10, WARM_SEC=3;
 
 function setGuide(text,warn=false){ const g=$('guide'); g.textContent=text; g.classList.toggle('warn',warn); }
 function setBar(p){ $('bar').classList.toggle('on',p!=null); $('barFill').style.width=((p||0)*100)+'%'; }
@@ -212,7 +227,7 @@ function stop(){
   running=false;
   if(track){ setTorch(false).finally(()=>{ stream&&stream.getTracks().forEach(t=>t.stop()); stream=null; track=null; }); }
   setState('idle',0); setBar(null);
-  $('startBtn').disabled=false; $('startBtn').textContent='スタート'; $('qBtn').disabled=true;
+  $('startBtn').disabled=false; $('startBtn').textContent='スタート'; setQ(false);
   setGuide('止めました。スタートで再開します');
 }
 
@@ -249,10 +264,10 @@ function sample(){
 
 function step(t,fingerOn){
   const bpm=core.bpm();
+  if(state==='analyzing'){ if(t-stateT>=1.5) showResult(t); return; } // 解析中の「ため」。指が離れても結果は出す
   if(!fingerOn){
     if(state!=='nofinger'){
-      if(state==='question') $('qBtn').disabled=false;
-      setState('nofinger',t); setBar(null); $('qBtn').disabled=true;
+      setState('nofinger',t); setBar(null); setQ(false);
       setGuide(baseline?'指が離れました。もう一度覆うと続きから測れます':'指が離れました。もう一度覆ってください',true);
     }
     $('bpm').textContent='--'; return;
@@ -266,7 +281,7 @@ function step(t,fingerOn){
     case 'warmup':
       setBar((t-stateT)/WARM_SEC);
       if(t-stateT>=WARM_SEC){
-        if(baseline){ setState('ready',t); setBar(null); setGuide('準備OK。質問を読み上げてから「1問テスト」を押してください'); $('qBtn').disabled=false; }
+        if(baseline){ setState('ready',t); setBar(null); setGuide('準備OK。質問を読み上げてから「嘘発見器」か「ドキドキ度」を押してください'); setQ(true); }
         else { setState('baseline',t); setGuide('落ち着いた状態を測っています（10秒）。深呼吸して楽に'); }
       }
       break;
@@ -274,40 +289,112 @@ function step(t,fingerOn){
       const el=t-stateT; setBar(Math.min(1,el/BASE_SEC));
       if(el>=BASE_SEC){
         const ib=core.ibisSince(stateT);
-        if(ib.length>=6){ baseline=60/median(ib); setState('ready',t); setBar(null); $('qBtn').disabled=false;
-          setGuide('基準が取れました。質問を読み上げてから「1問テスト」を押してください'); }
+        if(ib.length>=6){ baseline=60/median(ib); setState('ready',t); setBar(null); setQ(true);
+          setGuide('基準が取れました。「嘘発見器」か「ドキドキ度」を選んでください'); }
         else if(el>=BASE_SEC*2){ setState('baseline',t); setGuide('うまく脈が取れません。押さえる強さを少し弱めてみてください',true); }
       }
       break;}
     case 'question':{
-      const el=t-qStart; setBar(Math.min(1,el/Q_SEC));
-      if(el>=Q_SEC) finishQuestion(t);
+      const el=t-qStart; setBar(Math.min(1,el/qDur));
+      const left=Math.ceil(qDur-el);
+      setGuide((qMode==='lie'?'答えてください':'見つめ合ってください')+`　残り ${Math.max(0,left)} 秒`);
+      if(el>=qDur) finishQuestion(t);
       break;}
   }
 }
 
-function askQuestion(){
+// ==RESULT-CORE==
+// 心拍の変化 → 判定・一言。カメラに依存しないので単体で検証できる。
+const LIE_TIERS=[
+  {min:85,stamp:'真っ黒',lines:['心臓が大騒ぎしています','これは追及が必要です','動揺が針を振り切りました']},
+  {min:60,stamp:'怪しい',lines:['口は落ち着いてても、心臓は正直でした','何か隠してる…かも？','この質問、もう一回聞いてみましょう']},
+  {min:30,stamp:'グレー',lines:['ちょっと揺れました。何か思い当たる？','心臓が一瞬だけ反応しました','ほぼ本音。でも少しだけ盛った？']},
+  {min:0, stamp:'シロ', lines:['動揺なし。この答えは信じてよさそう','心臓まで落ち着いています。本音っぽい','まっすぐな答え。逆に怖いくらい']},
+];
+const DOKI_TIERS=[
+  {min:25,stamp:'限界突破',level:'バンジージャンプ直前レベル',lines:['測定史上まれに見るドキドキ','今日いちばんの記録かも']},
+  {min:15,stamp:'バクバク',level:'告白の返事待ちレベル',lines:['心臓の音が聞こえてきそう','落ち着いて、深呼吸して']},
+  {min:10,stamp:'ドキドキ',level:'初デートの待ち合わせ5分前レベル',lines:['これは完全にドキドキしてます','目が合うたびに上がってます']},
+  {min:6, stamp:'ドキッ',  level:'好きな人からLINEが来たレベル',lines:['しっかりドキッとしてます','通知を待っている時の心臓です']},
+  {min:3, stamp:'ちょいドキ',level:'エレベーターで上司と二人きりレベル',lines:['ほんのり反応あり','照れ隠し、バレてます']},
+  {min:-1e9,stamp:'平常心',level:'お昼寝前レベル',lines:['余裕のある大人の心拍です','まだまだ本気を出していない？']},
+];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+// 質問中の拍から、平均・最高（3拍ずつの中央値）・最高の時刻・グラフ用の点を出す
+function windowStats(ibis,times,t0,base){
+  const pts=[]; ibis.forEach((v,i)=>{ if(times[i]>=t0) pts.push({x:times[i]-t0,y:60/v}); });
+  if(pts.length<3) return null;
+  const sm=pts.map((p,i)=>({x:p.x,y:median(pts.slice(Math.max(0,i-1),i+2).map(q=>q.y))}));
+  let pk=sm[0]; for(const p of sm) if(p.y>pk.y) pk=p;
+  const avg=60/median(pts.map(p=>60/p.y));
+  return {avg,peak:pk.y,peakAt:pk.x,pts:sm,dAvg:avg-base,dPeak:pk.y-base};
+}
+function judgeLie(st){
+  const s=0.6*st.dPeak+0.4*st.dAvg;                       // 上がり幅（bpm）
+  const score=Math.round(Math.max(3,Math.min(97,100/(1+Math.exp(-(s-4)/1.8)))));
+  if(st.dAvg<-1.5 && st.dPeak<1) return {score,stamp:'大物',line:'質問されて逆に落ち着いた…大物か、慣れているか'};
+  const tier=LIE_TIERS.find(x=>score>=x.min);
+  return {score,stamp:tier.stamp,line:pick(tier.lines)};
+}
+function judgeDoki(st,base){
+  const pct=((0.5*st.peak+0.5*st.avg)-base)/base*100;
+  const tier=DOKI_TIERS.find(x=>pct>=x.min);
+  return {score:Math.max(0,Math.round(pct)),stamp:tier.stamp,level:tier.level,line:pick(tier.lines)};
+}
+// ==/RESULT-CORE==
+
+let qMode='lie', qDur=7, pending=null;
+function askQuestion(mode){
   if(state!=='ready') return;
-  qStart=performance.now()/1000; setState('question',qStart); $('qBtn').disabled=true;
+  qMode=mode; qDur=mode==='lie'?7:10;
+  qStart=performance.now()/1000; setState('question',qStart); setQ(false);
   $('result').style.display='none';
-  setGuide('答えてください（そのまま指は置いたまま）');
 }
 
 function finishQuestion(t){
-  const ib=core.ibisSince(qStart,t);
-  setState('ready',t); setBar(null); $('qBtn').disabled=false;
-  if(ib.length<3){ setGuide('この間の脈がうまく取れませんでした。もう一度どうぞ',true); return; }
-  const avg=60/median(ib);
-  let peak=0; for(let i=0;i+3<=ib.length;i++){ peak=Math.max(peak,60/median(ib.slice(i,i+3))); } // 3拍ずつの最高
-  const f=v=>{const d=v-baseline; return `${Math.round(v)}（${d>=0?'+':''}${d.toFixed(1)}）`;};
-  $('rBase').textContent=Math.round(baseline)+' BPM';
-  $('rAvg').textContent=f(avg); $('rPeak').textContent=f(peak);
-  $('result').style.display='block';
-  setGuide('次の質問も「1問テスト」で測れます');
+  const st=windowStats(core.ibis,core.ibiTimes,qStart,baseline);
+  if(!st){ setState('ready',t); setBar(null); setQ(true); setGuide('心臓が隠れました。指をそのままにして、もう一度どうぞ',true); return; }
+  pending=st; setState('analyzing',t); setBar(null); setGuide('解析中…');
 }
 
+function showResult(t){
+  const st=pending, lie=qMode==='lie';
+  const j=lie?judgeLie(st):judgeDoki(st,baseline);
+  $('rTitle').textContent=lie?'鑑 定 書':'ド キ ド キ 鑑 定';
+  $('rLabel').textContent=lie?'怪しい度':'ドキドキ度';
+  $('rScore').textContent=j.score;
+  $('rLevel').textContent=lie?'':j.level;
+  $('rComment').textContent=j.line;
+  const sgn=v=>(v>=0?'+':'')+v.toFixed(0);
+  $('rEvidence').textContent=`落ち着いた心拍 ${Math.round(baseline)} → 最高 ${Math.round(st.peak)}（${st.peakAt.toFixed(1)}秒目で ${sgn(st.dPeak)}）`;
+  drawGraph(st);
+  const stp=$('stamp'); stp.textContent=j.stamp; stp.classList.remove('hit'); $('result').style.display='block'; void stp.offsetWidth; stp.classList.add('hit');
+  if(ac){ const w=ac.currentTime+0.02; thump(w,60,1.0); }
+  if(navigator.vibrate) navigator.vibrate([80,60,40]);
+  $('result').scrollIntoView({behavior:'smooth',block:'center'});
+  setState('ready',t); setQ(true);
+  setGuide(lie?'次の質問も「嘘発見器」で。交代するなら「基準を測り直す」':'もう一度、または相手と交代してどうぞ');
+}
+
+function drawGraph(st){
+  const W=300,H=96,pad=8, xs=x=>pad+x/qDur*(W-2*pad);
+  const ys=[baseline,...st.pts.map(p=>p.y)], lo=Math.min(...ys)-3, hi=Math.max(...ys)+3;
+  const y=v=>H-14-(v-lo)/(hi-lo)*(H-28);
+  const line=st.pts.map(p=>`${xs(p.x).toFixed(1)},${y(p.y).toFixed(1)}`).join(' ');
+  $('rGraph').innerHTML=
+    `<line x1="${pad}" x2="${W-pad}" y1="${y(baseline)}" y2="${y(baseline)}" stroke="#999" stroke-dasharray="3 3"/>`+
+    `<text x="${W-pad}" y="${y(baseline)-3}" font-size="9" text-anchor="end" fill="#999">落ち着いた心拍</text>`+
+    `<polyline points="${line}" fill="none" stroke="#1b1b1b" stroke-width="1.6"/>`+
+    `<circle cx="${xs(st.peakAt)}" cy="${y(st.peak)}" r="4" fill="#b3261e"/>`+
+    `<text x="${Math.min(W-40,Math.max(30,xs(st.peakAt)))}" y="${Math.max(10,y(st.peak)-7)}" font-size="10" text-anchor="middle" fill="#b3261e">ここ</text>`+
+    `<text x="${pad}" y="${H-2}" font-size="9" fill="#999">0秒</text><text x="${W-pad}" y="${H-2}" font-size="9" text-anchor="end" fill="#999">${qDur}秒</text>`;
+}
+
+function setQ(on){ $('lieBtn').disabled=!on; $('dokiBtn').disabled=!on; }
+
 function resetBaseline(){
-  baseline=null; $('delta').textContent=''; $('result').style.display='none'; $('qBtn').disabled=true;
+  baseline=null; $('delta').textContent=''; $('result').style.display='none'; setQ(false);
   if(state!=='nofinger'&&state!=='idle'){ setState('baseline',performance.now()/1000); setGuide('落ち着いた状態を測っています（10秒）。深呼吸して楽に'); }
 }
 
@@ -349,7 +436,8 @@ function draw(t){
 
 // ---------- ボタン ----------
 $('startBtn').onclick=start;
-$('qBtn').onclick=askQuestion;
+$('lieBtn').onclick=()=>askQuestion('lie');
+$('dokiBtn').onclick=()=>askQuestion('doki');
 $('resetBtn').onclick=resetBaseline;
 $('soundBtn').onclick=()=>{ soundOn=!soundOn; $('soundBtn').textContent='心音：'+(soundOn?'ON':'OFF'); if(ac) ac.resume(); };
 document.addEventListener('visibilitychange',()=>{ if(document.hidden && running) stop(); });

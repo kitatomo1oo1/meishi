@@ -178,11 +178,13 @@ async function init() {
   try {
     const fileset = await FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
-    landmarker = await FaceLandmarker.createFromOptions(fileset, {
+    const make = delegate => FaceLandmarker.createFromOptions(fileset, {
       baseOptions: {
         modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-        delegate: "GPU" },
+        delegate },
       runningMode: "VIDEO", numFaces: 1, outputFaceBlendshapes: true });
+    try { landmarker = await make("GPU"); }
+    catch (e) { console.warn("GPUで失敗、CPUで再試行", e); landmarker = await make("CPU"); }
   } catch (e) {
     $("bootMsg").textContent = "AIの読み込みに失敗しました：" + e.message;
     return;

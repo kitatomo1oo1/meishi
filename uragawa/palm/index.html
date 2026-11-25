@@ -306,17 +306,19 @@ function classifyByTemplate(cands, S, a) {
 // 道筋の左右 ±W の帯の中で、「線の強さが大きく、向きが道筋に沿い、急に曲がらない」なぞり方を探す。
 function traceLine(map, ori, S, path, W, mask) {
   const N = 60, { pts } = samplePath(path, N);
-  const U = Math.round(W), M = 2 * U + 1;
+  const W0 = Array.isArray(W) ? W[0] : W, W1 = Array.isArray(W) ? W[1] : W;   // [根元の幅, 終わりの幅]
+  const U = Math.round(Math.max(W0, W1)), M = 2 * U + 1;
   const val = new Float32Array((N + 1) * M), pos = [];
   for (let i = 0; i <= N; i++) {
     const p = pts[i], q = pts[Math.min(N, i + 1)], o = pts[Math.max(0, i - 1)];
     let tx = q[0] - o[0], ty = q[1] - o[1]; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
     const nx = -ty, ny = tx, ta = Math.atan2(ty, tx);
     const row = [];
+    const Ui = W0 + (W1 - W0) * i / N;
     for (let u = -U; u <= U; u++) {
       const x = Math.round(p[0] + nx * u), y = Math.round(p[1] + ny * u);
       let v = 0;
-      if (x >= 0 && y >= 0 && x < S && y < S && mask[y * S + x]) {
+      if (Math.abs(u) <= Ui && x >= 0 && y >= 0 && x < S && y < S && mask[y * S + x]) {
         const d = Math.cos(ori[y * S + x] - ta);                   // 線の向きが道筋と合うほど高く
         v = map[y * S + x] * (0.25 + 0.75 * d * d);
       }
@@ -406,7 +408,7 @@ function palmLines(gray, S, mask, opt = {}) {
   if (opt.anchors) {
     const T = palmTemplates(opt.anchors, S);
     if (opt.templates) for (const k in opt.templates) T[k] = opt.templates[k].map(([x, y]) => [x * S, y * S]);
-    const W = opt.widths ? Object.fromEntries(Object.entries(opt.widths).map(([k, v]) => [k, v * S])) : { life: 0.08 * S, head: 0.07 * S, heart: 0.07 * S, fate: 0.07 * S };
+    const W = opt.widths ? Object.fromEntries(Object.entries(opt.widths).map(([k, v]) => [k, Array.isArray(v) ? v.map(z => z * S) : v * S])) : { life: 0.08 * S, head: 0.07 * S, heart: 0.07 * S, fate: 0.07 * S };
     const work = Float32Array.from(bhs);              // なぞった線の周りは、次の線の候補から外す
     const R = Math.max(3, Math.round(S / 64));
     for (const k of ['life', 'heart', 'head', 'fate']) {
@@ -719,7 +721,10 @@ function loop() {
       drawSkeleton(vctx, pts, dpr);
       const size = Math.hypot(pts[0][0] - pts[9][0], pts[0][1] - pts[9][1]) / Math.min(view.width, view.height);
       lastHand = lm;
-      if (size < 0.22) { steady = 0; $('status').textContent = 'もう少し近づけて'; }
+      // 手全体（指先・手首まで）がカメラの画面に入っていないと、手のひらのそろえ方がずれる
+      const inFrame = lm.every(p => p.x > 0.02 && p.x < 0.98 && p.y > 0.02 && p.y < 0.98);
+      if (!inFrame) { steady = 0; $('status').textContent = '少し離して、指先から手首まで全部映してください'; }
+      else if (size < 0.22) { steady = 0; $('status').textContent = 'もう少し近づけて'; }
       else { steady++; $('status').textContent = steady > 20 ? 'OK「読み取る」を押してください' : 'そのまま…'; }
     } else { lastHand = null; steady = 0; $('status').textContent = '手のひらを映してください（指を上に）'; }
     $('btnShot').disabled = !(lastHand && steady > 20);
@@ -795,6 +800,7 @@ function measure(canvas) {          // 1枚の画像から線を測る（表示�
   const res = imageLM.detect(canvas);
   const lm = res.landmarks && res.landmarks[0];
   if (!lm) return null;
+  if (!lm.every(p => p.x > 0.01 && p.x < 0.99 && p.y > 0.01 && p.y < 0.99)) return { outOfFrame:true };
   const W = canvas.width, H = canvas.height, P = i => [lm[i].x * W, lm[i].y * H];
   // 人差し指の付け根→左上、小指の付け根→右上、手首→下 に合わせる（右手でも左手でも親指が左に来る）
   const m = solveAffine([P(5), P(17), P(0)], [[0.25*S, 0.10*S], [0.86*S, 0.16*S], [0.52*S, 0.97*S]]);
@@ -822,8 +828,13 @@ function loadStore() { try { return JSON.parse(localStorage.getItem('palm-hands-
 function saveStore(st) { try { localStorage.setItem('palm-hands-v5', JSON.stringify(st)); } catch (e) {} }
 
 async function runReading(frames) {  // frames: 測った結果の配列（1〜5回分）
-  const ok = frames.filter(Boolean);
-  if (!ok.length) { $('status').textContent = '手が見つかりませんでした。指を上にして、手のひら全体を映してください'; return; }
+  const out = frames.filter(f => f && f.outOfFrame);
+  const ok = frames.filter(f => f && !f.outOfFrame);
+  if (!ok.length) {
+    $('status').textContent = out.length ? '手が画面からはみ出しています。少し離して、指先から手首まで全部映してください' : '手が見つかりませんでした。指を上にして、手のひら全体を映してください';
+    if (stream) { live = true; requestAnimationFrame(loop); }
+    return;
+  }
   const meas = medianMeasure(ok.map(o => ({ ...o.feat, ratio:o.ratio })));
   // 表示に使うのは、中央値にいちばん近い回
   const dist = o => ['life','head','heart','fate'].reduce((d, k) => d + (o.feat[k] && meas[k] ? Math.abs(o.feat[k].length - meas[k].length) : (!!o.feat[k] !== !!meas[k]) * 1), 0);

@@ -203,9 +203,9 @@ function components(bin, w, h) {
 }
 
 // 線の形を表す値（重心・向き・長さ・細長さ）
-function shapeOf(c, w, bh) {
+function shapeOf(c, w, bh, fixedStrength) {
   let sx = 0, sy = 0, ss = 0;
-  for (const p of c.px) { sx += p % w; sy += (p / w) | 0; ss += bh[p]; }
+  for (const p of c.px) { sx += p % w; sy += (p / w) | 0; if (bh) ss += bh[p]; }
   const n = c.px.length, cx = sx / n, cy = sy / n;
   let xx = 0, yy = 0, xy = 0;
   for (const p of c.px) { const dx = p % w - cx, dy = ((p / w) | 0) - cy; xx += dx * dx; yy += dy * dy; xy += dx * dy; }
@@ -217,34 +217,137 @@ function shapeOf(c, w, bh) {
   const ux = Math.cos(angle), uy = Math.sin(angle);
   let mn = 1e9, mx = -1e9;
   for (const p of c.px) { const t = (p % w - cx) * ux + (((p / w) | 0) - cy) * uy; mn = Math.min(mn, t); mx = Math.max(mx, t); }
-  return Object.assign(c, { n, cx, cy, angle, span: mx - mn, elong: Math.sqrt(l1 / l2), strength: ss / n });
+  return Object.assign(c, { n, cx, cy, angle, span: mx - mn, elong: Math.sqrt(l1 / l2), strength: bh ? ss / n : fixedStrength });
 }
 
-// 正規化した座標系：人差し指の付け根＝左上、小指の付け根＝右上、手首＝下、親指は左側
-function classify(cands, S) {
-  const horiz = a => Math.abs(Math.cos(a));   // 1=横
-  const vert = a => Math.abs(Math.sin(a));    // 1=縦
-  const near = (v, c, wd) => Math.max(0, 1 - Math.abs(v - c) / wd);
-  const score = {
-    heart: c => near(c.cy / S, 0.30, 0.14) * (0.4 + 0.6 * horiz(c.angle)) * near(c.cx / S, 0.60, 0.40),
-    head:  c => near(c.cy / S, 0.47, 0.13) * (0.4 + 0.6 * horiz(c.angle)) * near(c.cx / S, 0.45, 0.40),
-    life:  c => near(c.cx / S, 0.30, 0.20) * near(c.cy / S, 0.62, 0.30) * (0.3 + 0.7 * vert(c.angle)),
-    fate:  c => near(c.cx / S, 0.55, 0.15) * near(c.cy / S, 0.65, 0.30) * (0.2 + 0.8 * vert(c.angle)),
+// ===== 関節の点から「この線はこのあたりを通るはず」という道筋を手ごとに作る =====
+// a: 正規化座標での関節の点 {0,1,2,5,9,13,17}（MediaPipeの番号）
+const lerp = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+const add = (p, dx, dy) => [p[0] + dx, p[1] + dy];
+function palmTemplates(a, S) {
+  const A = lerp(a[5], a[2], 0.30);                   // 親指と人差し指の間（生命線・知能線の起点）
+  const B = lerp(a[0], a[1], 0.30);                   // 手首の親指寄り（生命線の終点）
+  const C = add(lerp(A, B, 0.5), 0.15 * S, 0);        // 生命線のふくらみ
+  return {
+    life:  [A, lerp(A, C, 0.5), C, lerp(C, B, 0.5), B],
+    head:  [add(A, 0.02 * S, 0.03 * S), lerp(a[17], a[0], 0.45)],
+    heart: [lerp(a[17], a[0], 0.15), add(lerp(a[5], a[9], 0.6), 0, 0.12 * S)],
+    fate:  [lerp(a[0], a[17], 0.10), add(lerp(a[9], a[13], 0.5), 0, 0.35 * S)],
   };
-  const pairs = [];
-  for (const k of Object.keys(score)) for (const c of cands) {
-    const want = (k === 'heart' || k === 'head') ? 'h' : 'v';
-    if (c.group && c.group !== want) continue;
-    const s = score[k](c) * Math.min(1, c.span / (S * 0.35)) * c.strength;
-    if (s > 0) pairs.push({ k, c, s });
+}
+// 手のひらの範囲（親指そのものは外す）
+function palmPolygon(a, S) {
+  const edge = add(lerp(a[17], a[0], 0.35), 0.10 * S, 0);
+  let poly = [lerp(a[5], a[2], 0.35), a[5], a[9], a[13], a[17], edge, [0.80 * S, 0.97 * S], [a[0][0], Math.min(S - 1, a[0][1] + 0.02 * S)], a[1]];
+  const cx = poly.reduce((s, p) => s + p[0], 0) / poly.length, cy = poly.reduce((s, p) => s + p[1], 0) / poly.length;
+  return poly.map(([x, y]) => [cx + (x - cx) * 0.97, cy + (y - cy) * 0.97]);
+}
+function samplePath(path, n) {          // 道筋を等間隔の点に
+  const seg = [], out = [];
+  let total = 0;
+  for (let i = 1; i < path.length; i++) { const d = Math.hypot(path[i][0] - path[i-1][0], path[i][1] - path[i-1][1]); seg.push(d); total += d; }
+  for (let k = 0; k <= n; k++) {
+    let t = total * k / n, i = 0;
+    while (i < seg.length - 1 && t > seg[i]) { t -= seg[i]; i++; }
+    out.push(lerp(path[i], path[i + 1], Math.min(1, t / seg[i])));
   }
-  pairs.sort((a, b) => b.s - a.s);
-  const out = { heart: null, head: null, life: null, fate: null }, used = new Set();
-  for (const { k, c } of pairs) {
-    if (out[k] || used.has(c.id)) continue;
-    out[k] = c; used.add(c.id);
+  return { pts: out, total };
+}
+// 候補の線を道筋に割り当てる（1本の線が途切れていても、同じ道筋に沿う候補はまとめる）
+function classifyByTemplate(cands, S, a) {
+  const T = palmTemplates(a, S), tol = 0.07 * S, N = 40;
+  const tp = {}; for (const k in T) tp[k] = samplePath(T[k], N);
+  const fit = (c, k) => {
+    const { pts } = tp[k], hit = new Uint8Array(N + 1);
+    let near = 0;
+    for (let j = 0; j < c.px.length; j += 2) {
+      const x = c.px[j] % S, y = (c.px[j] / S) | 0;
+      let bd = Infinity, bi = 0;
+      for (let i = 0; i <= N; i++) { const d = Math.hypot(x - pts[i][0], y - pts[i][1]); if (d < bd) { bd = d; bi = i; } }
+      if (bd <= tol) { near++; hit[bi] = 1; }
+    }
+    const frac = near / Math.ceil(c.px.length / 2);
+    return { frac, hit };
+  };
+  const lines = { heart: null, head: null, life: null, fate: null };
+  const best = cands.map(c => {
+    let bk = null, bs = 0, bf = null;
+    for (const k in T) {
+      const f = fit(c, k), cover = f.hit.reduce((s, v) => s + v, 0) / (N + 1);
+      const sc = f.frac >= 0.6 ? f.frac * f.frac * cover * c.strength : 0;
+      if (sc > bs) { bs = sc; bk = k; bf = f; }
+    }
+    return { c, k:bk, f:bf };
+  });
+  const parts = { heart: [], head: [], life: [], fate: [] };
+  for (const b of best) if (b.k) parts[b.k].push(b);
+  for (const k in parts) {
+    if (!parts[k].length) continue;
+    // 同じ道筋の候補をまとめて1本の線にする（重なる画素は1回だけ）
+    const px = new Set(), hit = new Uint8Array(N + 1);
+    let ss = 0, n = 0;
+    for (const { c, f } of parts[k]) { for (const p of c.px) px.add(p); f.hit.forEach((v, i) => { if (v) hit[i] = 1; }); ss += c.strength * c.n; n += c.n; }
+    // 長さ＝道筋のうち線が乗っている範囲（最初と最後の間）
+    let lo = hit.indexOf(1), hi = hit.lastIndexOf(1);
+    const merged = shapeOf({ id: k, px: [...px] }, S, null, ss / n);
+    merged.span = (hi - lo) / N * tp[k].total;
+    merged.coverage = hit.reduce((s, v) => s + v, 0) / (N + 1);
+    merged.parts = parts[k].length;
+    if (merged.span >= 0.12 * S) lines[k] = merged;
   }
-  return out;
+  return lines;
+}
+
+// ===== 道筋に沿って、実際のシワをなぞる（動的計画法） =====
+// 道筋の左右 ±W の帯の中で、「線の強さが大きく、向きが道筋に沿い、急に曲がらない」なぞり方を探す。
+function traceLine(map, ori, S, path, W, mask) {
+  const N = 60, { pts } = samplePath(path, N);
+  const U = Math.round(W), M = 2 * U + 1;
+  const val = new Float32Array((N + 1) * M), pos = [];
+  for (let i = 0; i <= N; i++) {
+    const p = pts[i], q = pts[Math.min(N, i + 1)], o = pts[Math.max(0, i - 1)];
+    let tx = q[0] - o[0], ty = q[1] - o[1]; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+    const nx = -ty, ny = tx, ta = Math.atan2(ty, tx);
+    const row = [];
+    for (let u = -U; u <= U; u++) {
+      const x = Math.round(p[0] + nx * u), y = Math.round(p[1] + ny * u);
+      let v = 0;
+      if (x >= 0 && y >= 0 && x < S && y < S && mask[y * S + x]) {
+        const d = Math.cos(ori[y * S + x] - ta);                   // 線の向きが道筋と合うほど高く
+        v = map[y * S + x] * (0.25 + 0.75 * d * d);
+      }
+      val[i * M + u + U] = v; row.push([x, y]);
+    }
+    pos.push(row);
+  }
+  // 累積スコア：前の点から横に1つ動くごとに少し減点
+  const acc = new Float32Array((N + 1) * M), from = new Int16Array((N + 1) * M);
+  for (let u = 0; u < M; u++) acc[u] = val[u] - 0.002 * Math.abs(u - U);
+  for (let i = 1; i <= N; i++) for (let u = 0; u < M; u++) {
+    let b = -1e9, bu = u;
+    for (let du = -2; du <= 2; du++) {
+      const w = u + du; if (w < 0 || w >= M) continue;
+      const s = acc[(i - 1) * M + w] - 0.03 * Math.abs(du);
+      if (s > b) { b = s; bu = w; }
+    }
+    acc[i * M + u] = b + val[i * M + u]; from[i * M + u] = bu;
+  }
+  let u = 0; for (let k = 1; k < M; k++) if (acc[N * M + k] > acc[N * M + u]) u = k;
+  const route = [], resp = [];
+  for (let i = N; i >= 0; i--) { route.unshift(pos[i][u]); resp.unshift(val[i * M + u]); u = from[i * M + u]; }
+  // 線が実際に乗っている区間（弱い所が少し途切れても1本とみなす）を取り出す
+  const sm = resp.map((_, i) => { let s = 0, n = 0; for (let k = i - 2; k <= i + 2; k++) if (k >= 0 && k <= N) { s += resp[k]; n++; } return s / n; });
+  const thr = 0.16;
+  let best = [0, -1], cur = -1, gap = 0;
+  for (let i = 0; i <= N; i++) {
+    if (sm[i] >= thr) { if (cur < 0) cur = i; gap = 0; if (i - cur > best[1] - best[0]) best = [cur, i]; }
+    else if (cur >= 0 && ++gap > 6) { cur = -1; gap = 0; }
+  }
+  if (best[1] < best[0]) return null;
+  const seg = route.slice(best[0], best[1] + 1);
+  let len = 0; for (let i = 1; i < seg.length; i++) len += Math.hypot(seg[i][0] - seg[i-1][0], seg[i][1] - seg[i-1][1]);
+  let st = 0; for (let i = best[0]; i <= best[1]; i++) st += sm[i];
+  return { route: seg, span: len, strength: st / (best[1] - best[0] + 1) };
 }
 
 function palmLines(gray, S, mask, opt = {}) {
@@ -283,23 +386,49 @@ function palmLines(gray, S, mask, opt = {}) {
       for (const p of c.px) if (bhs[p] >= hi) strong++;
       if (strong < 4) continue;
       shapeOf(c, S, bhs);
-      if (c.span < S * 0.10 || c.elong < 2.5) continue;   // 短い・丸いものはシワや毛穴として捨てる
+      if (c.span < S * 0.06 || c.elong < 2.5) continue;   // 短い・丸いものはシワや毛穴として捨てる
       c.group = group; c.id = group + c.id;
       cands.push(c);
     }
   }
   cands.sort((a, b) => b.span * b.strength - a.span * a.strength);
-  const kept = cands.slice(0, 10);
-  const lines = classify(kept, S);
+  const kept = cands.slice(0, 24);
+  const lines = { heart: null, head: null, life: null, fate: null };
+  if (opt.anchors) {
+    const T = palmTemplates(opt.anchors, S);
+    const W = { life: 0.10 * S, head: 0.08 * S, heart: 0.08 * S, fate: 0.07 * S };
+    for (const k in T) {
+      const tr = traceLine(bhs, ori, S, T[k], W[k], mask);
+      if (!tr || tr.span < 0.12 * S) continue;
+      // 表示用に、なぞった道を2画素の太さで塗る
+      const px = new Set();
+      for (let i = 1; i < tr.route.length; i++) {
+        const [x0, y0] = tr.route[i - 1], [x1, y1] = tr.route[i], n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0)));
+        for (let j = 0; j <= n; j++) { const x = Math.round(x0 + (x1 - x0) * j / n), y = Math.round(y0 + (y1 - y0) * j / n);
+          for (const [dx, dy] of [[0,0],[1,0],[0,1]]) if (x + dx < S && y + dy < S) px.add((y + dy) * S + x + dx); }
+      }
+      const c = { id: k, px: [...px], route: tr.route };
+      shapeOf(c, S, null, tr.strength);
+      c.span = tr.span;
+      lines[k] = c;
+    }
+  }
   // 4) 特徴量（鑑定に使う）
   const feat = {};
   for (const k of Object.keys(lines)) {
     const c = lines[k];
-    feat[k] = c ? { length: +(c.span / S).toFixed(3), strength: +c.strength.toFixed(3), angle: +(c.angle * 180 / Math.PI).toFixed(1) } : null;
+    let ang = c ? c.angle : 0;
+    if (c && c.route) {   // 左から右へ向けた角度（下がるほどプラス）。縦の線は上から下へ
+      let p = c.route[0], q = c.route[c.route.length - 1];
+      if (k === 'life' || k === 'fate' ? p[1] > q[1] : p[0] > q[0]) [p, q] = [q, p];
+      ang = Math.atan2(q[1] - p[1], q[0] - p[0]);
+    }
+    feat[k] = c ? { length: +(c.span / S).toFixed(3), strength: +c.strength.toFixed(3), angle: +(ang * 180 / Math.PI).toFixed(1) } : null;
   }
   // ますかけ線の推定：手のひらを横切る1本の長い横線
-  const longH = kept.filter(c => c.group === 'h' && c.span > S * 0.55 && c.cy > S * 0.25 && c.cy < S * 0.55);
-  feat.masukake = longH.length === 1 && !(lines.heart && lines.head && lines.heart !== lines.head && lines.head.span > S * 0.25);
+  // ますかけ線：知能線と感情線の道筋をまたいで、1本の長い横線が手のひらを横切る
+  const longH = kept.filter(c => c.group === 'h' && c.span > S * 0.50 && c.elong > 8);
+  feat.masukake = longH.length >= 1 && !lines.heart && !!lines.head;
   return { map: bhs, cands: kept, lines, feat };
 }
 
@@ -656,13 +785,12 @@ function measure(canvas) {          // 1枚の画像から線を測る（表示�
   const rgba = pctx.getImageData(0, 0, S, S).data;
   const gray = new Uint8Array(S * S);
   for (let i = 0; i < gray.length; i++) gray[i] = Math.round(0.25 * rgba[i*4] + 0.6 * rgba[i*4+1] + 0.15 * rgba[i*4+2]);
-  // 手のひらの範囲（付け根・親指の付け根・手首を囲み、少し内側に縮める）
-  let poly = hull([0,1,2,5,9,13,17].map(i => apply(m, P(i))).concat([[0.95*S, 0.55*S], [0.30*S, 0.98*S], [0.80*S, 0.96*S]]));
-  const cx = poly.reduce((s, p) => s + p[0], 0) / poly.length, cy = poly.reduce((s, p) => s + p[1], 0) / poly.length;
-  poly = poly.map(([x, y]) => [cx + (x - cx) * 0.95, cy + (y - cy) * 0.95]);
+  // 関節の点を正規化した座標に。線の道筋と手のひらの範囲（親指は外す）をここから作る
+  const anchors = {}; for (const i of [0,1,2,5,9,13,17]) anchors[i] = apply(m, P(i));
+  const poly = palmPolygon(anchors, S);
   const mask = polygonMask(poly, S);
   const t0 = performance.now();
-  const out = palmLines(gray, S, mask);
+  const out = palmLines(gray, S, mask, { anchors });
   out.ms = Math.round(performance.now() - t0);
   out.ratio = fingerRatio(lm, W, H);
   out.photo = pc; out.poly = poly;
@@ -670,8 +798,8 @@ function measure(canvas) {          // 1枚の画像から線を測る（表示�
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-function loadStore() { try { return JSON.parse(localStorage.getItem('palm-hands') || '[]'); } catch (e) { return []; } }
-function saveStore(st) { try { localStorage.setItem('palm-hands', JSON.stringify(st)); } catch (e) {} }
+function loadStore() { try { return JSON.parse(localStorage.getItem('palm-hands-v2') || '[]'); } catch (e) { return []; } }
+function saveStore(st) { try { localStorage.setItem('palm-hands-v2', JSON.stringify(st)); } catch (e) {} }
 
 async function runReading(frames) {  // frames: 測った結果の配列（1〜5回分）
   const ok = frames.filter(Boolean);
@@ -721,7 +849,7 @@ function animate(o) {
   // 線ごとに、端から順に点が並ぶようにしておく
   const seq = LINE_INFO.filter(l => o.lines[l.key]).map(l => {
     const cmp = o.lines[l.key], ux = Math.cos(cmp.angle), uy = Math.sin(cmp.angle);
-    const px = cmp.px.slice().sort((p, q) => ((p % S) * ux + ((p / S) | 0) * uy) - ((q % S) * ux + ((q / S) | 0) * uy));
+    const px = cmp.route ? cmp.px : cmp.px.slice().sort((p, q) => ((p % S) * ux + ((p / S) | 0) * uy) - ((q % S) * ux + ((q / S) | 0) * uy));   // なぞった順に光らせる
     return { ...l, px };
   });
   const layer = document.createElement('canvas'); layer.width = layer.height = S;

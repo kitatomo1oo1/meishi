@@ -44,6 +44,11 @@
   .big { font-size:17px; }
   .big em { font-style:normal; font-size:22px; color:#8a2b2b; }
   .c-foot { font-size:10px !important; color:#888; border-top:1px solid #ddd; margin-top:18px !important; padding-top:8px; line-height:1.6 !important; }
+  #pairView { display:none; background:#f4f1ea; padding:16px 12px 40px; }
+  #pairHands { width:100%; display:block; margin:10px auto 0; }
+  .p-score { text-align:center; font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; color:#8a2b2b; font-size:64px; line-height:1.1; margin-top:6px; }
+  .p-score small { font-size:22px; margin-left:4px; }
+  .p-comment { text-align:center; font-size:16px !important; margin:8px 0 4px !important; }
 </style>
 </head>
 <body>
@@ -60,6 +65,7 @@
   <button id="btnTorch" disabled>ライト</button>
   <button id="btnShot" class="main" disabled>読み取る</button>
   <label class="btn">写真から<input id="file" type="file" accept="image/*"></label>
+  <button id="btnPair">相性を見る</button>
 </div>
 
 <div id="result">
@@ -72,6 +78,23 @@
     <button id="btnBack">撮り直す</button>
   </div>
   <canvas id="debug" width="256" height="256"></canvas>
+</div>
+
+<div id="pairView">
+  <div class="paper">
+    <div class="c-head">手 相 の 相 性</div>
+    <canvas id="pairHands" width="1000" height="500"></canvas>
+    <div class="p-score"><span id="pScore"></span><small>点</small></div>
+    <div class="c-type" id="pNames"></div>
+    <p class="p-comment" id="pComment"></p>
+    <h3>相性の中身</h3><div id="pAspects"></div>
+    <h3>二人のラッキー</h3><div id="pLucky"></div>
+    <p class="c-foot">この相性は手のひらの線の画像から推定した遊びの占いです。写真は保存・送信していません。</p>
+  </div>
+  <div class="bar">
+    <button id="btnPairShare" class="main">画像で保存・LINEで送る</button>
+    <button id="btnPairBack">もう一度</button>
+  </div>
 </div>
 
 <div id="cert">
@@ -1161,6 +1184,147 @@ function readingWithMemory(measured, store, now = new Date()) {
 }
 
 
+// ===== 手相の相性 =====
+// 2人の手相の区分から決まる（同じ2人なら同じ結果。並び順は関係ない）
+// 点数は60点未満にしない（言われてうれしい方向に寄せる遊びの占い）
+
+const PAIR_TEXT = {
+  // 総合コメント（点数帯ごと）
+  band: {
+    s: [ // 95〜99
+      '手相の流れがぴったり重なる、めったにない組み合わせ',
+      '二人の線が呼び合っている。出会うべくして出会った相性',
+      '言葉がなくても通じ合える、最高クラスの相性',
+      '一緒にいるだけで運が上がる、奇跡のペア',
+      '何をしても楽しい二人。周りがうらやむ相性',
+      'お互いの足りないところを、ぴったり埋め合える手',
+      '長く一緒にいるほど、相性がもっと良くなる二人',
+      '初めて会った気がしない、と言われがちな組み合わせ',
+    ],
+    a: [ // 85〜94
+      'ノリも価値観も近い、居心地のいい相性',
+      '話が尽きない二人。気づけば時間を忘れている',
+      'ケンカしても、すぐに笑って仲直りできる相性',
+      'お互いを高め合える、前向きなペア',
+      '一緒に何かを始めると、うまくいきやすい二人',
+      '信頼が育ちやすい相性。秘密も安心して話せる',
+      '二人でいると、自然と笑顔が増える組み合わせ',
+      '似ているところと違うところのバランスが絶妙',
+    ],
+    b: [ // 75〜84
+      '違うからこそ面白い。刺激をくれる相性',
+      'お互いの知らない世界を見せ合える二人',
+      'じわじわ仲良くなるタイプの相性。二回目が本番',
+      '片方が攻め、片方が守り。役割分担が上手なペア',
+      '一緒にいると新しい発見がある組み合わせ',
+      '最初は意外でも、気づけば一番話しやすい相手に',
+      'テンポの違いが、ちょうどいいリズムになる二人',
+      '補い合うことで、一人の時より強くなれる相性',
+    ],
+    c: [ // 60〜74
+      '正反対だから惹かれ合う、ドラマチックな相性',
+      'まだ見えていない面がたくさんある二人。これからが楽しみ',
+      'お互いの違いを楽しめたら、最強のペアになれる',
+      '予想外の化学反応が起きやすい組み合わせ',
+      '時間をかけるほど味が出る、スルメ型の相性',
+      '一緒にいると、普段と違う自分が出てくる二人',
+      '刺激と発見の多い相性。退屈とは無縁',
+      'ぶつかった分だけ、絆が深まるタイプのペア',
+    ],
+  },
+  // 恋愛の相性（感情線の長さが同じか違うか）
+  love: {
+    same: [
+      '愛情の表し方が似ている二人。すれ違いが少ない',
+      '恋のペースがそろっているから、無理なく続く',
+      '好きの温度が同じくらい。安心できる関係',
+      'お互いの気持ちが手に取るように分かる',
+      '記念日の過ごし方まで好みが合いそう',
+      '同じタイミングで同じことを考えている二人',
+    ],
+    diff: [
+      '情熱的な方とクールな方。追いかけっこが楽しい関係',
+      'まっすぐな気持ちと落ち着いた包容力の組み合わせ',
+      '片方が引っ張り、片方が受け止める。バランスのいい恋',
+      '愛情表現の違いが、お互いの新鮮さになる',
+      '相手の素直さに救われることが多い二人',
+      '熱しやすさと冷めにくさを分け合っているペア',
+    ],
+  },
+  // 会話の相性（知能線の長さが同じか違うか）
+  talk: {
+    same: [
+      '考え方のテンポが同じ。話していてストレスがない',
+      'ツッコミとボケが自然に決まる二人',
+      '一つの話題で何時間でも盛り上がれる',
+      '相手の言いたいことが、最後まで聞かなくても分かる',
+      '冗談のツボが同じ。笑いが絶えない',
+      '真面目な話も楽しい話も、同じ熱量でできる',
+    ],
+    diff: [
+      'じっくり考える方と、すぐ答えを出す方。話すたびに発見がある',
+      '相手の一言で、自分では思いつかない答えが見つかる',
+      '理屈と直感の組み合わせ。相談相手として最強',
+      '話を広げる人と、まとめる人。会議でも飲み会でも名コンビ',
+      'お互いの話が新鮮で、聞いていて飽きない',
+      '違う角度から物事を見られる、いい刺激の関係',
+    ],
+  },
+  // お金の相性（知能線の傾きが同じか違うか）
+  money: {
+    same: [
+      'お金の使い方の感覚が近い。旅行の計画もすんなり決まる',
+      '何にお金をかけたいかが似ている二人',
+      '節約も贅沢も、同じタイミングで楽しめる',
+      '欲しいものの好みが合うから、プレゼント選びに困らない',
+    ],
+    diff: [
+      '堅実な方と大胆な方。二人でちょうどいいバランス',
+      'ブレーキ役とアクセル役がそろっている',
+      '片方の思い切りが、もう片方の慎重さで成功に変わる',
+      'お互いのお金の使い方から学べることが多い',
+    ],
+  },
+  dates: [
+    '夜景の見えるバー', '海沿いのドライブ', '老舗の焼き鳥屋', '水族館', '屋台のはしご', '温泉旅館',
+    'カラオケ', '朝のカフェ', '花火大会', '映画のレイトショー', 'ボウリング', '動物園',
+    '星がきれいな場所', '路地裏の小さなレストラン', '日帰り旅行', '美術館', '夏祭り', 'ホテルのラウンジ',
+    'キャンプ', '観覧車',
+  ],
+  actions: [
+    '同じものを注文する', '乾杯を3回する', '写真を一緒に撮る', '好きな曲を教え合う', '手相を見せ合う',
+    '次に行く店を決める', 'お互いのあだ名を決める', '握手で締める', '昔の写真を見せ合う', '同じタイミングで「せーの」と言う',
+    '好きな食べ物を3つずつ言う', '子どもの頃の夢を話す', 'お互いの第一印象を言い合う', '今日の一番の思い出を決める', '次の約束をする',
+  ],
+};
+
+function makePair(rA, rB) {
+  const [a, b] = [rA, rB].sort((x, y) => (x.key < y.key ? -1 : 1));   // 並び順に関係なく同じ結果
+  const ba = a.buckets, bb = b.buckets;
+  const r = rng(fnv1a('pair|' + a.key + '|' + b.key));
+  const choose = arr => arr[Math.floor(r() * arr.length)];
+  // 似ている所と補い合う所の両方を点数にする
+  let pts = 0;
+  for (const [k] of READING_DIMS) if (ba[k] === bb[k]) pts += 2;                 // 似ている項目
+  if (ba.heartLen !== bb.heartLen) pts += 3;                                      // 恋は少し違う方が盛り上がる
+  if (ba.lifeLen === bb.lifeLen) pts += 3;                                        // 体力（テンポ）が近いと一緒に楽しめる
+  if (ba.masukake === 'yes' || bb.masukake === 'yes') pts += 4;
+  const score = Math.max(60, Math.min(99, 58 + pts + Math.floor(r() * 20)));
+  const band = score >= 95 ? 's' : score >= 85 ? 'a' : score >= 75 ? 'b' : 'c';
+  return {
+    score,
+    comment: choose(PAIR_TEXT.band[band]),
+    aspects: [
+      { label: '恋愛の相性', text: choose(PAIR_TEXT.love[ba.heartLen === bb.heartLen ? 'same' : 'diff']) },
+      { label: '会話の相性', text: choose(PAIR_TEXT.talk[ba.headLen === bb.headLen ? 'same' : 'diff']) },
+      { label: 'お金の相性', text: choose(PAIR_TEXT.money[ba.headSlope === bb.headSlope ? 'same' : 'diff']) },
+    ],
+    date: choose(PAIR_TEXT.dates),
+    action: choose(PAIR_TEXT.actions),
+  };
+}
+
+
 </script>
 <script type="module">
 import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
@@ -1178,12 +1342,13 @@ const $ = id => document.getElementById(id);
 const video = $('video'), view = $('view'), vctx = view.getContext('2d');
 let videoLM = null, imageLM = null, stream = null, track = null, lastHand = null, steady = 0, live = false, torchOn = false;
 let lastResult = null;
+let pair = false, pairA = null, lastPair = null;   // 相性モード：1人目の結果を一時的に持つ
 
 async function loadModels() {
   const fs = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
   const base = { modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task" };
-  const mk = mode => HandLandmarker.createFromOptions(fs, { baseOptions:{ ...base, delegate:"GPU" }, runningMode:mode, numHands:1 })
-    .catch(() => HandLandmarker.createFromOptions(fs, { baseOptions:base, runningMode:mode, numHands:1 }));
+  const mk = mode => HandLandmarker.createFromOptions(fs, { baseOptions:{ ...base, delegate:"GPU" }, runningMode:mode, numHands:2 })
+    .catch(() => HandLandmarker.createFromOptions(fs, { baseOptions:base, runningMode:mode, numHands:2 }));
   [videoLM, imageLM] = await Promise.all([mk("VIDEO"), mk("IMAGE")]);
 }
 const ready = loadModels().then(() => { $('status').textContent = '「カメラ開始」か「写真から」を押してください'; })
@@ -1223,17 +1388,18 @@ function loop() {
     const f = fitCover(view.width, view.height, vw, vh);
     vctx.globalAlpha = 0.55; vctx.drawImage(video, f.ox, f.oy, vw * f.s, vh * f.s); vctx.globalAlpha = 1;
     const res = videoLM.detectForVideo(video, performance.now());
-    const lm = res.landmarks && res.landmarks[0];
+    const hands = res.landmarks || [];
+    for (const h of hands) drawSkeleton(vctx, h.map(p => [f.ox + p.x * vw * f.s, f.oy + p.y * vh * f.s]), dpr);
+    const lm = biggest(hands);
     if (lm) {
       const pts = lm.map(p => [f.ox + p.x * vw * f.s, f.oy + p.y * vh * f.s]);
-      drawSkeleton(vctx, pts, dpr);
       const size = Math.hypot(pts[0][0] - pts[9][0], pts[0][1] - pts[9][1]) / Math.min(view.width, view.height);
       lastHand = lm;
       // 手全体（指先・手首まで）がカメラの画面に入っていないと、手のひらのそろえ方がずれる
-      const inFrame = lm.every(p => p.x > 0.02 && p.x < 0.98 && p.y > 0.02 && p.y < 0.98);
+      const inFrame = (pair ? hands : [lm]).every(h => h.every(p => p.x > 0.02 && p.x < 0.98 && p.y > 0.02 && p.y < 0.98));
       if (!inFrame) { steady = 0; $('status').textContent = '少し離して、指先から手首まで全部映してください'; }
       else if (size < 0.22) { steady = 0; $('status').textContent = 'もう少し近づけて'; }
-      else { steady++; $('status').textContent = steady > 20 ? 'OK「読み取る」を押してください' : 'そのまま…'; }
+      else { steady++; $('status').textContent = steady > 20 ? (pair ? `OK（${hands.length}人分の手）「読み取る」を押してください` : 'OK「読み取る」を押してください') : 'そのまま…'; }
     } else { lastHand = null; steady = 0; $('status').textContent = '手のひらを映してください（指を上に）'; }
     $('btnShot').disabled = !(lastHand && steady > 20);
   }
@@ -1257,10 +1423,10 @@ $('btnShot').onclick = async () => {
     const c = document.createElement('canvas');
     c.width = video.videoWidth; c.height = video.videoHeight;
     c.getContext('2d').drawImage(video, 0, 0);
-    frames.push(measure(c));
+    frames.push(pair ? measureAll(c) : measure(c));
     await sleep(120);
   }
-  runReading(frames);
+  pair ? runPair(frames) : runReading(frames);
 };
 
 $('file').onchange = async e => {
@@ -1274,7 +1440,7 @@ $('file').onchange = async e => {
   URL.revokeObjectURL(img.src); e.target.value = '';
   $('status').textContent = '解析中…';
   await sleep(30);
-  runReading([measure(c)]);
+  pair ? runPair([measureAll(c)]) : runReading([measure(c)]);
 };
 
 // ---------- 解析 ----------
@@ -1304,10 +1470,19 @@ function fingerRatio(lm, w, h) {     // 人差し指 ÷ 薬指（付け根の関
   return len([5,6,7,8]) / len([13,14,15,16]);
 }
 
-function measure(canvas) {          // 1枚の画像から線を測る（表示はしない）
+const palmSize = h => Math.hypot(h[0].x - h[9].x, h[0].y - h[9].y);
+const biggest = hands => hands.length ? hands.slice().sort((a, b) => palmSize(b) - palmSize(a))[0] : null;
+function measureAll(canvas) {       // 写っている手（最大2つ）をそれぞれ測る。左にある手から順に並べる
   const res = imageLM.detect(canvas);
-  const lm = res.landmarks && res.landmarks[0];
-  if (!lm) return null;
+  const hands = (res.landmarks || []).slice().sort((a, b) => a[0].x - b[0].x);
+  return hands.map(h => measureHand(canvas, h));
+}
+function measure(canvas) {          // 1人用：一番大きく写っている手を測る
+  const res = imageLM.detect(canvas);
+  const lm = biggest(res.landmarks || []);
+  return lm ? measureHand(canvas, lm) : null;
+}
+function measureHand(canvas, lm) {  // 1つの手の線を測る（表示はしない）
   if (!lm.every(p => p.x > 0.01 && p.x < 0.99 && p.y > 0.01 && p.y < 0.99)) return { outOfFrame:true };
   const W = canvas.width, H = canvas.height, P = i => [lm[i].x * W, lm[i].y * H];
   // 人差し指の付け根→左上、小指の付け根→右上、手首→下 に合わせる（右手でも左手でも親指が左に来る）
@@ -1335,6 +1510,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 function loadStore() { try { return JSON.parse(localStorage.getItem('palm-hands-v7') || '[]'); } catch (e) { return []; } }
 function saveStore(st) { try { localStorage.setItem('palm-hands-v7', JSON.stringify(st)); } catch (e) {} }
 
+function personFrom(ok) {           // 同じ人の手の測定（1〜5回分）→ 鑑定
+  const meas = medianMeasure(ok.map(o => ({ ...o.feat, ratio:o.ratio })));
+  // 表示に使うのは、中央値にいちばん近い回
+  const dist = o => ['life','head','heart','fate'].reduce((d, k) => d + (o.feat[k] && meas[k] ? Math.abs(o.feat[k].length - meas[k].length) : (!!o.feat[k] !== !!meas[k]) * 1), 0);
+  const shown = ok.slice().sort((a, b) => dist(a) - dist(b))[0];
+  const store = loadStore();
+  const { reading, again } = readingWithMemory(meas, store);
+  saveStore(store);
+  return { ...shown, meas, reading, again, frames:ok.length };
+}
+
 async function runReading(frames) {  // frames: 測った結果の配列（1〜5回分）
   const out = frames.filter(f => f && f.outOfFrame);
   const ok = frames.filter(f => f && !f.outOfFrame);
@@ -1343,14 +1529,7 @@ async function runReading(frames) {  // frames: 測った結果の配列（1〜5
     if (stream) { live = true; requestAnimationFrame(loop); }
     return;
   }
-  const meas = medianMeasure(ok.map(o => ({ ...o.feat, ratio:o.ratio })));
-  // 表示に使うのは、中央値にいちばん近い回
-  const dist = o => ['life','head','heart','fate'].reduce((d, k) => d + (o.feat[k] && meas[k] ? Math.abs(o.feat[k].length - meas[k].length) : (!!o.feat[k] !== !!meas[k]) * 1), 0);
-  const shown = ok.slice().sort((a, b) => dist(a) - dist(b))[0];
-  const store = loadStore();
-  const { reading, again } = readingWithMemory(meas, store);
-  saveStore(store);
-  lastResult = { ...shown, meas, reading, again, frames:ok.length };
+  lastResult = personFrom(ok);
   live = false;
   $('status').textContent = '';
   showResult(true);
@@ -1358,6 +1537,90 @@ async function runReading(frames) {  // frames: 測った結果の配列（1〜5
   await animate(lastResult);
   $('btnCert').disabled = false;
 }
+
+// ---------- 相性 ----------
+$('btnPair').onclick = () => {
+  pair = !pair; pairA = null;
+  $('btnPair').classList.toggle('main', pair);
+  $('btnPair').textContent = pair ? '相性モード中（解除）' : '相性を見る';
+  $('status').textContent = pair ? '2人の手を並べて撮るか、1人ずつ撮ってください' : '「カメラ開始」か「写真から」を押してください';
+};
+
+async function runPair(frames) {     // frames: 各回の「写っている手の測定結果の配列」
+  const valid = frames.map(hs => (hs || []).filter(h => h && !h.outOfFrame));
+  const two = valid.filter(hs => hs.length >= 2), one = valid.filter(hs => hs.length === 1);
+  const restart = msg => { $('status').textContent = msg; if (stream) { live = true; requestAnimationFrame(loop); } };
+  if (frames.some(hs => (hs || []).some(h => h && h.outOfFrame)) && !two.length && !one.length)
+    return restart('手が画面からはみ出しています。少し離して、指先から手首まで全部映してください');
+  let A, B;
+  if (two.length * 2 >= valid.length && two.length) {       // 2人の手を並べて撮った：左の手と右の手に分ける
+    A = personFrom(two.map(hs => hs[0])); B = personFrom(two.map(hs => hs[1]));
+  } else if (one.length) {                                  // 1人ずつ撮る
+    const p = personFrom(one.map(hs => hs[0]));
+    if (!pairA) { pairA = p; return restart('1人目OK。次は2人目の手を撮ってください'); }
+    A = pairA; B = p;
+  } else return restart('手が見つかりませんでした。指を上にして、手のひら全体を映してください');
+  pairA = null; live = false; $('status').textContent = '';
+  lastPair = { A, B, res: makePair(A.reading, B.reading) };
+  showPair(lastPair);
+}
+
+function drawPalm(ctx, o, x, y, size, onWhite) {   // 1人分の手の線を光らせて描く
+  const layer = document.createElement('canvas'); layer.width = layer.height = S;
+  const lc = layer.getContext('2d');
+  for (const l of LINE_INFO) { const c = o.lines[l.key]; if (!c) continue; lc.fillStyle = l.color; for (const p of c.px) lc.fillRect(p % S, (p / S) | 0, 1, 1); }
+  const k = size / S;
+  ctx.save();
+  ctx.strokeStyle = onWhite ? '#cfc6b4' : '#244'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 5]);
+  ctx.beginPath(); o.poly.forEach(([px, py], i) => i ? ctx.lineTo(x + px * k, y + py * k) : ctx.moveTo(x + px * k, y + py * k)); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+  ctx.filter = `blur(${4 * k}px)`; ctx.drawImage(layer, x, y, size, size); ctx.drawImage(layer, x, y, size, size);
+  ctx.filter = 'none'; ctx.drawImage(layer, x, y, size, size);
+  ctx.restore();
+}
+
+function showPair(p) {
+  const c = $('pairHands'), ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  drawPalm(ctx, p.A, 0, 0, 500, true); drawPalm(ctx, p.B, 500, 0, 500, true);
+  $('pScore').textContent = p.res.score;
+  $('pNames').innerHTML = `${esc(p.A.reading.typeName)} × ${esc(p.B.reading.typeName)}`;
+  $('pComment').textContent = p.res.comment;
+  $('pAspects').innerHTML = p.res.aspects.map(a => `<p><span class="ln">${a.label}</span>${esc(a.text)}</p>`).join('');
+  $('pLucky').innerHTML = `<p><span class="ln">デート</span>${esc(p.res.date)}</p><p><span class="ln">二人で</span>${esc(p.res.action)}</p>`;
+  showResult(false); $('cert').style.display = 'none'; $('pairView').style.display = 'block';
+  $('pairView').scrollIntoView({ behavior:'smooth' });
+}
+
+function pairImage(p) {
+  const W = 1080, P = 72, serif = '"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif CJK JP",serif';
+  const c = document.createElement('canvas'); c.width = W; c.height = 1750; const ctx = c.getContext('2d');
+  ctx.fillStyle = '#f4f1ea'; ctx.fillRect(0, 0, W, c.height); ctx.fillStyle = '#fff'; ctx.fillRect(30, 30, W - 60, c.height - 60);
+  ctx.strokeStyle = '#d9d2c3'; ctx.lineWidth = 2; ctx.strokeRect(30, 30, W - 60, c.height - 60);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#1c1c1c'; ctx.font = `600 56px ${serif}`; ctx.fillText('手 相 の 相 性', W / 2, 150); ctx.fillRect(P, 182, W - P * 2, 2);
+  drawPalm(ctx, p.A, P, 210, 460, true); drawPalm(ctx, p.B, W - P - 460, 210, 460, true);
+  ctx.fillStyle = '#8a2b2b'; ctx.font = `140px ${serif}`; ctx.fillText(p.res.score, W / 2 - 30, 850);
+  ctx.font = `44px ${serif}`; ctx.fillText('点', W / 2 + 115, 850);
+  ctx.fillStyle = '#555'; ctx.font = `30px ${serif}`; ctx.fillText(`${p.A.reading.typeName} × ${p.B.reading.typeName}`, W / 2, 920);
+  const wrap = (text, font, width) => { ctx.font = font; const out = []; let cur = ''; for (const ch of text) { if (ctx.measureText(cur + ch).width > width && cur) { out.push(cur); cur = ch; } else cur += ch; } if (cur) out.push(cur); return out; };
+  let y = 990; ctx.fillStyle = '#1c1c1c';
+  for (const l of wrap(p.res.comment, `36px ${serif}`, W - P * 2)) { ctx.fillText(l, W / 2, y); y += 54; }
+  ctx.textAlign = 'left'; y += 30;
+  const rows = [...p.res.aspects.map(a => `【${a.label}】${a.text}`), `【デート】${p.res.date}`, `【二人で】${p.res.action}`];
+  for (const row of rows) { for (const l of wrap(row, `32px ${serif}`, W - P * 2 - 20)) { y += 50; ctx.fillText(l, P + 10, y); } y += 16; }
+  ctx.fillStyle = '#888'; ctx.font = `22px ${serif}`;
+  ctx.fillText('この相性は手のひらの線の画像から推定した遊びの占いです。', P, c.height - 100); ctx.fillText('ウラガワ｜手相', P, c.height - 66);
+  return c;
+}
+async function shareCanvas(c, name) {
+  const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+  const file = new File([blob], name, { type: 'image/png' });
+  try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name.replace('.png', '') }); return; } }
+  catch (e) { if (e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+$('btnPairShare').onclick = () => lastPair && shareCanvas(pairImage(lastPair), '手相の相性.png');
+$('btnPairBack').onclick = () => { $('pairView').style.display = 'none'; window.scrollTo({ top:0 }); $('status').textContent = '2人の手を並べて撮るか、1人ずつ撮ってください'; if (stream) { live = true; requestAnimationFrame(loop); } };
 
 // ---------- 結果の表示 ----------
 function showResult(on) { $('result').style.display = on ? 'block' : 'none'; if (on) $('result').scrollIntoView({ behavior:'smooth' }); }
@@ -1478,18 +1741,7 @@ function certImage(o) {
 
 $('btnShare').onclick = async () => {
   if (!lastResult) return;
-  const c = certImage(lastResult);
-  const blob = await new Promise(res => c.toBlob(res, 'image/png'));
-  const file = new File([blob], '手相鑑定書.png', { type: 'image/png' });
-  try {
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: '手相鑑定書' });   // スマホではLINEなどの送り先が選べる
-      return;
-    }
-  } catch (e) { if (e.name === 'AbortError') return; }
-  const a = document.createElement('a');                               // 共有できない端末では画像を保存
-  a.href = URL.createObjectURL(blob); a.download = '手相鑑定書.png'; a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  shareCanvas(certImage(lastResult), '手相鑑定書.png');   // スマホではLINEなどの送り先が選べる。共有できない端末では保存
 };
 
 const esc = t => String(t).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[c]);

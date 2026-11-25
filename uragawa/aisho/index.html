@@ -5,156 +5,193 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>本音の相性診断（試作）</title>
 <style>
-  :root{--glow:#4fe3d0;--dim:#5c7a80;--bg:#03060a}
+  :root{--glow:#4fe3d0;--dim:#5c7a80;--bg:#03060a;--hot:#ff5a6e}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   body{background:var(--bg);color:#d8f3ef;font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;-webkit-user-select:none;user-select:none}
-  .screen{display:none;min-height:100%;padding:28px 22px 40px;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;
+  .screen{display:none;min-height:100%;padding:24px 20px 36px;flex-direction:column;align-items:center;justify-content:center;text-align:center;
     background-image:linear-gradient(rgba(79,227,208,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(79,227,208,.05) 1px,transparent 1px);background-size:28px 28px}
   .screen.on{display:flex}
-  .label{font-size:12px;letter-spacing:.3em;color:var(--dim);margin-bottom:10px}
+  .label{font-size:12px;letter-spacing:.3em;color:var(--dim);margin-bottom:8px}
   h1{font-size:26px;font-weight:600;margin:0 0 14px;line-height:1.5}
-  h2{font-size:21px;font-weight:600;margin:0 0 12px;line-height:1.6}
+  h2{font-size:21px;font-weight:600;margin:0 0 10px;line-height:1.6}
   p{line-height:1.8;margin:6px 0;color:#a9c7c3}
-  .q{font-size:22px;line-height:1.7;color:#fff;margin:14px 0;padding:16px;border:1px solid rgba(79,227,208,.35);border-radius:12px;background:rgba(79,227,208,.06);max-width:520px}
-  button{font-size:18px;padding:15px 34px;border-radius:40px;border:1px solid var(--glow);background:transparent;color:var(--glow);margin:10px 6px;letter-spacing:.08em;box-shadow:0 0 14px rgba(79,227,208,.35)}
-  button.sub{border-color:#3a4c50;color:#7d9a9e;box-shadow:none;font-size:15px;padding:11px 22px}
-  input{font-size:18px;padding:12px 14px;border-radius:10px;border:1px solid #2c3f43;background:#0a1216;color:#fff;width:220px;margin:6px;text-align:center}
-  canvas.wave{width:100%;max-width:520px;height:120px;margin:16px 0 8px}
-  .bpm{font-size:15px;color:var(--dim);letter-spacing:.1em}
-  .count{font-size:64px;font-weight:200;color:var(--glow);text-shadow:0 0 18px var(--glow);margin:6px 0}
-  .who{font-size:15px;color:#fff;background:rgba(79,227,208,.12);border-radius:20px;padding:5px 16px;margin-bottom:10px}
+  button{font-size:18px;padding:14px 32px;border-radius:40px;border:1px solid var(--glow);background:transparent;color:var(--glow);margin:8px 6px;letter-spacing:.06em;box-shadow:0 0 14px rgba(79,227,208,.35)}
+  button:disabled{opacity:.3;box-shadow:none}
+  button.sub{border-color:#3a4c50;color:#7d9a9e;box-shadow:none;font-size:15px;padding:10px 20px}
+  input{font-size:18px;padding:12px 14px;border-radius:10px;border:1px solid #2c3f43;background:#0a1216;color:#fff;width:230px;margin:6px;text-align:center}
+  .who{font-size:15px;color:#fff;background:rgba(79,227,208,.12);border-radius:20px;padding:5px 16px;margin-bottom:8px}
+  .note{font-size:11px;color:#4d6266;margin-top:20px;line-height:1.7}
   .flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s;z-index:9}
-  .note{font-size:11px;color:#4d6266;margin-top:22px;line-height:1.7}
-  /* 鑑定書 */
+
+  /* 心拍モニター（どの画面でも上に出す） */
+  #monitor{display:none;width:100%;max-width:520px;align-items:center;gap:12px;margin:4px 0 10px}
+  #monitor.on{display:flex}
+  #camWrap{width:64px;height:64px;border-radius:50%;overflow:hidden;flex:none;border:3px solid #333;transition:border-color .3s,box-shadow .3s;background:#000}
+  #camWrap.ok{border-color:var(--hot);box-shadow:0 0 16px var(--hot)}
+  #camWrap.near{border-color:#e0b050}
+  #cam{width:100%;height:100%;object-fit:cover}
+  #monText{flex:1;text-align:left}
+  #monState{font-size:14px;color:#c9d8d6}
+  #monState.ok{color:var(--glow)} #monState.ng{color:#e08080}
+  #monBpm{font-size:13px;color:var(--dim)}
+  #camSwitch{font-size:12px;padding:6px 10px;margin:0}
+
+  .big{font-size:96px;font-weight:200;line-height:1;color:var(--glow);text-shadow:0 0 24px var(--glow);transition:color .3s,text-shadow .3s;font-variant-numeric:tabular-nums}
+  .big.hot{color:var(--hot);text-shadow:0 0 28px var(--hot)}
+  .bigsub{font-size:13px;color:var(--dim);letter-spacing:.2em;margin-bottom:6px}
+  .delta{font-size:22px;color:#fff;height:30px;font-variant-numeric:tabular-nums}
+  canvas.wave{width:100%;max-width:520px;height:90px;margin:6px 0}
+  .q{font-size:22px;line-height:1.6;color:#fff;margin:8px 0;padding:14px;border:1px solid rgba(79,227,208,.35);border-radius:12px;background:rgba(79,227,208,.06);max-width:520px;width:100%}
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:520px;margin:6px 0}
+  .choices button{margin:0;padding:13px 6px;font-size:16px;border-radius:12px;letter-spacing:0;box-shadow:none}
+  .hint{font-size:12px;color:var(--dim);margin-top:4px}
+  .meter{width:100%;max-width:520px;height:16px;border-radius:8px;background:#122;overflow:hidden;margin:14px 0 8px}
+  .meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4fe3d0,#e0b050,#ff5a6e);transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+  .verdict{font-size:40px;font-weight:300;min-height:56px;opacity:0;transform:scale(.7);transition:all .4s}
+  .verdict.on{opacity:1;transform:scale(1)} .verdict.hot{color:var(--hot);text-shadow:0 0 22px var(--hot)} .verdict.calm{color:var(--glow)}
+  .comment{font-size:17px;color:#fff;line-height:1.7;min-height:56px;max-width:520px}
+
   #result{background:#fff;color:#222;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;justify-content:flex-start;background-image:none}
-  #result .cert{max-width:520px;width:100%;border:1px solid #222;padding:30px 22px;position:relative}
+  #result .cert{max-width:520px;width:100%;border:1px solid #222;padding:28px 20px;position:relative}
   #result .cert:before{content:"";position:absolute;inset:5px;border:1px solid #bbb;pointer-events:none}
   #result .t{font-size:13px;letter-spacing:.5em;color:#777}
-  #result .ttl{font-size:26px;margin:8px 0 18px;letter-spacing:.2em}
-  #result .ratio{font-size:15px;color:#555;margin-top:10px}
-  #result .ratio b{font-size:38px;color:#111;font-weight:500;margin:0 6px}
-  #result .bar{height:8px;background:#ddd;margin:10px 0 22px;position:relative}
+  #result .ttl{font-size:24px;margin:8px 0 14px;letter-spacing:.15em}
+  #result .type{font-size:23px;line-height:1.6;margin:10px 0 6px}
+  #result .one{font-size:15px;color:#444;margin-bottom:14px}
+  #result table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;text-align:left}
+  #result td{padding:6px 2px;border-top:1px solid #e3e3e3;vertical-align:top}
+  #result td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  #result .ratio{font-size:15px;color:#555;margin-top:12px}
+  #result .ratio b{font-size:34px;color:#111;font-weight:500;margin:0 6px}
+  #result .bar{height:8px;background:#ddd;margin:8px 0 6px;position:relative}
   #result .bar i{position:absolute;left:0;top:0;bottom:0;background:#111}
-  #result .type{font-size:23px;line-height:1.6;margin:6px 0 8px}
-  #result .one{font-size:15px;color:#444;margin-bottom:18px}
   #result .line{font-size:14px;color:#333;border-top:1px solid #ddd;padding:12px 0 0;margin-top:12px;line-height:1.9}
-  #result .reveal{font-size:15px;margin-top:16px;padding:12px;background:#f4f4f2}
-  #result .foot{font-size:10px;color:#999;margin-top:18px}
+  #result .foot{font-size:10px;color:#999;margin-top:16px}
   #result button{color:#222;border-color:#222;box-shadow:none;font-family:-apple-system,"Hiragino Sans",sans-serif}
   #result button.sub{color:#777;border-color:#bbb}
-  .choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:520px;margin:6px 0}
-  .choices button{margin:0;padding:16px 8px;font-size:17px;border-radius:12px;letter-spacing:0}
-  .choices button.sel{background:var(--glow);color:#03060a}
-  .choices button:disabled:not(.sel){opacity:.3}
-  .pair{display:flex;gap:12px;width:100%;max-width:520px;margin:8px 0}
-  .pair>div{flex:1;border:1px solid rgba(79,227,208,.3);border-radius:12px;padding:14px 8px}
-  .pn{font-size:13px;color:var(--dim);margin-bottom:6px}.pc{font-size:20px;color:#fff;opacity:0;transition:opacity .4s}
-  .judge{font-size:44px;font-weight:300;margin:14px 0 4px;min-height:60px;opacity:0;transition:opacity .4s,transform .4s;transform:scale(.7)}
-  .judge.on{opacity:1;transform:scale(1)}.judge.hit{color:var(--glow);text-shadow:0 0 22px var(--glow)}.judge.miss{color:#c98a8a}
-  #result .score{font-size:15px;color:#555;margin-top:6px}#result .score b{font-size:34px;color:#111;font-weight:500;margin:0 4px}
-  #cam{position:fixed;width:2px;height:2px;opacity:0;left:0;top:0}
 </style>
 </head>
 <body>
 <div class="flash" id="flash"></div>
-<video id="cam" playsinline muted autoplay></video>
 
-<!-- 1. はじまり -->
+<div id="monitor">
+  <div id="camWrap"><video id="cam" playsinline muted autoplay></video></div>
+  <div id="monText"><div id="monState">準備中</div><div id="monBpm"></div></div>
+  <button class="sub" id="camSwitch">カメラ切替</button>
+</div>
+
+<!-- はじまり -->
 <section class="screen on" id="intro">
   <div class="label">HONNE AISHO</div>
-  <h1>2人の本音の相性、<br>体で測ります</h1>
-  <p>同じ質問に2人が別々に答え、答えがそろうかをみんなで見届けます。<br>答えている間、指先の脈も読みます。</p>
-  <div style="margin:18px 0 6px">
-    <input id="nameA" placeholder="1人目のニックネーム" maxlength="10"><br>
-    <input id="nameB" placeholder="2人目のニックネーム" maxlength="10">
+  <h1>その答え、<br>心臓はどう言ってる？</h1>
+  <p>質問に答えている間の心拍を、みんなの前に映します。<br>平気な顔で答えても、心臓はごまかせません。</p>
+  <div style="margin:16px 0 4px">
+    <input id="nameA" placeholder="答える人のニックネーム" maxlength="10"><br>
+    <input id="nameB" placeholder="質問する人のニックネーム" maxlength="10">
   </div>
   <button id="go">はじめる</button>
   <button class="sub" id="demo">カメラなしで試す（デモ）</button>
   <div class="note">遊び用の推定です。医療目的ではありません。<br>カメラの映像は保存も送信もしません。</div>
 </section>
 
-<!-- 2. 交代・説明 -->
-<section class="screen" id="handoff">
-  <div class="label" id="hoLabel"></div>
-  <div class="who" id="hoWho"></div>
-  <h2 id="hoTitle"></h2>
-  <p id="hoText"></p>
-  <button id="hoOk">準備OK</button>
+<!-- 指の確認 -->
+<section class="screen" id="setup">
+  <div class="label">SETUP</div>
+  <h2 id="suTitle"></h2>
+  <p>人差し指で、背面のライトのすぐ横のカメラを軽くふさぎます。<br>上の丸が<span style="color:var(--hot)">赤く光り</span>、「脈OK」が出たら準備完了。</p>
+  <p class="hint">押し付けすぎると脈が弱くなります。出ないときは「カメラ切替」。</p>
+  <canvas class="wave" id="wave0" width="1040" height="180"></canvas>
+  <button id="suOk" disabled>脈OK、はじめる</button>
 </section>
 
-<!-- 3. 計測・回答 -->
-<section class="screen" id="measure">
-  <div class="label" id="msLabel"></div>
-  <div class="who" id="msWho"></div>
-  <div class="q" id="msQ" style="display:none"></div>
-  <div class="choices" id="msChoices"></div>
-  <p id="msText"></p>
-  <canvas class="wave" id="wave" width="1040" height="200"></canvas>
-  <div class="count" id="msCount"></div>
-  <div class="bpm" id="msBpm"></div>
-  <button class="sub" id="msRetry" style="display:none">もう一度測る</button>
+<!-- 平常時 -->
+<section class="screen" id="base">
+  <div class="label">BASELINE</div>
+  <div class="who" id="bsWho"></div>
+  <p>まずは落ち着いているときの心拍。みんな静かに。</p>
+  <div class="bigsub">心拍数</div>
+  <div class="big" id="bsBig">--</div>
+  <canvas class="wave" id="wave1" width="1040" height="180"></canvas>
+  <div class="delta" id="bsCount"></div>
 </section>
 
-<!-- 3b. 発表 -->
-<section class="screen" id="reveal">
-  <div class="label" id="rvLabel"></div>
-  <div class="q" id="rvQ"></div>
-  <div class="pair">
-    <div><div class="pn" id="rvNA"></div><div class="pc" id="rvCA"></div></div>
-    <div><div class="pn" id="rvNB"></div><div class="pc" id="rvCB"></div></div>
-  </div>
-  <div class="judge" id="rvJudge"></div>
-  <div class="bpm" id="rvScore"></div>
-  <button id="rvNext">次へ</button>
+<!-- 質問 -->
+<section class="screen" id="ask">
+  <div class="label" id="qLabel"></div>
+  <div class="q" id="qText"></div>
+  <div class="bigsub">心拍数</div>
+  <div class="big" id="qBig">--</div>
+  <div class="delta" id="qDelta"></div>
+  <canvas class="wave" id="wave2" width="1040" height="180"></canvas>
+  <div class="choices" id="qChoices"></div>
+  <div class="hint" id="qHint"></div>
 </section>
 
-<!-- 4. 鑑定中 -->
+<!-- 判定 -->
+<section class="screen" id="judge">
+  <div class="label" id="jLabel"></div>
+  <div class="q" id="jQ"></div>
+  <div class="meter"><i id="jMeter"></i></div>
+  <div class="verdict" id="jVerdict"></div>
+  <div class="comment" id="jComment"></div>
+  <button id="jNext" style="visibility:hidden">次の質問</button>
+</section>
+
+<!-- 鑑定中 -->
 <section class="screen" id="analyze">
   <div class="label">ANALYZING</div>
   <h2>鑑定中…</h2>
-  <canvas class="wave" id="wave2" width="1040" height="240"></canvas>
+  <canvas class="wave" id="wave3" width="1040" height="180"></canvas>
 </section>
 
-<!-- 5. 鑑定書 -->
+<!-- 鑑定書 -->
 <section class="screen" id="result">
   <div class="cert" id="cert"></div>
-  <div style="margin-top:18px">
-    <button id="save">鑑定書を保存・送る</button><br>
-    <button class="sub" id="again">質問を変えてもう1回</button>
+  <div style="margin-top:16px">
+    <button id="swap">交代して、相手も測る</button><br>
+    <button class="sub" id="save">鑑定書を保存・送る</button>
+    <button class="sub" id="again">最初から</button>
   </div>
 </section>
 
 <script>
-// ━━━ 文章データ ━━━
+// ━━━ 質問（すべて質問する人 {B} についての質問） ━━━
 const BANK = [
-  {q:"2人で行くならどこ？", c:["水族館","居酒屋","ドライブ","家で映画"]},
-  {q:"2人の関係を例えると？", c:["漫才コンビ","飼い主と犬","戦友","恋人"]},
-  {q:"先に好きになったのはどっち？", c:["{A}","{B}","同時","まだ誰も"]},
-  {q:"ケンカしたら先に謝るのは？", c:["{A}","{B}","どっちも謝らない","ケンカしない"]},
-  {q:"連絡がマメなのはどっち？", c:["{A}","{B}","2人とも","2人とも返さない"]},
-  {q:"2人で旅行するなら？", c:["温泉","海外","キャンプ","テーマパーク"]},
-  {q:"今夜このあと、2人でするなら？", c:["もう1杯","カラオケ","ラーメン","まっすぐ帰る"]},
-  {q:"2人の相性、自己採点すると？", c:["100点","80点","50点","伸びしろしかない"]}
+  {q:"{B}の第一印象は？", c:["タイプ","やさしそう","ちょっと怖そう","特になし"]},
+  {q:"{B}と2人で飲みに行ける？", c:["行きたい","行ける","誘われたら","無理"]},
+  {q:"{B}の今日の見た目、何点？", c:["100点","80点","60点","ノーコメント"]},
+  {q:"恋人にするなら{B}はアリ？", c:["アリ","ナシ","条件付きでアリ","考えたこともない"]},
+  {q:"{B}の一番好きなところは？", c:["顔","性格","声","特にない"]},
+  {q:"{B}が他の人と仲良くしてたら？", c:["気にならない","ちょっと気になる","正直イヤ","ノーコメント"]},
+  {q:"{B}に今日会えてうれしい？", c:["すごく","普通","別に","照れるから言わない"]},
+  {q:"{B}にドキッとしたことある？", c:["ある","ない","今してる","秘密"]}
 ];
-const HIDDEN = [
-  {q:"相手が他の人と2人で飲みに行ったら？", c:["笑って送り出す","ちょっと気になる","正直イヤ","ついていく"], theme:"独占欲"},
-  {q:"来年の今日、2人は何してると思う？", c:["一緒に飲んでる","付き合ってる","連絡とってない","想像できない"], theme:"本気度"},
-  {q:"疲れた日に相手にしてほしいことは？", c:["話を聞く","ごはんを作る","黙ってそばにいる","そっとしておく"], theme:"甘えたい度"}
+const N_Q = 5, MIN_SEC = 6, BASE_SEC = 10;
+// 動揺の段階（仮。実機で調整）
+const LEVELS = [
+  {min:15, name:"大動揺", hot:true,  c:["その答え、本当に？", "心臓は正直でした", "みんな、今の聞いた？"]},
+  {min:10, name:"動揺",   hot:true,  c:["明らかに揺れています", "言葉と心臓が食い違っています"]},
+  {min:5,  name:"ちょっと動揺", hot:false, c:["少しだけ反応あり", "ポーカーフェイス、ほころびかけ"]},
+  {min:-99,name:"平常心", hot:false, c:["顔色ひとつ変えず", "本心か、相当な役者か"]}
 ];
-const TYPES = {
-  hi:{ lead:["〇〇がベタ惚れの以心伝心コンビ","心はちゃんと通じてる。熱いのは〇〇の方"], even:["言わなくても分かる運命コンビ","答えも鼓動も、そろいました"] },
-  mid:{ lead:["〇〇の片思いリード型","追いかける側がいるから、この2人は続きます"], even:["照れ隠し同士のじれったいコンビ","どちらかが一歩踏み出せば、話が早い"] },
-  lo:{ lead:["〇〇の追いかけ恋型","答えはバラバラ。でも〇〇の心臓は正直でした"], even:["正反対で惹かれ合うコンビ","違うからこそ、話が尽きない2人"] }
-};
-const N_NORMAL = 5, LEAD_SHARE = 0.6, MIN_SEC = 6, BASE_SEC = 10, DOKI = 3; // 判定の目安（仮）
+const levelOf = r => LEVELS.find(l => r >= l.min);
+const TYPES = [
+  {test:s=>s.avg>=10, name:"心臓が全部しゃべる正直者", one:"嘘をついても、心臓がすぐにバラします"},
+  {test:s=>s.max>=15, name:"一問だけ本音がバレた人", one:"あの質問の答え、本当ですか？"},
+  {test:s=>s.avg>=5,  name:"ポーカーフェイスになりきれない人", one:"隠しているつもりで、少しずつ漏れています"},
+  {test:s=>true,      name:"鉄の心臓の持ち主", one:"何を聞かれても平常心。逆に怪しい"}
+];
 
 // ━━━ 共通 ━━━
 const $ = id => document.getElementById(id);
 const hon = n => /(さん|ちゃん|くん|君|様)$/.test(n) ? n : n + "さん";
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const now = () => performance.now()/1000;
+const pick = a => a[Math.floor(Math.random()*a.length)];
 const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
-function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id===id)); window.scrollTo(0,0); }
+const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id===id)); $('monitor').classList.toggle('on', ['setup','base','ask'].includes(id)); window.scrollTo(0,0); }
 function flash(){ const f=$('flash'); f.style.opacity=.85; setTimeout(()=>f.style.opacity=0,180); }
 function buzz(p){ try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} }
 let actx=null;
@@ -165,26 +202,39 @@ function beep(freq=880, dur=.18){
     o.start(); o.stop(actx.currentTime+dur);
   }catch(e){}
 }
-const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const now = () => performance.now()/1000;
 
-// ━━━ 脈の読み取り ━━━
-let demo=false, track=null, running=false;
+// ━━━ カメラと脈 ━━━
+let demo=false, stream=null, cams=[], camIdx=-1, running=false;
 const samples=[];
 const work=document.createElement('canvas'); work.width=work.height=40;
 const wctx=work.getContext('2d',{willReadFrequently:true});
-let fakeBpm=72, fakePhase=0, fakeLast=0;
+let fakeBpm=72, fakePhase=0, fakeLast=0, fakeOn=true;
 
-async function startCamera(){
-  const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:640},height:{ideal:480}},audio:false});
-  track = s.getVideoTracks()[0]; const v=$('cam'); v.srcObject=s; await v.play();
+async function openCamera(deviceId){
+  if (stream) stream.getTracks().forEach(t=>t.stop());
+  const v = deviceId ? {deviceId:{exact:deviceId}} : {facingMode:{ideal:'environment'}};
+  stream = await navigator.mediaDevices.getUserMedia({video:{...v,width:{ideal:640},height:{ideal:480}},audio:false});
+  const track = stream.getVideoTracks()[0], cam=$('cam'); cam.srcObject=stream; await cam.play();
   try{ await track.applyConstraints({advanced:[{torch:true}]}); }catch(e){}
+  samples.length=0;
+  const s = track.getSettings ? track.getSettings() : {};
+  if (!cams.length){
+    try{ cams = (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput' && !/front|前面|user/i.test(d.label)); }catch(e){}
+    camIdx = Math.max(0, cams.findIndex(c=>c.deviceId===s.deviceId));
+  }
 }
+$('camSwitch').onclick = async () => {
+  if (demo){ fakeOn=!fakeOn; return; }
+  if (cams.length<2){ $('monBpm').textContent='切り替えられるカメラがありません'; return; }
+  camIdx=(camIdx+1)%cams.length;
+  try{ await openCamera(cams[camIdx].deviceId); $('monBpm').textContent=`カメラ ${camIdx+1}/${cams.length}`; }catch(e){ $('monBpm').textContent='切替に失敗しました'; }
+};
+
 function sampleOnce(){
   const t = now();
   if (demo){
     const dt = fakeLast ? t-fakeLast : 0; fakeLast=t; fakePhase += dt*fakeBpm/60*2*Math.PI;
-    samples.push({t, r:150 - 4*Math.max(0,Math.sin(fakePhase))**3 + (Math.random()-.5)*.6, g:40});
+    samples.push(fakeOn ? {t, r:150 - 4*Math.max(0,Math.sin(fakePhase))**3 + (Math.random()-.5)*.6, g:40} : {t, r:90, g:85});
   } else {
     const v=$('cam'); if (v.readyState<2) return;
     wctx.drawImage(v, v.videoWidth/2-20, v.videoHeight/2-20, 40, 40, 0, 0, 40, 40);
@@ -193,7 +243,6 @@ function sampleOnce(){
   }
   while (samples.length && t-samples[0].t > 60) samples.shift();
 }
-function loop(){ if(!running) return; sampleOnce(); drawWave($('wave')); if($('analyze').classList.contains('on')) drawWave($('wave2'),true); requestAnimationFrame(loop); }
 function filteredBetween(t0,t1){
   const out=[];
   for (let i=0;i<samples.length;i++){
@@ -214,203 +263,200 @@ function bpmBetween(t0,t1){
   const b = 60/iv[Math.floor(iv.length/2)];
   return (b>40 && b<200) ? b : null;
 }
-function covered(){ const s=samples[samples.length-1]; if(!s) return false; return demo || (s.r>60 && s.r>s.g*1.8); }
-function drawWave(cv, calm){
+function fingerState(){
+  const s=samples[samples.length-1]; if(!s) return 'none';
+  if (s.r>60 && s.r>s.g*1.8) return 'on';
+  if (s.r>s.g*1.3) return 'near';
+  return 'none';
+}
+// 3段階：none（指なし）/ search（脈を探しています）/ ok（脈OK）
+let live = {state:'none', bpm:null, since:0};
+function updateLive(){
+  const f=fingerState(), t=now();
+  if (f!=='on'){ live={state:'none', bpm:null, since:t}; }
+  else { const b = (t-live.since>3) ? bpmBetween(t-6,t) : null; live = {state: b?'ok':'search', bpm:b, since: live.state==='none'?t:live.since}; }
+  const w=$('camWrap'), st=$('monState');
+  w.className = live.state==='ok'?'ok':(f==='near'||live.state==='search')?'near':'';
+  if (live.state==='ok'){ st.className='ok'; st.textContent=`脈OK　${Math.round(live.bpm)}`; }
+  else if (live.state==='search'){ st.className=''; st.textContent='脈を探しています…動かさないで'; }
+  else { st.className='ng'; st.textContent = f==='near' ? '指が少しずれています' : '指なし：カメラをふさいでください'; }
+}
+function drawWave(cv){
   const g=cv.getContext('2d'); g.clearRect(0,0,cv.width,cv.height);
-  if (!samples.length || !covered()) return;
+  if (live.state==='none' || samples.length<3) return;
   const t=samples[samples.length-1].t, f=filteredBetween(t-5,t);
   if (f.length<3) return;
   let mn=Infinity,mx=-Infinity; f.forEach(p=>{mn=Math.min(mn,p.y);mx=Math.max(mx,p.y);});
-  const rng=(mx-mn)||1;
-  g.strokeStyle='#4fe3d0'; g.lineWidth=3; g.shadowColor='#4fe3d0'; g.shadowBlur=14; g.beginPath();
-  f.forEach((p,i)=>{ const x=(p.t-(t-5))/5*cv.width, y=cv.height/2+((p.y-mn)/rng-.5)*-(cv.height*.7)*(calm?.6:1); i?g.lineTo(x,y):g.moveTo(x,y); });
+  const rng=(mx-mn)||1, col = live.state==='ok' ? '#4fe3d0' : '#e0b050';
+  g.strokeStyle=col; g.lineWidth=3; g.shadowColor=col; g.shadowBlur=14; g.beginPath();
+  f.forEach((p,i)=>{ const x=(p.t-(t-5))/5*cv.width, y=cv.height/2+((p.y-mn)/rng-.5)*-(cv.height*.75); i?g.lineTo(x,y):g.moveTo(x,y); });
   g.stroke();
+}
+let lastUi=0;
+function loop(){
+  if(!running) return; sampleOnce();
+  const t=now(); if (t-lastUi>0.25){ lastUi=t; updateLive(); }
+  ['wave0','wave1','wave2','wave3'].forEach(id=>{ const c=$(id); if (c.offsetParent) drawWave(c); });
+  requestAnimationFrame(loop);
 }
 
 // ━━━ 流れ ━━━
-let A="", B="", qs=[], res={};
-const nm = w => hon(w==='A'?A:B);
-const fill = s => s.replace(/\{A\}/g,hon(A)).replace(/\{B\}/g,hon(B));
+let A="", B="", qs=[], res={}, done={};
+const fill = s => s.replace(/\{B\}/g, hon(B)).replace(/\{A\}/g, hon(A));
 
-function buildQuestions(){
-  const hid = HIDDEN[Math.floor(Math.random()*HIDDEN.length)];
-  qs = shuffle(BANK).slice(0,N_NORMAL).map(x=>({q:fill(x.q), c:x.c.map(fill)}));
-  qs.push({q:hid.q, c:hid.c, theme:hid.theme, final:true});
-  res = {base:{}, ans:{A:[],B:[]}, bpm:{A:[],B:[]}, theme:hid.theme};
+async function setup(){
+  $('suTitle').textContent = `${hon(A)}、指をセット`;
+  show('setup'); $('suOk').disabled=true;
+  if (demo){ fakeOn=true; fakeBpm=64+Math.random()*12; }
+  await new Promise(r=>{
+    const iv=setInterval(()=>{ $('suOk').disabled = live.state!=='ok'; },250);
+    $('suOk').onclick=()=>{ clearInterval(iv); r(); };
+  });
 }
-
-function handoff(label, who, title, text, btn='準備OK'){
-  $('hoLabel').textContent=label; $('hoWho').textContent=who; $('hoTitle').textContent=title; $('hoText').textContent=text; $('hoOk').textContent=btn;
-  show('handoff'); return new Promise(r=>$('hoOk').onclick=r);
-}
-function setMeasure(label, who, q, text){
-  $('msLabel').textContent=label; $('msWho').textContent=who;
-  $('msQ').style.display=q?'block':'none'; $('msQ').textContent=q||'';
-  $('msChoices').innerHTML=''; $('msText').textContent=text||''; $('msCount').textContent=''; $('msBpm').textContent=''; $('msRetry').style.display='none';
-  show('measure');
-}
-async function waitFinger(){
-  while (!covered()){ $('msBpm').textContent='人差し指でカメラとライトを軽くふさいでください'; await sleep(200); }
-  $('msBpm').textContent='';
-}
-
-async function baseline(w){
-  if (demo) fakeBpm = 64+Math.random()*12;
+async function baseline(){
+  $('bsWho').textContent=`測定中：${hon(A)}`; show('base');
   while (true){
-    setMeasure('BASELINE', `測定中：${nm(w)}`, null, '落ち着いているときの心拍を測ります');
-    await waitFinger(); $('msText').textContent='脈を探しています…'; await sleep(2500);
-    beep(990,.2); buzz(80); $('msText').textContent='そのまま動かさず、落ち着いて…';
-    const t0=now();
-    while (now()-t0 < BASE_SEC){ $('msCount').textContent=Math.ceil(BASE_SEC-(now()-t0)); if(!covered()) $('msBpm').textContent='指が離れています'; else $('msBpm').textContent=''; await sleep(200); }
-    const b=bpmBetween(t0,now()); beep(1320,.2); buzz(80);
-    if (b){ res.base[w]=b; return; }
-    $('msText').textContent='うまく測れませんでした。指を当て直してください'; $('msCount').textContent='';
-    $('msRetry').style.display='inline-block'; await new Promise(r=>$('msRetry').onclick=r);
+    const t0=now(); let lost=0;
+    beep(990,.2); buzz(80);
+    while (now()-t0 < BASE_SEC){
+      $('bsCount').textContent = `あと ${Math.ceil(BASE_SEC-(now()-t0))} 秒`;
+      $('bsBig').textContent = live.bpm ? Math.round(live.bpm) : '--';
+      if (live.state==='none') lost+=.2;
+      await sleep(200);
+    }
+    const b = lost>2 ? null : bpmBetween(t0,now());
+    beep(1320,.2); buzz(80);
+    if (b){ res.base=b; return; }
+    $('bsCount').textContent='うまく測れませんでした。指を当て直して…'; await sleep(2500);
   }
 }
-
-async function answerAll(w){
+async function askAll(){
+  res.rows=[];
   for (let i=0;i<qs.length;i++){
     const q=qs[i];
-    setMeasure(q.final?'FINAL　最後の質問・テーマは秘密':`Q${i+1} / ${qs.length}`, `答える人：${nm(w)}`, q.q, '');
-    if (demo) fakeBpm = res.base[w] + Math.random()*(q.final?18:24);
-    await waitFinger();
-    const t0=now(); let pick=null;
-    const box=$('msChoices');
-    q.c.forEach((c,ci)=>{ const b=document.createElement('button'); b.textContent=c;
-      b.onclick=()=>{ if(pick!==null) return; pick=ci; b.classList.add('sel'); box.querySelectorAll('button').forEach(x=>x.disabled=true); beep(880,.08); buzz(30); };
-      box.appendChild(b); });
-    if (demo) setTimeout(()=>{ if(pick===null){ const r=Math.random()<.55?(res.ans.A[i]??Math.floor(Math.random()*4)):Math.floor(Math.random()*4); box.children[r].click(); } }, 1500+Math.random()*3000);
-    while (pick===null || now()-t0 < MIN_SEC){
-      if (pick!==null) $('msText').textContent='指はそのまま…';
-      $('msBpm').textContent = covered() ? '' : '指が離れています';
-      await sleep(150);
+    $('qLabel').textContent=`QUESTION ${i+1} / ${qs.length}`;
+    $('qText').textContent=q.q; $('qDelta').textContent=''; $('qBig').classList.remove('hot');
+    const box=$('qChoices'); box.innerHTML='';
+    $('qHint').textContent=`${hon(B)}が質問と選択肢を読み上げ、${hon(A)}は口で答える。聞いた答えを${hon(B)}がタップ。`;
+    show('ask'); beep(880,.12); buzz(40);
+    if (demo) fakeBpm = res.base + Math.random()*24;
+    const t0=now(); let ans=null;
+    q.c.forEach((c,ci)=>{ const b=document.createElement('button'); b.textContent=c; b.onclick=()=>{ if(ans===null){ ans=ci; b.style.background='var(--glow)'; b.style.color='#03060a'; box.querySelectorAll('button').forEach(x=>x.disabled=(x!==b)); beep(700,.08);} }; box.appendChild(b); });
+    if (demo) setTimeout(()=>{ if(ans===null) box.children[Math.floor(Math.random()*4)].click(); }, 2500+Math.random()*2500);
+    while (ans===null || now()-t0 < MIN_SEC){
+      const b=live.bpm; $('qBig').textContent = b ? Math.round(b) : '--';
+      if (b){ const d=Math.round(b-res.base); $('qDelta').textContent = (d>=0?'+':'')+d+' 拍'; $('qBig').classList.toggle('hot', d>=10); }
+      if (ans!==null) $('qHint').textContent='判定中…指はそのまま';
+      await sleep(250);
     }
-    res.ans[w][i]=pick; res.bpm[w][i]=bpmBetween(t0,now());
-    $('msText').textContent='記録しました'; await sleep(500);
+    const bpm = bpmBetween(t0,now()), rise = bpm==null ? null : bpm-res.base;
+    res.rows.push({q:q.q, a:q.c[ans], rise});
+    await judge(i, q, q.c[ans], rise);
   }
 }
-const riseOf = (w,i) => { const b=res.bpm[w][i]; return b==null ? null : Math.max(0, b-res.base[w]); };
-
-async function revealAll(){
-  let hits=0;
-  for (let i=0;i<qs.length;i++){
-    const q=qs[i];
-    $('rvLabel').textContent = q.final ? 'FINAL' : `Q${i+1}`;
-    $('rvQ').textContent=q.q; $('rvNA').textContent=hon(A); $('rvNB').textContent=hon(B);
-    $('rvCA').textContent=q.c[res.ans.A[i]]; $('rvCB').textContent=q.c[res.ans.B[i]];
-    $('rvCA').style.opacity=0; $('rvCB').style.opacity=0;
-    const j=$('rvJudge'); j.className='judge'; $('rvScore').textContent=''; $('rvNext').style.visibility='hidden';
-    show('reveal');
-    for (const n of [3,2,1]){ j.textContent=`みんなで予想！一致？ズレ？　${n}`; j.className='judge on'; j.style.fontSize='18px'; beep(660,.08); await sleep(900); }
-    j.className='judge'; await sleep(200);
-    $('rvCA').style.opacity=1; beep(740,.1); await sleep(600);
-    $('rvCB').style.opacity=1; beep(740,.1); await sleep(700);
-    const hit = res.ans.A[i]===res.ans.B[i]; if (hit) hits++;
-    j.style.fontSize=''; j.textContent = hit ? '一致！' : 'ズレた…';
-    j.className = 'judge on ' + (hit?'hit':'miss');
-    if (hit){ flash(); beep(990,.15); setTimeout(()=>beep(1320,.3),150); buzz([60,60,120]); } else { beep(300,.3); buzz(200); }
-    const ra=riseOf('A',i), rb=riseOf('B',i);
-    let line='2人とも平常心';
-    if (q.final) line='この質問のテーマは、鑑定書で発表';
-    else if (ra!=null || rb!=null){
-      const top = (rb==null || (ra!=null && ra>=rb)) ? ['A',ra] : ['B',rb];
-      if (top[1]>=DOKI) line=`この質問で${nm(top[0])}がドキッ（+${Math.round(top[1])}拍）`;
-    }
-    await sleep(500); $('rvScore').textContent=`${line}　　一致 ${hits} / ${i+1}`;
-    $('rvNext').style.visibility='visible';
-    await new Promise(r=>$('rvNext').onclick=r);
-  }
-  res.hits=hits;
+async function judge(i, q, a, rise){
+  $('jLabel').textContent=`QUESTION ${i+1}　判定`; $('jQ').textContent=`${q.q}\n→「${a}」`; $('jQ').style.whiteSpace='pre-line';
+  const m=$('jMeter'); m.style.transition='none'; m.style.width='0'; void m.offsetWidth; m.style.transition='';
+  $('jVerdict').className='verdict'; $('jComment').textContent=''; $('jNext').style.visibility='hidden';
+  $('jNext').textContent = i===qs.length-1 ? '鑑定書を見る' : '次の質問';
+  show('judge');
+  await sleep(300);
+  const r = rise==null ? 0 : rise, pct = Math.max(4, Math.min(100, (r+2)/22*100));
+  m.style.width = pct+'%';
+  for (let k=0;k<6;k++){ beep(500+k*90,.07); await sleep(260); }
+  const L = levelOf(r);
+  $('jVerdict').textContent = rise==null ? '測定不能' : L.name;
+  $('jVerdict').className = 'verdict on ' + (L.hot?'hot':'calm');
+  if (L.hot){ flash(); buzz([80,60,200]); beep(1320,.3); } else { beep(660,.2); buzz(60); }
+  await sleep(500);
+  $('jComment').textContent = rise==null ? '指がずれていたようです' : `「${a}」と答えて、心拍は${r>=0?'+':''}${Math.round(r)}拍。${pick(L.c)}`;
+  $('jNext').style.visibility='visible';
+  await new Promise(r=>$('jNext').onclick=r);
 }
 
-async function run(){
-  await handoff('STEP 1', `答える人：${hon(A)}`, `${hon(A)}が答える番`, `${hon(B)}とみんなは画面を見ないで。${hon(A)}は人差し指で背面カメラとライトをふさいだまま、もう片方の手で答えます。`);
-  await baseline('A'); await answerAll('A');
-  await handoff('STEP 2', `答える人：${hon(B)}`, `交代。${hon(B)}が答える番`, `今度は${hon(A)}とみんなが画面を見ないで。同じ質問に${hon(B)}が答えます。`);
-  await baseline('B'); await answerAll('B');
-  await handoff('STEP 3', 'みんなで見る', '発表タイム', '指はもう離してOK。1問ずつ、2人の答えがそろったかを発表します。', '発表スタート');
-  await revealAll();
-  show('analyze'); beep(520,.3); await sleep(1200); beep(660,.3); await sleep(1200); beep(990,.5); await sleep(900);
+async function round(){
+  qs = shuffle(BANK).slice(0,N_Q).map(x=>({q:fill(x.q), c:x.c}));
+  res = {};
+  await setup(); await baseline(); await askAll();
+  show('analyze'); beep(520,.3); await sleep(1100); beep(660,.3); await sleep(1100); beep(990,.5); await sleep(800);
+  done[A] = {about:B, rows:res.rows};
   renderResult(); flash(); buzz(150); show('result');
 }
 
+function stats(rows){ const rs=rows.map(r=>r.rise??0); return {avg: rs.reduce((a,b)=>a+Math.max(0,b),0)/rs.length, max: Math.max(...rs), sum: rs.reduce((a,b)=>a+Math.max(0,b),0)}; }
 function renderResult(){
-  const n=qs.length, sum = w => res.bpm[w].reduce((a,_,i)=>a+(riseOf(w,i)||0),0);
-  const sA=sum('A'), sB=sum('B'), tot=sA+sB, share = tot>0 ? sA/tot : .5;
-  let ra=Math.round(share*10); if (tot>0) ra=Math.min(9,Math.max(1,ra)); const rb=10-ra;
-  const lead = share>=LEAD_SHARE?'A':share<=1-LEAD_SHARE?'B':null;
-  const lvl = res.hits>=4?'hi':res.hits>=2?'mid':'lo';
-  const t = TYPES[lvl][lead?'lead':'even'];
-  const ln = lead ? nm(lead) : '';
-  const typeName=t[0].replace(/〇〇/g,ln), one=t[1].replace(/〇〇/g,ln);
-  let top=null; for (const w of ['A','B']) qs.forEach((q,i)=>{ const r=riseOf(w,i); if(!q.final && r!=null && (!top||r>top.r)) top={w,i,r}; });
-  const lines=[];
-  if (top && top.r>=DOKI) lines.push(`一番ドキドキしたのは「${qs[top.i].q}」に答えた${nm(top.w)}（+${Math.round(top.r)}拍）`);
-  else lines.push('2人とも最後まで平常心でした');
-  const fi=n-1, fa=riseOf('A',fi)||0, fb=riseOf('B',fi)||0;
-  const fw = Math.abs(fa-fb)<2 ? '2人とも同じくらい' : `大きかったのは${nm(fa>fb?'A':'B')}`;
-  const reveal = `実は最後の質問は「${res.theme}」チェックでした。反応が${fw}。`;
+  const s=stats(res.rows), T=TYPES.find(t=>t.test(s));
+  const top=res.rows.reduce((a,r)=>(r.rise??-99)>(a.rise??-99)?r:a, res.rows[0]);
   const d=new Date(), date=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
-  res.view={ra,rb,typeName,one,lines,reveal,date,hits:res.hits,n};
-  $('cert').innerHTML = `
-    <div class="t">鑑 定 書</div>
-    <div class="ttl">本音の相性</div>
-    <div class="score">以心伝心度<br><b>${res.hits}</b>/ ${n} 問一致</div>
-    <div class="ratio">ドキドキの比率<br>${esc(hon(A))}<b>${ra}</b>：<b>${rb}</b>${esc(hon(B))}</div>
-    <div class="bar"><i style="width:${ra*10}%"></i></div>
-    <div class="type">${esc(typeName)}</div>
-    <div class="one">${esc(one)}</div>
-    <div class="line">${lines.map(esc).join('<br>')}</div>
-    <div class="reveal">${esc(reveal)}</div>
-    <div class="foot">${date}　遊び用の推定です。医療目的ではありません。</div>`;
+  let html = `<div class="t">鑑 定 書</div><div class="ttl">${esc(hon(A))}の本音</div>
+    <div style="font-size:13px;color:#777">${esc(hon(B))}についての5つの質問</div>
+    <div class="type">${esc(T.name)}</div><div class="one">${esc(T.one)}</div>
+    <table>${res.rows.map(r=>`<tr><td>${esc(r.q)}<br>→「${esc(r.a)}」</td><td class="n">${r.rise==null?'—':(r.rise>=0?'+':'')+Math.round(r.rise)+'拍'}<br>${r.rise==null?'':levelOf(r.rise).name}</td></tr>`).join('')}</table>`;
+  if (top.rise!=null && top.rise>=5) html += `<div class="line">一番動揺したのは「${esc(top.q)}」。答えは「${esc(top.a)}」でしたが…</div>`;
+  const other = done[B];
+  if (other && other.about===A){
+    const sa=stats(done[A].rows).sum, sb=stats(other.rows).sum, tot=sa+sb;
+    let ra = tot>0 ? Math.min(9,Math.max(1,Math.round(sa/tot*10))) : 5;
+    html += `<div class="line" style="border:0"><div class="ratio">相手へのドキドキの比率<br>${esc(hon(A))}<b>${ra}</b>：<b>${10-ra}</b>${esc(hon(B))}</div><div class="bar"><i style="width:${ra*10}%"></i></div>
+      ${ra>=6?`${esc(hon(A))}の方が、相手に心を動かされていました`:ra<=4?`${esc(hon(B))}の方が、相手に心を動かされていました`:'2人とも、同じくらい相手に揺れていました'}</div>`;
+    $('swap').style.display='none';
+  } else $('swap').style.display='inline-block';
+  html += `<div class="foot">${date}　遊び用の推定です。医療目的ではありません。</div>`;
+  $('cert').innerHTML=html;
 }
 
-function wrap(g, text, x, y, maxW, lh){
-  let line=''; for (const ch of text){ if (g.measureText(line+ch).width>maxW){ g.fillText(line,x,y); y+=lh; line=ch; } else line+=ch; }
-  if(line) g.fillText(line,x,y); return y+lh;
-}
+// 鑑定書を画像に（画面の鑑定書をそのまま描く簡易版）
+function wrap(g, text, x, y, maxW, lh){ let line=''; for (const ch of text){ if (g.measureText(line+ch).width>maxW){ g.fillText(line,x,y); y+=lh; line=ch; } else line+=ch; } if(line) g.fillText(line,x,y); return y+lh; }
 function certImage(){
-  const v=res.view, W=1080, H=1520, c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d');
+  const W=1080, H=1600, c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d');
   const F='"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif';
   g.fillStyle='#fff'; g.fillRect(0,0,W,H); g.strokeStyle='#222'; g.lineWidth=3; g.strokeRect(50,50,W-100,H-100);
   g.strokeStyle='#bbb'; g.lineWidth=2; g.strokeRect(64,64,W-128,H-128);
-  g.textAlign='center'; g.fillStyle='#777'; g.font=`28px ${F}`; g.fillText('鑑　定　書', W/2, 170);
-  g.fillStyle='#111'; g.font=`56px ${F}`; g.fillText('本音の相性', W/2, 260);
-  g.fillStyle='#555'; g.font=`30px ${F}`; g.fillText('以心伝心度', W/2, 345);
-  g.fillStyle='#111'; g.font=`80px ${F}`; g.fillText(`${v.hits} / ${v.n}`, W/2, 440);
-  g.fillStyle='#555'; g.font=`30px ${F}`; g.fillText('ドキドキの比率', W/2, 530);
-  g.fillStyle='#111'; g.font=`80px ${F}`; g.fillText(`${v.ra} ： ${v.rb}`, W/2, 625);
-  g.font=`32px ${F}`; g.fillStyle='#444'; g.textAlign='left'; g.fillText(hon(A), 150, 690); g.textAlign='right'; g.fillText(hon(B), W-150, 690);
-  g.fillStyle='#ddd'; g.fillRect(150,715,W-300,14); g.fillStyle='#111'; g.fillRect(150,715,(W-300)*v.ra/10,14);
-  g.textAlign='center'; g.fillStyle='#111'; g.font=`48px ${F}`; let y=wrap(g, v.typeName, W/2, 840, W-240, 66);
-  g.fillStyle='#444'; g.font=`30px ${F}`; y=wrap(g, v.one, W/2, y+6, W-240, 46);
-  g.fillStyle='#ddd'; g.fillRect(150,y+6,W-300,2); y+=70; g.fillStyle='#333'; g.font=`28px ${F}`;
-  for (const l of v.lines) y=wrap(g, l, W/2, y, W-240, 44);
-  g.fillStyle='#f4f4f2'; g.fillRect(130,y+10,W-260,170); g.fillStyle='#222'; g.font=`30px ${F}`; wrap(g, v.reveal, W/2, y+80, W-320, 48);
-  g.fillStyle='#999'; g.font=`22px ${F}`; g.fillText(`${v.date}　遊び用の推定です。医療目的ではありません。`, W/2, H-100);
+  g.textAlign='center'; g.fillStyle='#777'; g.font=`28px ${F}`; g.fillText('鑑　定　書', W/2, 160);
+  const s=stats(res.rows), T=TYPES.find(t=>t.test(s));
+  g.fillStyle='#111'; g.font=`52px ${F}`; g.fillText(`${hon(A)}の本音`, W/2, 245);
+  g.fillStyle='#777'; g.font=`26px ${F}`; g.fillText(`${hon(B)}についての5つの質問`, W/2, 295);
+  g.fillStyle='#111'; g.font=`46px ${F}`; let y=wrap(g, T.name, W/2, 400, W-220, 62);
+  g.fillStyle='#444'; g.font=`30px ${F}`; y=wrap(g, T.one, W/2, y, W-220, 46)+20;
+  g.textAlign='left'; g.font=`28px ${F}`;
+  for (const r of res.rows){
+    g.fillStyle='#ddd'; g.fillRect(130,y-34,W-260,2);
+    g.fillStyle='#222'; const yy=wrap(g, `${r.q}　→「${r.a}」`, 140, y+10, W-460, 42);
+    g.textAlign='right'; g.fillText(r.rise==null?'—':`${r.rise>=0?'+':''}${Math.round(r.rise)}拍 ${levelOf(r.rise).name}`, W-140, y+10); g.textAlign='left';
+    y=Math.max(yy, y+60)+20;
+  }
+  g.textAlign='center';
+  const other=done[B];
+  if (other && other.about===A){
+    const sa=stats(done[A].rows).sum, sb=stats(other.rows).sum, tot=sa+sb, ra = tot>0 ? Math.min(9,Math.max(1,Math.round(sa/tot*10))) : 5;
+    g.fillStyle='#555'; g.font=`28px ${F}`; g.fillText('相手へのドキドキの比率', W/2, y+40);
+    g.fillStyle='#111'; g.font=`64px ${F}`; g.fillText(`${ra} ： ${10-ra}`, W/2, y+120);
+    g.font=`28px ${F}`; g.fillStyle='#444'; g.textAlign='left'; g.fillText(hon(A),150,y+175); g.textAlign='right'; g.fillText(hon(B),W-150,y+175); g.textAlign='center';
+    g.fillStyle='#ddd'; g.fillRect(150,y+195,W-300,12); g.fillStyle='#111'; g.fillRect(150,y+195,(W-300)*ra/10,12);
+  }
+  g.fillStyle='#999'; g.font=`22px ${F}`; g.fillText('遊び用の推定です。医療目的ではありません。', W/2, H-100);
   return c;
 }
 $('save').onclick = () => {
   certImage().toBlob(async blob => {
-    const file = new File([blob], 'aisho.png', {type:'image/png'});
-    if (navigator.canShare && navigator.canShare({files:[file]})){
-      try{ await navigator.share({files:[file], title:'本音の相性 鑑定書'}); return; }catch(e){ if(e.name==='AbortError') return; }
-    }
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='aisho.png'; a.click();
+    const file = new File([blob], 'honne.png', {type:'image/png'});
+    if (navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file], title:'本音の鑑定書'}); return; }catch(e){ if(e.name==='AbortError') return; } }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='honne.png'; a.click();
   }, 'image/png');
 };
+$('swap').onclick = () => { [A,B]=[B,A]; round(); };
+$('again').onclick = () => { done={}; show('intro'); };
 
 async function begin(isDemo){
-  demo=isDemo; A=$('nameA').value.trim()||'Aさん'; B=$('nameB').value.trim()||'Bさん';
+  demo=isDemo; A=$('nameA').value.trim()||'Aさん'; B=$('nameB').value.trim()||'Bさん'; done={};
   beep(1,.01);
-  if (!demo){ try{ await startCamera(); }catch(e){ alert('カメラを使えませんでした：'+e.message); return; } }
+  if (!demo){ try{ await openCamera(); }catch(e){ alert('カメラを使えませんでした：'+e.message); return; } }
+  else $('camWrap').style.background='radial-gradient(#a00,#300)';
   if (!running){ running=true; loop(); }
-  buildQuestions(); run();
+  round();
 }
 $('go').onclick = () => begin(false);
 $('demo').onclick = () => begin(true);
-$('again').onclick = () => { buildQuestions(); run(); };
 </script>
 </body>
 </html>

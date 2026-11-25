@@ -70,6 +70,26 @@
   #result .foot{font-size:10px;color:#999;margin-top:16px}
   #result button{color:#222;border-color:#222;box-shadow:none;font-family:-apple-system,"Hiragino Sans",sans-serif}
   #result button.sub{color:#777;border-color:#bbb}
+
+  /* v5 追加 */
+  #heart svg,.bigheart svg{width:100%;height:100%;display:block}
+  #heart{width:34px;height:34px;flex:none;transition:transform .12s,filter .12s;filter:drop-shadow(0 0 0 transparent);opacity:.35}
+  #heart.on{opacity:1}
+  #heart.beat{transform:scale(1.35);filter:drop-shadow(0 0 10px var(--hot))}
+  #qual{height:5px;background:#1a2629;border-radius:3px;margin-top:5px;overflow:hidden;width:120px}
+  #qual i{display:block;height:100%;width:0;background:var(--glow);transition:width .4s}
+  .checks{text-align:left;max-width:360px;width:100%;margin:12px auto 4px}
+  .ck{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid #1d2c30;border-radius:10px;margin:6px 0;color:#7d9a9e;font-size:15px;transition:all .3s}
+  .ck b{width:22px;height:22px;border-radius:50%;border:2px solid #3a4c50;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent}
+  .ck.done{color:#fff;border-color:rgba(79,227,208,.4)} .ck.done b{border-color:var(--glow);background:var(--glow);color:#03060a}
+  .lens{width:150px;margin:6px auto 0;display:block}
+  .prog{width:100%;max-width:520px;height:6px;background:#122;border-radius:3px;overflow:hidden;margin:6px 0}
+  .prog i{display:block;height:100%;width:0;background:var(--glow)}
+  .bigrow{display:flex;align-items:center;justify-content:center;gap:14px}
+  .bigheart{width:52px;height:52px;transition:transform .12s;opacity:.9}
+  .bigheart.beat{transform:scale(1.3)}
+  .chip{display:inline-block;font-size:20px;padding:4px 14px;border-radius:20px;background:#0f1d20;color:#fff;font-variant-numeric:tabular-nums;min-width:96px}
+  .chip.hot{background:rgba(255,90,110,.18);color:var(--hot)}
 </style>
 </head>
 <body>
@@ -77,7 +97,8 @@
 
 <div id="monitor">
   <div id="camWrap"><video id="cam" playsinline muted autoplay></video></div>
-  <div id="monText"><div id="monState">準備中</div><div id="monBpm"></div></div>
+  <div id="heart"><svg viewBox="0 0 24 24" fill="#ff5a6e"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.5h2c.7-1.3 2.2-2.5 4.3-2.5 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg></div>
+  <div id="monText"><div id="monState">準備中</div><div id="qual"><i id="qualBar"></i></div><div id="monBpm"></div></div>
   <button class="sub" id="camSwitch">カメラ切替</button>
 </div>
 
@@ -99,8 +120,13 @@
 <section class="screen" id="setup">
   <div class="label">SETUP</div>
   <h2 id="suTitle"></h2>
-  <p>人差し指で、背面のライトのすぐ横のカメラを軽くふさぎます。<br>上の丸が<span style="color:var(--hot)">赤く光り</span>、「脈OK」が出たら準備完了。</p>
-  <p class="hint">押し付けすぎると脈が弱くなります。出ないときは「カメラ切替」。</p>
+  <svg class="lens" viewBox="0 0 150 90"><rect x="2" y="2" width="146" height="86" rx="16" fill="#0b1417" stroke="#2c3f43"/><circle cx="40" cy="45" r="17" fill="#111" stroke="#4fe3d0" stroke-width="3"/><circle cx="40" cy="45" r="7" fill="#203238"/><circle cx="80" cy="45" r="7" fill="#ffd36e"/><text x="80" y="72" font-size="10" fill="#8aa" text-anchor="middle">ライト</text><text x="40" y="80" font-size="10" fill="#4fe3d0" text-anchor="middle">ここ</text><path d="M115 20 q-30 10 -70 22" stroke="#ff8a9a" stroke-width="2" fill="none" stroke-dasharray="4 3"/><text x="122" y="22" font-size="11" fill="#ff8a9a">指</text></svg>
+  <p class="hint">ライトのすぐ隣のレンズを、指の腹で「軽く」ふさぎます。押し付けすぎると脈が消えます。</p>
+  <div class="checks">
+    <div class="ck" id="ck1"><b>✓</b>ライトの光が指を通っている</div>
+    <div class="ck" id="ck2"><b>✓</b>指がレンズ全体をふさいでいる</div>
+    <div class="ck" id="ck3"><b>✓</b>脈がはっきり取れている（3秒安定）</div>
+  </div>
   <canvas class="wave" id="wave0" width="1040" height="180"></canvas>
   <button id="suOk" disabled>脈OK、はじめる</button>
 </section>
@@ -109,10 +135,11 @@
 <section class="screen" id="base">
   <div class="label">BASELINE</div>
   <div class="who" id="bsWho"></div>
-  <p>まずは落ち着いているときの心拍。みんな静かに。</p>
+  <p>落ち着いているときの心拍を測ります。みんな静かに。</p>
+  <div class="bigrow"><div class="bigheart" id="bh1"><svg viewBox="0 0 24 24" fill="#ff5a6e"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.5h2c.7-1.3 2.2-2.5 4.3-2.5 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg></div><div class="big" id="bsBig">--</div></div>
   <div class="bigsub">心拍数</div>
-  <div class="big" id="bsBig">--</div>
   <canvas class="wave" id="wave1" width="1040" height="180"></canvas>
+  <div class="prog"><i id="bsProg"></i></div>
   <div class="delta" id="bsCount"></div>
 </section>
 
@@ -120,10 +147,11 @@
 <section class="screen" id="ask">
   <div class="label" id="qLabel"></div>
   <div class="q" id="qText"></div>
+  <div class="bigrow"><div class="bigheart" id="bh2"><svg viewBox="0 0 24 24" fill="#ff5a6e"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.5h2c.7-1.3 2.2-2.5 4.3-2.5 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg></div><div class="big" id="qBig">--</div></div>
   <div class="bigsub">心拍数</div>
-  <div class="big" id="qBig">--</div>
-  <div class="delta" id="qDelta"></div>
+  <div><span class="chip" id="qDelta">平常時比 --</span></div>
   <canvas class="wave" id="wave2" width="1040" height="180"></canvas>
+  <div class="prog"><i id="qProg"></i></div>
   <div class="choices" id="qChoices"></div>
   <div class="hint" id="qHint"></div>
 </section>
@@ -204,24 +232,28 @@ function beep(freq=880, dur=.18){
 }
 
 // ━━━ カメラと脈 ━━━
+// 精度の工夫：映像の新しいフレームごとに取得／赤が飽和したら緑で読む／30Hzに補間／
+// 1秒の移動平均で明るさの揺れを除き、短い平均で雑音を落とす／自己相関で周期と信号の質を出す
 let demo=false, stream=null, cams=[], camIdx=-1, running=false;
-const samples=[];
-const work=document.createElement('canvas'); work.width=work.height=40;
+const samples=[]; // {t,r,g}
+const work=document.createElement('canvas'); work.width=64; work.height=48;
 const wctx=work.getContext('2d',{willReadFrequently:true});
 let fakeBpm=72, fakePhase=0, fakeLast=0, fakeOn=true;
+const FS=30;
 
 async function openCamera(deviceId){
   if (stream) stream.getTracks().forEach(t=>t.stop());
   const v = deviceId ? {deviceId:{exact:deviceId}} : {facingMode:{ideal:'environment'}};
-  stream = await navigator.mediaDevices.getUserMedia({video:{...v,width:{ideal:640},height:{ideal:480}},audio:false});
+  stream = await navigator.mediaDevices.getUserMedia({video:{...v,width:{ideal:320},height:{ideal:240},frameRate:{ideal:30}},audio:false});
   const track = stream.getVideoTracks()[0], cam=$('cam'); cam.srcObject=stream; await cam.play();
   try{ await track.applyConstraints({advanced:[{torch:true}]}); }catch(e){}
-  samples.length=0;
-  const s = track.getSettings ? track.getSettings() : {};
+  samples.length=0; est.hist=[];
+  const st = track.getSettings ? track.getSettings() : {};
   if (!cams.length){
     try{ cams = (await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput' && !/front|前面|user/i.test(d.label)); }catch(e){}
-    camIdx = Math.max(0, cams.findIndex(c=>c.deviceId===s.deviceId));
+    camIdx = Math.max(0, cams.findIndex(c=>c.deviceId===st.deviceId));
   }
+  startFrames();
 }
 $('camSwitch').onclick = async () => {
   if (demo){ fakeOn=!fakeOn; return; }
@@ -230,72 +262,112 @@ $('camSwitch').onclick = async () => {
   try{ await openCamera(cams[camIdx].deviceId); $('monBpm').textContent=`カメラ ${camIdx+1}/${cams.length}`; }catch(e){ $('monBpm').textContent='切替に失敗しました'; }
 };
 
-function sampleOnce(){
-  const t = now();
-  if (demo){
-    const dt = fakeLast ? t-fakeLast : 0; fakeLast=t; fakePhase += dt*fakeBpm/60*2*Math.PI;
-    samples.push(fakeOn ? {t, r:150 - 4*Math.max(0,Math.sin(fakePhase))**3 + (Math.random()-.5)*.6, g:40} : {t, r:90, g:85});
-  } else {
-    const v=$('cam'); if (v.readyState<2) return;
-    wctx.drawImage(v, v.videoWidth/2-20, v.videoHeight/2-20, 40, 40, 0, 0, 40, 40);
-    const d=wctx.getImageData(0,0,40,40).data; let r=0,g=0; for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];}
-    const n=d.length/4; samples.push({t, r:r/n, g:g/n});
-  }
-  while (samples.length && t-samples[0].t > 60) samples.shift();
+function grab(){
+  const v=$('cam'); if (v.readyState<2) return;
+  wctx.drawImage(v, 0, 0, 64, 48);
+  const d=wctx.getImageData(8,6,48,36).data; let r=0,g=0;
+  for(let i=0;i<d.length;i+=4){ r+=d[i]; g+=d[i+1]; }
+  const n=d.length/4; push({t:now(), r:r/n, g:g/n});
 }
-function filteredBetween(t0,t1){
-  const out=[];
-  for (let i=0;i<samples.length;i++){
-    const s=samples[i]; if (s.t<t0||s.t>t1) continue;
-    let sum=0,c=0;
-    for(let j=i;j>=0&&s.t-samples[j].t<0.5;j--){sum+=samples[j].r;c++;}
-    for(let j=i+1;j<samples.length&&samples[j].t-s.t<0.5;j++){sum+=samples[j].r;c++;}
-    out.push({t:s.t, y:-(s.r-sum/c)});
-  }
-  return out;
+function push(s){ samples.push(s); while (samples.length && s.t-samples[0].t>60) samples.shift(); }
+let frameCbOn=false;
+function startFrames(){
+  const v=$('cam');
+  if (v.requestVideoFrameCallback && !frameCbOn){ frameCbOn=true; const cb=()=>{ grab(); v.requestVideoFrameCallback(cb); }; v.requestVideoFrameCallback(cb); }
 }
-function bpmBetween(t0,t1){
-  const f=filteredBetween(t0,t1), peaks=[];
-  for(let i=2;i<f.length-2;i++){ const y=f[i].y;
-    if(y>0&&y>=f[i-1].y&&y>=f[i-2].y&&y>f[i+1].y&&y>f[i+2].y){ if(!peaks.length||f[i].t-peaks[peaks.length-1]>0.33) peaks.push(f[i].t); } }
-  if (peaks.length<4) return null;
-  const iv=[]; for(let i=1;i<peaks.length;i++) iv.push(peaks[i]-peaks[i-1]); iv.sort((a,b)=>a-b);
-  const b = 60/iv[Math.floor(iv.length/2)];
-  return (b>40 && b<200) ? b : null;
+function fakeSample(){
+  const t=now(), dt = fakeLast ? t-fakeLast : 0; fakeLast=t; fakePhase += dt*fakeBpm/60*2*Math.PI;
+  const ph=fakePhase%(2*Math.PI), pulse=Math.exp(-((ph-1)**2)/0.25)+0.35*Math.exp(-((ph-2.6)**2)/0.3);
+  push(fakeOn ? {t, r:180 - 3*pulse + (Math.random()-.5)*0.8 + Math.sin(t*0.7)*1.5, g:40} : {t, r:90, g:85});
 }
+
+// 指の状態
 function fingerState(){
-  const s=samples[samples.length-1]; if(!s) return 'none';
-  if (s.r>60 && s.r>s.g*1.8) return 'on';
-  if (s.r>s.g*1.3) return 'near';
-  return 'none';
+  const s=samples[samples.length-1]; if(!s) return {on:false,near:false,light:false};
+  const light = s.r>70, on = s.r>60 && s.r>s.g*1.8, near = !on && s.r>s.g*1.3;
+  return {on, near, light};
 }
-// 3段階：none（指なし）/ search（脈を探しています）/ ok（脈OK）
-let live = {state:'none', bpm:null, since:0};
+// 等間隔の信号に直して、フィルタをかける
+function signal(t0,t1){
+  const seg=samples.filter(s=>s.t>=t0-1.2 && s.t<=t1);
+  if (seg.length<FS*2) return null;
+  const meanR = seg.reduce((a,s)=>a+s.r,0)/seg.length;
+  const ch = meanR>245 ? 'g' : 'r';
+  const start=Math.max(seg[0].t,t0-1.2), n=Math.floor((t1-start)*FS);
+  if (n<FS*3) return null;
+  const x=new Float32Array(n); let k=0;
+  for (let i=0;i<n;i++){ const t=start+i/FS; while(k<seg.length-2 && seg[k+1].t<t) k++; const a=seg[k], b=seg[k+1]||a, w=b.t>a.t?(t-a.t)/(b.t-a.t):0; x[i]=-(a[ch]+(b[ch]-a[ch])*Math.max(0,Math.min(1,w))); }
+  const ma=(arr,w)=>{ const o=new Float32Array(arr.length); let sum=0,q=[]; for(let i=0;i<arr.length;i++){ sum+=arr[i]; q.push(arr[i]); if(q.length>w) sum-=q.shift(); o[i]=sum/q.length; } return o; };
+  const base=ma(x,FS), y=new Float32Array(n); for(let i=0;i<n;i++) y[i]=x[i]-base[i];
+  const sm=ma(y,4);
+  const off=Math.round(1.2*FS), out=sm.slice(Math.min(off,n-FS*2));
+  let m=0; out.forEach(v=>m+=v); m/=out.length; let sd=0; out.forEach(v=>sd+=(v-m)**2); sd=Math.sqrt(sd/out.length)||1;
+  return {y:Array.from(out,v=>(v-m)/sd), start: start+(n-out.length)/FS};
+}
+// 自己相関で心拍と信号の質（0〜1）を出す
+function analyze(t0,t1){
+  const sg=signal(t0,t1); if(!sg) return {bpm:null,q:0};
+  const y=sg.y, N=y.length, lo=Math.round(FS*60/200), hi=Math.round(FS*60/40);
+  if (N<hi+FS) return {bpm:null,q:0};
+  const ac=[]; for(let l=0;l<=hi+1;l++){ let s=0; for(let i=0;i+l<N;i++) s+=y[i]*y[i+l]; ac[l]=s/(N-l); }
+  let best=-1, gmax=-1; for(let l=lo;l<=hi;l++) if(ac[l]>gmax) gmax=ac[l];
+  for(let l=lo+1;l<hi;l++){ if(ac[l]>ac[l-1]&&ac[l]>=ac[l+1]&&ac[l]>=0.8*gmax){ best=l; break; } }
+  if (best<0) return {bpm:null,q:Math.max(0,gmax)};
+  const a=ac[best-1],b=ac[best],c=ac[best+1], d=(a-c)/(2*(a-2*b+c)||1), lag=best+(isFinite(d)?Math.max(-.5,Math.min(.5,d)):0);
+  return {bpm:60*FS/lag, q:Math.max(0,Math.min(1,b))};
+}
+// 一定時間の心拍：8秒の窓を1秒ずつずらして、質の良い推定の中央値
+function bpmOver(t0,t1,minQ=0.4){
+  const vals=[]; for(let e=Math.min(t1,t0+8); e<=t1+0.01; e+=1){ const r=analyze(Math.max(t0,e-8),e); if(r.bpm && r.q>=minQ) vals.push(r.bpm); }
+  if (t1-t0<8){ const r=analyze(t0-2,t1); if(r.bpm&&r.q>=minQ) vals.push(r.bpm); }
+  if (!vals.length) return null; vals.sort((a,b)=>a-b); return vals[Math.floor(vals.length/2)];
+}
+const est={hist:[]};
+let live={state:'none', bpm:null, q:0, okSince:0};
 function updateLive(){
   const f=fingerState(), t=now();
-  if (f!=='on'){ live={state:'none', bpm:null, since:t}; }
-  else { const b = (t-live.since>3) ? bpmBetween(t-6,t) : null; live = {state: b?'ok':'search', bpm:b, since: live.state==='none'?t:live.since}; }
-  const w=$('camWrap'), st=$('monState');
-  w.className = live.state==='ok'?'ok':(f==='near'||live.state==='search')?'near':'';
-  if (live.state==='ok'){ st.className='ok'; st.textContent=`脈OK　${Math.round(live.bpm)}`; }
-  else if (live.state==='search'){ st.className=''; st.textContent='脈を探しています…動かさないで'; }
-  else { st.className='ng'; st.textContent = f==='near' ? '指が少しずれています' : '指なし：カメラをふさいでください'; }
+  let st='none', bpm=null, q=0;
+  if (f.on){ const r=analyze(t-6,t); q=r.q; if (r.bpm && r.q>=0.45){ est.hist.push(r.bpm); if(est.hist.length>5) est.hist.shift(); const h=[...est.hist].sort((a,b)=>a-b); bpm=h[Math.floor(h.length/2)]; st='ok'; } else st='search'; }
+  else est.hist=[];
+  live={state:st, bpm, q, okSince: st==='ok' ? (live.state==='ok'?live.okSince:t) : 0, finger:f};
+  const w=$('camWrap'), m=$('monState');
+  w.className = st==='ok'?'ok':(f.near||st==='search')?'near':'';
+  $('heart').classList.toggle('on', st==='ok');
+  $('qualBar').style.width = Math.round((f.on?q:0)*100)+'%';
+  $('qualBar').style.background = q>=0.45 ? 'var(--glow)' : '#e0b050';
+  if (st==='ok'){ m.className='ok'; m.textContent = $('setup').classList.contains('on') ? `脈OK　${Math.round(bpm)}` : '脈OK'; }
+  else if (st==='search'){ m.className=''; m.textContent= q<0.2 ? '脈が弱い：少し力をゆるめて' : '脈を探しています…動かさないで'; }
+  else { m.className='ng'; m.textContent = f.near ? '指が少しずれています' : '指なし：レンズをふさいでください'; }
 }
+// 波形と、脈に合わせたハートの点滅
+let lastBeat=0;
 function drawWave(cv){
   const g=cv.getContext('2d'); g.clearRect(0,0,cv.width,cv.height);
-  if (live.state==='none' || samples.length<3) return;
-  const t=samples[samples.length-1].t, f=filteredBetween(t-5,t);
-  if (f.length<3) return;
-  let mn=Infinity,mx=-Infinity; f.forEach(p=>{mn=Math.min(mn,p.y);mx=Math.max(mx,p.y);});
+  if (live.state==='none' || samples.length<FS*3) return;
+  const t=samples[samples.length-1].t, sg=signal(t-5,t); if(!sg) return;
+  const y=sg.y, n=y.length; let mn=Infinity,mx=-Infinity; y.forEach(v=>{mn=Math.min(mn,v);mx=Math.max(mx,v);});
   const rng=(mx-mn)||1, col = live.state==='ok' ? '#4fe3d0' : '#e0b050';
   g.strokeStyle=col; g.lineWidth=3; g.shadowColor=col; g.shadowBlur=14; g.beginPath();
-  f.forEach((p,i)=>{ const x=(p.t-(t-5))/5*cv.width, y=cv.height/2+((p.y-mn)/rng-.5)*-(cv.height*.75); i?g.lineTo(x,y):g.moveTo(x,y); });
+  y.forEach((v,i)=>{ const x=i/(n-1)*cv.width, yy=cv.height/2+((v-mn)/rng-.5)*-(cv.height*.75); i?g.lineTo(x,yy):g.moveTo(x,yy); });
   g.stroke();
 }
-let lastUi=0;
+function beatCheck(){
+  if (live.state!=='ok') return;
+  const t=now(), sg=signal(t-3.5,t); if(!sg) return;
+  const y=sg.y, n=y.length, i=n-3;
+  if (i<2) return;
+  if (y[i]>0.8 && y[i]>=y[i-1] && y[i]>=y[i-2] && y[i]>y[i+1] && y[i]>y[i+2]){
+    const bt=sg.start+i/FS; if (bt-lastBeat > 60/(live.bpm||70)*0.6){ lastBeat=bt; pulse(); }
+  }
+}
+function pulse(){ ['heart','bh1','bh2'].forEach(id=>{ const e=$(id); if(!e) return; e.classList.add('beat'); setTimeout(()=>e.classList.remove('beat'),140); }); }
+let lastUi=0, lastBeatCheck=0;
 function loop(){
-  if(!running) return; sampleOnce();
-  const t=now(); if (t-lastUi>0.25){ lastUi=t; updateLive(); }
+  if(!running) return;
+  if (demo) fakeSample(); else if (!frameCbOn) grab();
+  const t=now();
+  if (t-lastUi>0.5){ lastUi=t; updateLive(); }
+  if (t-lastBeatCheck>0.05){ lastBeatCheck=t; beatCheck(); }
   ['wave0','wave1','wave2','wave3'].forEach(id=>{ const c=$(id); if (c.offsetParent) drawWave(c); });
   requestAnimationFrame(loop);
 }
@@ -309,8 +381,14 @@ async function setup(){
   show('setup'); $('suOk').disabled=true;
   if (demo){ fakeOn=true; fakeBpm=64+Math.random()*12; }
   await new Promise(r=>{
-    const iv=setInterval(()=>{ $('suOk').disabled = live.state!=='ok'; },250);
-    $('suOk').onclick=()=>{ clearInterval(iv); r(); };
+    const iv=setInterval(()=>{
+      const f=live.finger||{}, stable = live.state==='ok' && now()-live.okSince>=3;
+      $('ck1').classList.toggle('done', !!f.light && (f.on||f.near));
+      $('ck2').classList.toggle('done', !!f.on);
+      $('ck3').classList.toggle('done', stable);
+      $('suOk').disabled = !stable;
+    },250);
+    $('suOk').onclick=()=>{ clearInterval(iv); beep(990,.15); buzz(60); r(); };
   });
 }
 async function baseline(){
@@ -319,15 +397,17 @@ async function baseline(){
     const t0=now(); let lost=0;
     beep(990,.2); buzz(80);
     while (now()-t0 < BASE_SEC){
-      $('bsCount').textContent = `あと ${Math.ceil(BASE_SEC-(now()-t0))} 秒`;
+      const el=now()-t0;
+      $('bsProg').style.width=(el/BASE_SEC*100)+'%';
+      $('bsCount').textContent = `あと ${Math.ceil(BASE_SEC-el)} 秒`;
       $('bsBig').textContent = live.bpm ? Math.round(live.bpm) : '--';
       if (live.state==='none') lost+=.2;
       await sleep(200);
     }
-    const b = lost>2 ? null : bpmBetween(t0,now());
+    const b = lost>2 ? null : bpmOver(t0-3, now());
     beep(1320,.2); buzz(80);
     if (b){ res.base=b; return; }
-    $('bsCount').textContent='うまく測れませんでした。指を当て直して…'; await sleep(2500);
+    $('bsCount').textContent='脈が安定しませんでした。指を当て直して、もう一度'; await sleep(2500);
   }
 }
 async function askAll(){
@@ -335,21 +415,22 @@ async function askAll(){
   for (let i=0;i<qs.length;i++){
     const q=qs[i];
     $('qLabel').textContent=`QUESTION ${i+1} / ${qs.length}`;
-    $('qText').textContent=q.q; $('qDelta').textContent=''; $('qBig').classList.remove('hot');
+    $('qText').textContent=q.q; $('qDelta').textContent='平常時比 --'; $('qDelta').classList.remove('hot'); $('qBig').classList.remove('hot');
     const box=$('qChoices'); box.innerHTML='';
     $('qHint').textContent=`${hon(B)}が質問と選択肢を読み上げ、${hon(A)}は口で答える。聞いた答えを${hon(B)}がタップ。`;
     show('ask'); beep(880,.12); buzz(40);
     if (demo) fakeBpm = res.base + Math.random()*24;
-    const t0=now(); let ans=null;
+    const t0=now(); let ans=null, peak=0;
     q.c.forEach((c,ci)=>{ const b=document.createElement('button'); b.textContent=c; b.onclick=()=>{ if(ans===null){ ans=ci; b.style.background='var(--glow)'; b.style.color='#03060a'; box.querySelectorAll('button').forEach(x=>x.disabled=(x!==b)); beep(700,.08);} }; box.appendChild(b); });
     if (demo) setTimeout(()=>{ if(ans===null) box.children[Math.floor(Math.random()*4)].click(); }, 2500+Math.random()*2500);
     while (ans===null || now()-t0 < MIN_SEC){
+      const el=now()-t0; $('qProg').style.width=Math.min(100, el/MIN_SEC*100)+'%';
       const b=live.bpm; $('qBig').textContent = b ? Math.round(b) : '--';
-      if (b){ const d=Math.round(b-res.base); $('qDelta').textContent = (d>=0?'+':'')+d+' 拍'; $('qBig').classList.toggle('hot', d>=10); }
+      if (b){ const d=Math.round(b-res.base); peak=Math.max(peak,d); $('qDelta').textContent = `平常時比 ${d>=0?'+':''}${d} 拍`; $('qBig').classList.toggle('hot', d>=10); $('qDelta').classList.toggle('hot', d>=10); }
       if (ans!==null) $('qHint').textContent='判定中…指はそのまま';
-      await sleep(250);
+      await sleep(200);
     }
-    const bpm = bpmBetween(t0,now()), rise = bpm==null ? null : bpm-res.base;
+    const bpm = bpmOver(t0-2, now()), rise = bpm==null ? null : bpm-res.base;
     res.rows.push({q:q.q, a:q.c[ans], rise});
     await judge(i, q, q.c[ans], rise);
   }

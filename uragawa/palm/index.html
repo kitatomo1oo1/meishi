@@ -226,12 +226,12 @@ const lerp = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
 const add = (p, dx, dy) => [p[0] + dx, p[1] + dy];
 function palmTemplates(a, S) {
   const A = lerp(a[5], a[2], 0.30);                   // 親指と人差し指の間（生命線・知能線の起点）
-  const B = lerp(a[0], a[1], 0.30);                   // 手首の親指寄り（生命線の終点）
-  const C = add(lerp(A, B, 0.5), 0.15 * S, 0);        // 生命線のふくらみ
+  const B = lerp(a[0], a[1], 0.15);                   // 手首の親指寄り（生命線の終点）
+  const C = add(lerp(A, B, 0.45), 0.20 * S, 0);       // 生命線のふくらみ
   return {
     life:  [A, lerp(A, C, 0.5), C, lerp(C, B, 0.5), B],
     head:  [add(A, 0.02 * S, 0.03 * S), lerp(a[17], a[0], 0.45)],
-    heart: [lerp(a[17], a[0], 0.15), add(lerp(a[5], a[9], 0.6), 0, 0.12 * S)],
+    heart: [add(lerp(a[17], a[0], 0.28), 0.05 * S, 0), add(lerp(a[5], a[9], 0.6), 0, 0.12 * S)],
     fate:  [lerp(a[0], a[17], 0.10), add(lerp(a[9], a[13], 0.5), 0, 0.35 * S)],
   };
 }
@@ -410,6 +410,9 @@ function palmLines(gray, S, mask, opt = {}) {
       const c = { id: k, px: [...px], route: tr.route };
       shapeOf(c, S, null, tr.strength);
       c.span = tr.span;
+      c.ratio = tr.span / samplePath(T[k], 10).total;   // 道筋に対してどれだけ伸びているか
+      const t0 = T[k][0], t1 = T[k][T[k].length - 1];
+      c.tmplAngle = Math.atan2(Math.abs(t1[1] - t0[1]), Math.abs(t1[0] - t0[0]));
       lines[k] = c;
     }
   }
@@ -423,7 +426,8 @@ function palmLines(gray, S, mask, opt = {}) {
       if (k === 'life' || k === 'fate' ? p[1] > q[1] : p[0] > q[0]) [p, q] = [q, p];
       ang = Math.atan2(q[1] - p[1], q[0] - p[0]);
     }
-    feat[k] = c ? { length: +(c.span / S).toFixed(3), strength: +c.strength.toFixed(3), angle: +(ang * 180 / Math.PI).toFixed(1) } : null;
+    feat[k] = c ? { length: +(c.ratio != null ? c.ratio : c.span / S).toFixed(3), strength: +c.strength.toFixed(3), angle: +(ang * 180 / Math.PI).toFixed(1),
+      bend: c.tmplAngle != null ? +((ang - c.tmplAngle) * 180 / Math.PI).toFixed(1) : 0 } : null;   // bend: 道筋より下がっているほどプラス
   }
   // ますかけ線の推定：手のひらを横切る1本の長い横線
   // ますかけ線：知能線と感情線の道筋をまたいで、1本の長い横線が手のひらを横切る
@@ -501,9 +505,9 @@ const READING_TEXT = {
 
 // 区分のしきい値（実際の手で測ってから調整する）
 const READING_CUTS = {
-  len: [0.40, 0.55],        // 短い / 普通 / 長い（手のひらの幅に対する長さ）
+  len: [0.55, 0.85],        // 短い / 普通 / 長い（その線の道筋に対して伸びている割合）
   str: [0.40, 0.60],        // 細い / 普通 / 濃い
-  slope: [6, 16],           // 知能線の傾き（度）：まっすぐ / ゆるやか / 急
+  slope: [-6, 6],           // 知能線の傾き（道筋との差・度）：まっすぐ / ゆるやか / 急
   ratio: [0.97, 1.00],      // 人差し指÷薬指
 };
 const pick3 = (v, cuts, names) => v < cuts[0] ? names[0] : v < cuts[1] ? names[1] : names[2];
@@ -514,7 +518,7 @@ function readingBuckets(m) {   // m: 測った値（複数フレームの中央�
     lifeLen:  m.life  ? pick3(m.life.length,  READING_CUTS.len, LEN) : 'mid',
     lifeStr:  m.life  ? pick3(m.life.strength, READING_CUTS.str, STR) : 'mid',
     headLen:  m.head  ? pick3(m.head.length,  READING_CUTS.len, LEN) : 'mid',
-    headSlope: m.head ? pick3(Math.max(0, m.head.angle), READING_CUTS.slope, ['flat', 'gentle', 'steep']) : 'gentle',
+    headSlope: m.head ? pick3(m.head.bend || 0, READING_CUTS.slope, ['flat', 'gentle', 'steep']) : 'gentle',
     heartLen: m.heart ? pick3(m.heart.length, READING_CUTS.len, LEN) : 'mid',
     heartStr: m.heart ? pick3(m.heart.strength, READING_CUTS.str, STR) : 'mid',
     fate:     m.fate  ? (m.fate.strength >= READING_CUTS.str[0] ? 'clear' : 'thin') : 'none',
@@ -592,7 +596,7 @@ function medianMeasure(list) {
   for (const k of ['life', 'head', 'heart', 'fate']) {
     const got = list.map(m => m[k]).filter(Boolean);
     out[k] = got.length * 2 > list.length   // 半分より多い回で見つかった線だけ「ある」とする
-      ? { length: med(got.map(g => g.length)), strength: med(got.map(g => g.strength)), angle: med(got.map(g => g.angle || 0)) }
+      ? { length: med(got.map(g => g.length)), strength: med(got.map(g => g.strength)), angle: med(got.map(g => g.angle || 0)), bend: med(got.map(g => g.bend || 0)) }
       : null;
   }
   out.masukake = list.filter(m => m.masukake).length * 2 > list.length;
@@ -606,7 +610,7 @@ function medianMeasure(list) {
 const MATCH_TOL = 0.07;
 function handVector(m) {
   const L = k => m[k] ? [m[k].length, m[k].strength] : [-1, -1];
-  return [...L('life'), ...L('head'), m.head ? m.head.angle / 60 : -1, ...L('heart'), m.fate ? m.fate.strength : -1, m.ratio * 5, m.masukake ? 1 : 0];
+  return [...L('life'), ...L('head'), m.head ? (m.head.bend + 60) / 120 : -1, ...L('heart'), m.fate ? m.fate.strength : -1, m.ratio * 5, m.masukake ? 1 : 0];
 }
 function findSameHand(store, vec) {
   let best = null, bestD = Infinity;
@@ -798,8 +802,8 @@ function measure(canvas) {          // 1枚の画像から線を測る（表示�
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-function loadStore() { try { return JSON.parse(localStorage.getItem('palm-hands-v2') || '[]'); } catch (e) { return []; } }
-function saveStore(st) { try { localStorage.setItem('palm-hands-v2', JSON.stringify(st)); } catch (e) {} }
+function loadStore() { try { return JSON.parse(localStorage.getItem('palm-hands-v3') || '[]'); } catch (e) { return []; } }
+function saveStore(st) { try { localStorage.setItem('palm-hands-v3', JSON.stringify(st)); } catch (e) {} }
 
 async function runReading(frames) {  // frames: 測った結果の配列（1〜5回分）
   const ok = frames.filter(Boolean);

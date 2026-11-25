@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>顔色診断 試作（読み取り確認用）</title>
+<style>
+  :root { --line:#5ef0ff; --dim:#0a1418; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; background:#000; color:#dff; font-family:-apple-system, "Hiragino Sans", sans-serif; overflow:hidden; }
+  #stage { position:fixed; inset:0; }
+  video, #overlay { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  video { filter:brightness(.55) saturate(.6); }
+  #scan { position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .3s; }
+  #scan.on { opacity:1; background:rgba(255,250,240,.55); }
+  #scan .band { position:absolute; left:0; right:0; height:55%; top:-55%;
+    background:linear-gradient(to bottom, rgba(255,255,255,0), #fff 30%, #fff 70%, rgba(255,255,255,0)); }
+  #scan.on .band { animation:sweep 1.1s linear infinite; }
+  @keyframes sweep { from { top:-55%; } to { top:100%; } }
+  #hud { position:absolute; left:0; right:0; bottom:0; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,0)); text-align:center; }
+  #msg { font-size:15px; letter-spacing:.08em; color:var(--line); text-shadow:0 0 8px var(--line); min-height:1.5em; margin-bottom:12px; }
+  #bar { height:3px; background:#123; margin:0 auto 14px; width:70%; }
+  #bar i { display:block; height:100%; width:0; background:var(--line); box-shadow:0 0 8px var(--line); }
+  button { font:inherit; font-size:16px; letter-spacing:.1em; color:#000; background:var(--line); border:0; border-radius:999px; padding:12px 34px; }
+  button:disabled { opacity:.35; }
+  #tag { position:absolute; top:calc(10px + env(safe-area-inset-top)); left:12px; font-size:11px; color:#7aa; letter-spacing:.1em; }
+  /* 結果（鑑定書） */
+  #result { position:fixed; inset:0; background:#fff; color:#111; display:none; overflow:auto;
+    font-family:"Hiragino Mincho ProN","Yu Mincho","YuMincho",serif; padding:28px 22px calc(28px + env(safe-area-inset-bottom)); }
+  #result h1 { font-size:20px; font-weight:600; letter-spacing:.2em; text-align:center; border-bottom:1px solid #111; padding-bottom:10px; }
+  #result .sub { text-align:center; font-size:11px; color:#888; margin:6px 0 18px; letter-spacing:.1em; }
+  #result .lead { font-size:17px; line-height:1.9; margin:14px 0 18px; text-align:center; }
+  #result table { width:100%; border-collapse:collapse; font-size:14px; }
+  #result td { padding:8px 4px; border-bottom:1px solid #ddd; }
+  #result td.v { text-align:right; font-variant-numeric:tabular-nums; width:4.5em; }
+  #result .meter { height:6px; background:#eee; position:relative; }
+  #result .meter b { position:absolute; top:0; bottom:0; background:#b33; }
+  #result .meter .zero { position:absolute; left:50%; top:-3px; bottom:-3px; width:1px; background:#999; }
+  #result .meta { font-size:12px; color:#555; line-height:1.9; margin-top:18px; }
+  #result .note { font-size:11px; color:#999; margin-top:18px; line-height:1.7; }
+  #result button { display:block; margin:22px auto 0; background:#111; color:#fff; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <video id="video" playsinline muted autoplay></video>
+  <canvas id="overlay"></canvas>
+  <div id="scan"><div class="band"></div></div>
+  <div id="tag">KAOIRO / PROTOTYPE</div>
+  <div id="hud">
+    <div id="msg">準備しています…</div>
+    <div id="bar"><i></i></div>
+    <button id="go" disabled>計測する</button>
+  </div>
+</div>
+
+<div id="result"></div>
+
+<script type="module">
+import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+// ===== 設定 =====
+const MEASURE_MS = 3000;     // 計測時間
+const DARK_LUMA = 70;        // これ未満なら暗いと判定（0-255）
+const TOO_DARK_LUMA = 35;    // スキャン光でもこれ未満なら計測不可
+// 部位ごとのサンプル点（MediaPipe 468点のインデックス）
+const REGIONS = {
+  forehead: { name:"額",   luck:"仕事運",   pts:[151,108,337] },
+  nose:     { name:"鼻",   luck:"金運",     pts:[4,5,195] },
+  cheeks:   { name:"頬",   luck:"恋愛運",   pts:[205,50,425,280] },
+  mouth:    { name:"口元", luck:"人間関係", pts:[164,167,393] },
+  chin:     { name:"あご", luck:"家庭運",   pts:[199,175,200] },
+};
+
+const video = document.getElementById("video");
+const overlay = document.getElementById("overlay");
+const octx = overlay.getContext("2d");
+const work = document.createElement("canvas");
+const wctx = work.getContext("2d", { willReadFrequently:true });
+const msg = document.getElementById("msg");
+const bar = document.querySelector("#bar i");
+const btn = document.getElementById("go");
+const scan = document.getElementById("scan");
+const resultEl = document.getElementById("result");
+
+let landmarker, lastLandmarks = null, measuring = false, samples = [], scanMode = false;
+
+function say(t){ msg.textContent = t; }
+
+async function init(){
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:"user", width:{ideal:640}, height:{ideal:480} }, audio:false });
+    video.srcObject = stream;
+    await video.play();
+  } catch(e){ say("カメラを使えません（" + e.name + "）"); return; }
+
+  say("AIを読み込んでいます…");
+  try {
+    const files = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    landmarker = await FaceLandmarker.createFromOptions(files, {
+      baseOptions:{
+        modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate:"GPU" },
+      runningMode:"VIDEO", numFaces:1 });
+  } catch(e){ say("AIの読み込みに失敗しました"); console.error(e); return; }
+
+  say("顔を枠の中に映してください");
+  btn.disabled = false;
+  requestAnimationFrame(loop);
+}
+
+// ===== 毎フレーム =====
+let lastTime = -1;
+function loop(){
+  if (video.readyState >= 2 && video.currentTime !== lastTime){
+    lastTime = video.currentTime;
+    const res = landmarker.detectForVideo(video, performance.now());
+    lastLandmarks = res.faceLandmarks && res.faceLandmarks[0] || null;
+    draw();
+    if (measuring && lastLandmarks){
+      const s = sampleFrame(lastLandmarks);
+      if (s) samples.push(s);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+function draw(){
+  const w = overlay.clientWidth, h = overlay.clientHeight;
+  if (overlay.width !== w * devicePixelRatio){ overlay.width = w*devicePixelRatio; overlay.height = h*devicePixelRatio; }
+  octx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  octx.clearRect(0,0,w,h);
+  if (!lastLandmarks) return;
+  // object-fit:cover と同じ座標変換
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const sc = Math.max(w/vw, h/vh), ox = (w - vw*sc)/2, oy = (h - vh*sc)/2;
+  const P = p => [p.x*vw*sc + ox, p.y*vh*sc + oy];
+  octx.fillStyle = measuring ? "rgba(94,240,255,.95)" : "rgba(94,240,255,.55)";
+  for (const p of lastLandmarks){ const [x,y] = P(p); octx.fillRect(x-0.8,y-0.8,1.6,1.6); }
+  // 計測部位を丸で表示
+  octx.strokeStyle = "rgba(255,120,140,.9)"; octx.lineWidth = 1.2;
+  for (const k in REGIONS) for (const i of REGIONS[k].pts){
+    const [x,y] = P(lastLandmarks[i]); octx.beginPath(); octx.arc(x,y,5,0,Math.PI*2); octx.stroke();
+  }
+}
+
+// ===== 1フレーム分の測定 =====
+function sampleFrame(lm){
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (work.width !== vw){ work.width = vw; work.height = vh; }
+  wctx.drawImage(video, 0, 0, vw, vh);
+  const img = wctx.getImageData(0, 0, vw, vh).data;
+  // 顔の幅から採取する四角の大きさを決める
+  const faceW = Math.abs(lm[454].x - lm[234].x) * vw;
+  const r = Math.max(2, Math.round(faceW * 0.025));
+  const out = {}; let lumaSum = 0, n = 0;
+  for (const k in REGIONS){
+    let R=0,G=0,B=0,c=0;
+    for (const i of REGIONS[k].pts){
+      const cx = Math.round(lm[i].x*vw), cy = Math.round(lm[i].y*vh);
+      for (let y=cy-r; y<=cy+r; y++) for (let x=cx-r; x<=cx+r; x++){
+        if (x<0||y<0||x>=vw||y>=vh) continue;
+        const o = (y*vw + x)*4; R+=img[o]; G+=img[o+1]; B+=img[o+2]; c++;
+      }
+    }
+    if (!c) return null;
+    R/=c; G/=c; B/=c;
+    out[k] = { R, G, B };
+    lumaSum += 0.299*R + 0.587*G + 0.114*B; n++;
+  }
+  out.luma = lumaSum / n;
+  return out;
+}
+
+// ===== 計測 =====
+btn.onclick = async () => {
+  if (!lastLandmarks){ say("顔が見つかりません"); return; }
+  btn.disabled = true;
+
+  // ① 明るさチェック
+  samples = []; measuring = true;
+  say("明るさを確認しています…");
+  await wait(600);
+  measuring = false;
+  const luma0 = avg(samples.map(s => s.luma));
+  scanMode = luma0 < DARK_LUMA;
+
+  // ② 暗いときはスキャン光
+  if (scanMode){
+    say("画面の明るさを最大にしてください");
+    scan.classList.add("on");
+    await wait(900);
+  }
+
+  // ③ 本計測
+  samples = []; measuring = true;
+  say(scanMode ? "スキャン光で読み取っています…" : "顔色を読み取っています…");
+  const t0 = performance.now();
+  await new Promise(res => {
+    const tick = () => {
+      const p = Math.min(1, (performance.now()-t0)/MEASURE_MS);
+      bar.style.width = (p*100) + "%";
+      p < 1 ? requestAnimationFrame(tick) : res();
+    };
+    tick();
+  });
+  measuring = false;
+  scan.classList.remove("on");
+  bar.style.width = "0";
+
+  if (samples.length < 10){ say("うまく読み取れませんでした。もう一度どうぞ"); btn.disabled = false; return; }
+  const luma = avg(samples.map(s => s.luma));
+  if (luma < TOO_DARK_LUMA){
+    say("暗すぎます。もう少し明るい場所で（回数には数えません）");
+    btn.disabled = false; return;
+  }
+  showResult(analyze(samples), { luma0, luma, frames:samples.length });
+};
+
+// ===== 解析 =====
+// 赤みの指標：赤の割合 R/(R+G+B)。照明の色の影響を消すため、顔全体の平均との差（相対値）で比べる
+function analyze(ss){
+  const keys = Object.keys(REGIONS);
+  const red = {};
+  for (const k of keys){
+    red[k] = avg(ss.map(s => { const c = s[k]; return c.R / (c.R + c.G + c.B + 1e-6); }));
+  }
+  const mean = avg(keys.map(k => red[k]));
+  const rel = {};
+  for (const k of keys) rel[k] = (red[k] - mean) * 1000;   // 相対値（顔の平均＝0）
+  const top = keys.reduce((a,b) => rel[a] >= rel[b] ? a : b);
+  // 顔全体の赤みの量（酔い度と共通の値の候補。照明の影響を受ける絶対値）
+  const total = mean;
+  // 明るさのムラ（部位ごとの明るさのばらつき）
+  const lum = keys.map(k => avg(ss.map(s => { const c=s[k]; return 0.299*c.R+0.587*c.G+0.114*c.B; })));
+  const unevenness = stdev(lum);
+  return { rel, top, total, unevenness };
+}
+
+function showResult(a, m){
+  const maxAbs = Math.max(...Object.values(a.rel).map(Math.abs), 1);
+  const rows = Object.keys(REGIONS).map(k => {
+    const v = a.rel[k], wpct = Math.abs(v)/maxAbs*50;
+    const left = v >= 0 ? 50 : 50 - wpct;
+    return `<tr><td>${REGIONS[k].name}（${REGIONS[k].luck}）</td>
+      <td><div class="meter"><span class="zero"></span><b style="left:${left}%;width:${wpct}%"></b></div></td>
+      <td class="v">${v>=0?"+":""}${v.toFixed(1)}</td></tr>`;
+  }).join("");
+  resultEl.innerHTML = `
+    <h1>顔 色 鑑 定 書</h1>
+    <div class="sub">試作・読み取り確認用</div>
+    <div class="lead">${REGIONS[a.top].name}に気色あり<br>── ${REGIONS[a.top].luck}が表に出ています</div>
+    <table>${rows}</table>
+    <div class="meta">
+      部位の数値：顔全体の平均を0としたときの赤みの差<br>
+      顔全体の赤みの量：${(a.total*1000).toFixed(1)}（酔い度と共通にする候補）<br>
+      明るさのムラ：${a.unevenness.toFixed(1)}<br>
+      明るさ：計測前 ${m.luma0.toFixed(0)} → 計測中 ${m.luma.toFixed(0)}（${scanMode ? "スキャン光あり" : "スキャン光なし"}）<br>
+      読み取ったフレーム数：${m.frames}
+    </div>
+    <div class="note">遊び用の推定です。医療目的ではありません。<br>写真・動画は保存も送信もしていません。</div>
+    <button id="again">もう一度</button>`;
+  resultEl.style.display = "block";
+  document.getElementById("again").onclick = () => {
+    resultEl.style.display = "none"; btn.disabled = false; say("顔を枠の中に映してください");
+  };
+}
+
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const avg = a => a.reduce((x,y)=>x+y,0) / (a.length || 1);
+const stdev = a => { const m = avg(a); return Math.sqrt(avg(a.map(x => (x-m)**2))); };
+
+init();
+</script>
+</body>
+</html>

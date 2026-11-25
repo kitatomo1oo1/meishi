@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ウラガワ｜手相 試作</title>
+<style>
+  :root { --bg:#05080c; --line:#3ff2ff; --fg:#d8f6ff; --dim:#5d7a88; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif; }
+  header { padding:12px 16px 4px; font-size:13px; letter-spacing:.2em; color:var(--line); }
+  .note { padding:0 16px; font-size:11px; color:var(--dim); line-height:1.6; }
+  #stage { position:relative; width:100%; max-width:560px; margin:8px auto; aspect-ratio:3/4; background:#000; overflow:hidden; }
+  #stage video { display:none; }
+  #view { width:100%; height:100%; display:block; }
+  #status { position:absolute; left:0; right:0; bottom:10px; text-align:center; font-size:14px; text-shadow:0 0 6px #000; }
+  .bar { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; padding:8px 12px; }
+  button,label.btn { background:#0c1a22; color:var(--fg); border:1px solid #1f4a5a; border-radius:999px; padding:10px 16px; font-size:14px; }
+  button:disabled { opacity:.35; }
+  button.main { border-color:var(--line); color:var(--line); box-shadow:0 0 12px #3ff2ff55; }
+  input[type=file] { display:none; }
+  #result { display:none; max-width:560px; margin:0 auto 40px; padding:0 12px; }
+  #palm { width:100%; aspect-ratio:1; display:block; background:#000; border:1px solid #12313d; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-size:13px; }
+  td { padding:6px 4px; border-bottom:1px solid #12313d; }
+  td:first-child { color:var(--dim); width:38%; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  #debug { display:none; width:100%; aspect-ratio:1; margin-top:10px; image-rendering:pixelated; border:1px solid #12313d; }
+  #cert { display:none; background:#f4f1ea; padding:16px 12px 40px; }
+  .paper { max-width:520px; margin:0 auto; background:#fff; color:#1c1c1c; padding:28px 24px 20px;
+    font-family:"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif CJK JP",serif;
+    border:1px solid #d9d2c3; box-shadow:0 2px 18px rgba(0,0,0,.08); }
+  .c-head { text-align:center; font-size:22px; letter-spacing:.35em; border-bottom:1px solid #1c1c1c; padding-bottom:10px; }
+  .c-no { text-align:right; font-size:11px; color:#777; margin-top:6px; letter-spacing:.1em; }
+  #cHand { width:72%; display:block; margin:10px auto 4px; }
+  .c-type { text-align:center; font-size:13px; color:#555; margin-bottom:6px; }
+  .c-type b { font-size:20px; color:#1c1c1c; font-weight:600; }
+  .paper h3 { font-size:13px; letter-spacing:.3em; font-weight:600; margin:18px 0 6px; padding-left:8px; border-left:3px solid #b08d4a; }
+  .paper p, .paper li { font-size:14px; line-height:1.85; margin:4px 0; }
+  .paper ul { padding-left:1.2em; margin:4px 0; }
+  .ln { font-size:12px; color:#b08d4a; margin-right:6px; letter-spacing:.1em; }
+  .big { font-size:17px; }
+  .big em { font-style:normal; font-size:22px; color:#8a2b2b; }
+  .c-foot { font-size:10px !important; color:#888; border-top:1px solid #ddd; margin-top:18px !important; padding-top:8px; line-height:1.6 !important; }
+</style>
+</head>
+<body>
+<header>PALM SCAN — 試作</header>
+<p class="note">手のひらの線を画像処理で浮かび上がらせる試作です。写真は端末の中だけで処理し、保存も送信もしません（最初に手の位置を読むAIのデータだけ読み込みます）。</p>
+
+<div id="stage">
+  <video id="video" playsinline muted></video>
+  <canvas id="view"></canvas>
+  <div id="status">準備中…</div>
+</div>
+<div class="bar">
+  <button id="btnCam" class="main">カメラ開始</button>
+  <button id="btnTorch" disabled>ライト</button>
+  <button id="btnShot" class="main" disabled>読み取る</button>
+  <label class="btn">写真から<input id="file" type="file" accept="image/*"></label>
+</div>
+
+<div id="result">
+  <canvas id="palm" width="512" height="512"></canvas>
+  <table id="table"></table>
+  <div class="bar">
+    <button id="btnCert" class="main" disabled>鑑定書を見る</button>
+    <button id="btnReplay">もう一度光らせる</button>
+    <button id="btnDebug">処理の途中を見る</button>
+    <button id="btnBack">撮り直す</button>
+  </div>
+  <canvas id="debug" width="256" height="256"></canvas>
+</div>
+
+<div id="cert">
+  <div class="paper">
+    <div class="c-head">手 相 鑑 定 書</div>
+    <div class="c-no" id="cNo"></div>
+    <canvas id="cHand" width="600" height="600"></canvas>
+    <div class="c-type" id="cType"></div>
+    <h3>珍しさ</h3><div id="cRare"></div>
+    <h3>性格</h3><div id="cTraits"></div>
+    <h3>予言</h3><div id="cProphecy"></div>
+    <h3>今日の運勢</h3><div id="cToday"></div>
+    <p class="c-foot">この鑑定は手のひらの線の画像から推定した遊びの占いです。写真は保存・送信していません（同じ手を見分けるための数値だけ、この端末に残ります）。</p>
+  </div>
+  <div class="bar"><button id="btnCertBack">戻る</button></div>
+</div>
+
+<script>
+// ===== 手相の線を浮かび上がらせる処理（画像処理のみ・外部ライブラリなし） =====
+// 入力: 手のひらを正規化した S×S のグレースケール（0-255）と、手のひら領域のマスク
+// 出力: 線の強さマップ・検出した線の候補・4本の線への割り当て・特徴量
+
+function boxBlur(src, w, h, r) {
+  const tmp = new Float32Array(w * h), out = new Float32Array(w * h);
+  const n = 2 * r + 1;
+  for (let y = 0; y < h; y++) {
+    let s = 0;
+    for (let k = -r; k <= r; k++) s += src[y * w + Math.min(w - 1, Math.max(0, k))];
+    for (let x = 0; x < w; x++) {
+      tmp[y * w + x] = s / n;
+      const a = Math.min(w - 1, x + r + 1), b = Math.max(0, x - r);
+      s += src[y * w + a] - src[y * w + b];
+    }
+  }
+  for (let x = 0; x < w; x++) {
+    let s = 0;
+    for (let k = -r; k <= r; k++) s += tmp[Math.min(h - 1, Math.max(0, k)) * w + x];
+    for (let y = 0; y < h; y++) {
+      out[y * w + x] = s / n;
+      const a = Math.min(h - 1, y + r + 1), b = Math.max(0, y - r);
+      s += tmp[a * w + x] - tmp[b * w + x];
+    }
+  }
+  return out;
+}
+
+function rankFilter(src, w, h, r, useMax) {
+  const tmp = new Float32Array(w * h), out = new Float32Array(w * h);
+  const f = useMax ? Math.max : Math.min;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let v = src[y * w + x];
+    for (let k = -r; k <= r; k++) {
+      const xx = x + k; if (xx < 0 || xx >= w) continue;
+      v = f(v, src[y * w + xx]);
+    }
+    tmp[y * w + x] = v;
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let v = tmp[y * w + x];
+    for (let k = -r; k <= r; k++) {
+      const yy = y + k; if (yy < 0 || yy >= h) continue;
+      v = f(v, tmp[yy * w + x]);
+    }
+    out[y * w + x] = v;
+  }
+  return out;
+}
+
+// 各画素の線の向き（構造テンソル）。0=横向きの線、±π/2=縦向きの線
+function orientation(m, w, h) {
+  const gxx = new Float32Array(w * h), gyy = new Float32Array(w * h), gxy = new Float32Array(w * h);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x, gx = m[i + 1] - m[i - 1], gy = m[i + w] - m[i - w];
+    gxx[i] = gx * gx; gyy[i] = gy * gy; gxy[i] = gx * gy;
+  }
+  const r = Math.max(2, Math.round(w / 64));
+  const a = boxBlur(gxx, w, h, r), b = boxBlur(gyy, w, h, r), c = boxBlur(gxy, w, h, r);
+  const o = new Float32Array(w * h);
+  for (let i = 0; i < o.length; i++) {
+    let t = 0.5 * Math.atan2(2 * c[i], a[i] - b[i]) + Math.PI / 2;   // 勾配に直交＝線の向き
+    if (t > Math.PI / 2) t -= Math.PI;
+    o[i] = t;
+  }
+  return o;
+}
+
+function percentile(arr, mask, p) {
+  const vals = [];
+  for (let i = 0; i < arr.length; i++) if (mask[i]) vals.push(arr[i]);
+  if (!vals.length) return 0;
+  vals.sort((a, b) => a - b);
+  return vals[Math.min(vals.length - 1, Math.floor(vals.length * p))];
+}
+
+// 多角形の内側を1にしたマスク
+function polygonMask(poly, S) {
+  const m = new Uint8Array(S * S);
+  for (let y = 0; y < S; y++) {
+    const xs = [];
+    for (let i = 0; i < poly.length; i++) {
+      const [x1, y1] = poly[i], [x2, y2] = poly[(i + 1) % poly.length];
+      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) xs.push(x1 + (y - y1) / (y2 - y1) * (x2 - x1));
+    }
+    xs.sort((a, b) => a - b);
+    for (let i = 0; i + 1 < xs.length; i += 2)
+      for (let x = Math.max(0, Math.ceil(xs[i])); x <= Math.min(S - 1, Math.floor(xs[i + 1])); x++) m[y * S + x] = 1;
+  }
+  return m;
+}
+
+function components(bin, w, h) {
+  const lab = new Int32Array(w * h).fill(-1), comps = [];
+  const stack = [];
+  for (let i = 0; i < w * h; i++) {
+    if (!bin[i] || lab[i] >= 0) continue;
+    const id = comps.length, px = [];
+    lab[i] = id; stack.push(i);
+    while (stack.length) {
+      const p = stack.pop(); px.push(p);
+      const x = p % w, y = (p / w) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+        const q = yy * w + xx;
+        if (bin[q] && lab[q] < 0) { lab[q] = id; stack.push(q); }
+      }
+    }
+    comps.push({ id, px });
+  }
+  return { lab, comps };
+}
+
+// 線の形を表す値（重心・向き・長さ・細長さ）
+function shapeOf(c, w, bh) {
+  let sx = 0, sy = 0, ss = 0;
+  for (const p of c.px) { sx += p % w; sy += (p / w) | 0; ss += bh[p]; }
+  const n = c.px.length, cx = sx / n, cy = sy / n;
+  let xx = 0, yy = 0, xy = 0;
+  for (const p of c.px) { const dx = p % w - cx, dy = ((p / w) | 0) - cy; xx += dx * dx; yy += dy * dy; xy += dx * dy; }
+  xx /= n; yy /= n; xy /= n;
+  const tr = xx + yy, det = xx * yy - xy * xy;
+  const l1 = tr / 2 + Math.sqrt(Math.max(0, tr * tr / 4 - det)), l2 = Math.max(1e-6, tr - l1);
+  const angle = 0.5 * Math.atan2(2 * xy, xx - yy); // 0=横, ±π/2=縦
+  // 端から端の長さ（主軸方向の広がり）
+  const ux = Math.cos(angle), uy = Math.sin(angle);
+  let mn = 1e9, mx = -1e9;
+  for (const p of c.px) { const t = (p % w - cx) * ux + (((p / w) | 0) - cy) * uy; mn = Math.min(mn, t); mx = Math.max(mx, t); }
+  return Object.assign(c, { n, cx, cy, angle, span: mx - mn, elong: Math.sqrt(l1 / l2), strength: ss / n });
+}
+
+// 正規化した座標系：人差し指の付け根＝左上、小指の付け根＝右上、手首＝下、親指は左側
+function classify(cands, S) {
+  const horiz = a => Math.abs(Math.cos(a));   // 1=横
+  const vert = a => Math.abs(Math.sin(a));    // 1=縦
+  const near = (v, c, wd) => Math.max(0, 1 - Math.abs(v - c) / wd);
+  const score = {
+    heart: c => near(c.cy / S, 0.30, 0.14) * (0.4 + 0.6 * horiz(c.angle)) * near(c.cx / S, 0.60, 0.40),
+    head:  c => near(c.cy / S, 0.47, 0.13) * (0.4 + 0.6 * horiz(c.angle)) * near(c.cx / S, 0.45, 0.40),
+    life:  c => near(c.cx / S, 0.30, 0.20) * near(c.cy / S, 0.62, 0.30) * (0.3 + 0.7 * vert(c.angle)),
+    fate:  c => near(c.cx / S, 0.55, 0.15) * near(c.cy / S, 0.65, 0.30) * (0.2 + 0.8 * vert(c.angle)),
+  };
+  const pairs = [];
+  for (const k of Object.keys(score)) for (const c of cands) {
+    const want = (k === 'heart' || k === 'head') ? 'h' : 'v';
+    if (c.group && c.group !== want) continue;
+    const s = score[k](c) * Math.min(1, c.span / (S * 0.35)) * c.strength;
+    if (s > 0) pairs.push({ k, c, s });
+  }
+  pairs.sort((a, b) => b.s - a.s);
+  const out = { heart: null, head: null, life: null, fate: null }, used = new Set();
+  for (const { k, c } of pairs) {
+    if (out[k] || used.has(c.id)) continue;
+    out[k] = c; used.add(c.id);
+  }
+  return out;
+}
+
+function palmLines(gray, S, mask, opt = {}) {
+  const r = opt.radius || Math.round(S / 48);          // 線の太さに合わせた範囲
+  const g = new Float32Array(gray.length);
+  for (let i = 0; i < gray.length; i++) g[i] = gray[i];
+  // 1) 照明のむらを取る（大きくぼかした明るさで割る）
+  const lowR = Math.round(S / 10);
+  const low = boxBlur(g, S, S, lowR);
+  for (let i = 0; i < g.length; i++) g[i] = 128 * g[i] / Math.max(8, low[i]);
+  const gs = boxBlur(g, S, S, 1);
+  // 2) ブラックハット：周りより暗い細い溝＝手相の線
+  const closed = rankFilter(rankFilter(gs, S, S, r, true), S, S, r, false);
+  const bh = new Float32Array(g.length);
+  for (let i = 0; i < g.length; i++) bh[i] = mask[i] ? Math.max(0, closed[i] - gs[i]) : 0;
+  const bhs = boxBlur(bh, S, S, 1);
+  const top = percentile(bhs, mask, 0.995) || 1;
+  for (let i = 0; i < bhs.length; i++) bhs[i] = Math.min(1, bhs[i] / top);
+  // 3) ヒステリシスしきい値：強い所を種に、弱い所までつなげる
+  const hi = percentile(bhs, mask, opt.hi || 0.93), lo = percentile(bhs, mask, opt.lo || 0.88);
+  const weak = new Uint8Array(S * S);
+  for (let i = 0; i < weak.length; i++) weak[i] = mask[i] && bhs[i] >= lo ? 1 : 0;
+  // 交差する線（生命線と知能線など）を分けるため、線の向きで「横寄り」「縦寄り」に分ける
+  const ori = orientation(bhs, S, S);
+  const cands = [];
+  for (const group of ['h', 'v']) {
+    const sub = new Uint8Array(S * S);
+    for (let i = 0; i < sub.length; i++) {
+      if (!weak[i]) continue;
+      const a = Math.abs(ori[i]) * 180 / Math.PI;      // 0=横, 90=縦
+      if (group === 'h' ? a <= 55 : a >= 35) sub[i] = 1;   // 斜め(35〜55°)は両方に入れる
+    }
+    const { comps } = components(sub, S, S);
+    for (const c of comps) {
+      let strong = 0;
+      for (const p of c.px) if (bhs[p] >= hi) strong++;
+      if (strong < 4) continue;
+      shapeOf(c, S, bhs);
+      if (c.span < S * 0.10 || c.elong < 2.5) continue;   // 短い・丸いものはシワや毛穴として捨てる
+      c.group = group; c.id = group + c.id;
+      cands.push(c);
+    }
+  }
+  cands.sort((a, b) => b.span * b.strength - a.span * a.strength);
+  const kept = cands.slice(0, 10);
+  const lines = classify(kept, S);
+  // 4) 特徴量（鑑定に使う）
+  const feat = {};
+  for (const k of Object.keys(lines)) {
+    const c = lines[k];
+    feat[k] = c ? { length: +(c.span / S).toFixed(3), strength: +c.strength.toFixed(3), angle: +(c.angle * 180 / Math.PI).toFixed(1) } : null;
+  }
+  // ますかけ線の推定：手のひらを横切る1本の長い横線
+  const longH = kept.filter(c => c.group === 'h' && c.span > S * 0.55 && c.cy > S * 0.25 && c.cy < S * 0.55);
+  feat.masukake = longH.length === 1 && !(lines.heart && lines.head && lines.heart !== lines.head && lines.head.span > S * 0.25);
+  return { map: bhs, cands: kept, lines, feat };
+}
+
+
+// ===== 鑑定ルール：線の特徴 → 区分 → 鑑定文・数字の予言 =====
+// 同じ手なら同じ結果：測った値を少数の区分にまとめ、その区分の組み合わせだけで文章と数字を決める。
+// 日替わりにするのは「今日の運勢」だけ（区分＋日付で決める）。
+
+const READING_TEXT = {
+  life: {
+    len: {
+      long:  ['体力の底が深いタイプ。朝まで飲んでも、次の日ちゃんと動ける人', '長く続けるほど強くなる人。始めたことを最後まで形にできる'],
+      mid:   ['オンとオフの切り替えが上手い人。休むべき時をちゃんと知っている', 'ペース配分の名人。無理をしないのに、結果はしっかり残す'],
+      short: ['短期集中型。ここぞという時の爆発力がすごい', '瞬発力の人。思い立ったら、その日のうちに動ける'],
+    },
+    str: {
+      deep: '線がくっきり濃い＝エネルギーが外に出やすい。周りを元気にする人',
+      thin: '線が細い＝繊細で、よく気がつく。人のちょっとした変化にすぐ気づく',
+    },
+  },
+  head: {
+    len: {
+      long:  ['考えてから動く慎重派。一度決めたらブレない', '頭の中で、何手も先まで計画が組み上がっている人'],
+      mid:   ['考えるのと動くのを、ちょうどよく両立できるバランス型', '理屈と勘を、場面で使い分けられる人'],
+      short: ['直感で正解を引く人。迷う時間がもったいないと思うタイプ', '決断が早い。即決したことほど上手くいく'],
+    },
+    slope: {
+      flat:   '線がまっすぐ＝現実派。お金の計算が得意',
+      gentle: 'ゆるやかに下がる線＝現実とロマンのいいとこ取り',
+      steep:  '大きく下がる線＝想像力が豊か。話を盛るのも上手い',
+    },
+  },
+  heart: {
+    len: {
+      long:  ['情が深く、好きになると一途な人', '愛情表現が大きい。好きな人には全力'],
+      mid:   ['恋愛はじっくり育てるタイプ。焦らないのが強み', '相手のペースに合わせられる、大人の恋愛型'],
+      short: ['恋愛はクール派。でも一度心を開くと甘えん坊', '最初はそっけないのに、仲良くなると別人のように優しい'],
+    },
+    str: {
+      deep: '感情線が濃い＝喜怒哀楽が顔に出る。嘘がつけない',
+      thin: '感情線が細い＝気持ちを内に秘めるタイプ。本音は親しい人にだけ',
+    },
+  },
+  fate: {
+    clear: '運命線がはっきり＝自分の道を自分で決める人',
+    thin:  '運命線がうっすら＝人とのご縁で運が開ける人',
+    none:  '運命線が見えない＝決まった道に縛られない自由人。どこに転がっても楽しめる',
+  },
+  masukake: 'ますかけ線あり（100人に1人）。強運の相と言われる、天下取りの手',
+  ratio: {
+    low:  '薬指が長いタイプ。勝負ごとになると燃える',
+    mid:  '人差し指と薬指がほぼ同じ長さ。どんな場面でも崩れないバランス型',
+    high: '人差し指が長いタイプ。場を仕切るのが上手いリーダー気質',
+  },
+  today: [
+    '今日は聞き役に回るほど運が上がる日',
+    '今日は最初の一言が勝負。先に声をかけた方が得をする',
+    '今日は褒めると褒め返される日。出し惜しみしないこと',
+    '今日は直感が冴える日。迷ったら最初に浮かんだ方',
+    '今日は笑った回数だけ運が貯まる日',
+    '今日は昔の話に縁がある日。懐かしい名前が出たら要チェック',
+    '今日は少しだけ贅沢すると運が回る日',
+    '今日は約束を一つ守るだけで信用が倍になる日',
+    '今日は隣の人がラッキーパーソン',
+    '今日は早めに帰ると、明日いいことがある日',
+  ],
+  colors: ['赤', 'ゴールド', '白', '紺', 'ピンク', 'ミントグリーン', '紫', 'シルバー'],
+  seasons: ['春', '夏', '秋', '冬'],
+};
+
+// 区分のしきい値（実際の手で測ってから調整する）
+const READING_CUTS = {
+  len: [0.40, 0.55],        // 短い / 普通 / 長い（手のひらの幅に対する長さ）
+  str: [0.40, 0.60],        // 細い / 普通 / 濃い
+  slope: [6, 16],           // 知能線の傾き（度）：まっすぐ / ゆるやか / 急
+  ratio: [0.97, 1.00],      // 人差し指÷薬指
+};
+const pick3 = (v, cuts, names) => v < cuts[0] ? names[0] : v < cuts[1] ? names[1] : names[2];
+
+function readingBuckets(m) {   // m: 測った値（複数フレームの中央値）
+  const LEN = ['short', 'mid', 'long'], STR = ['thin', 'mid', 'deep'];
+  const b = {
+    lifeLen:  m.life  ? pick3(m.life.length,  READING_CUTS.len, LEN) : 'mid',
+    lifeStr:  m.life  ? pick3(m.life.strength, READING_CUTS.str, STR) : 'mid',
+    headLen:  m.head  ? pick3(m.head.length,  READING_CUTS.len, LEN) : 'mid',
+    headSlope: m.head ? pick3(Math.max(0, m.head.angle), READING_CUTS.slope, ['flat', 'gentle', 'steep']) : 'gentle',
+    heartLen: m.heart ? pick3(m.heart.length, READING_CUTS.len, LEN) : 'mid',
+    heartStr: m.heart ? pick3(m.heart.strength, READING_CUTS.str, STR) : 'mid',
+    fate:     m.fate  ? (m.fate.strength >= READING_CUTS.str[0] ? 'clear' : 'thin') : 'none',
+    masukake: m.masukake ? 'yes' : 'no',
+    ratio:    pick3(m.ratio, READING_CUTS.ratio, ['low', 'mid', 'high']),
+  };
+  return b;
+}
+
+// 区分の選択肢の数（「◯通り中の1つ」の計算用）
+const READING_DIMS = [
+  ['lifeLen', ['short', 'mid', 'long']], ['lifeStr', ['thin', 'mid', 'deep']],
+  ['headLen', ['short', 'mid', 'long']], ['headSlope', ['flat', 'gentle', 'steep']],
+  ['heartLen', ['short', 'mid', 'long']], ['heartStr', ['thin', 'mid', 'deep']],
+  ['fate', ['none', 'thin', 'clear']], ['masukake', ['no', 'yes']], ['ratio', ['low', 'mid', 'high']],
+];
+
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h >>> 0;
+}
+function rng(seed) {           // 決まった種から決まった乱数列（mulberry32）
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+function makeReading(measured, now = new Date(), fixedBuckets = null) {
+  const T = READING_TEXT, b = fixedBuckets || readingBuckets(measured);
+  const key = READING_DIMS.map(([k]) => b[k]).join('|');
+  const seed = fnv1a(key), r = rng(seed), choose = arr => arr[Math.floor(r() * arr.length)];
+  // 型の番号（区分の組み合わせを1つの番号に）
+  let index = 0, total = 1;
+  for (const [k, opts] of READING_DIMS) { index = index * opts.length + opts.indexOf(b[k]); total *= opts.length; }
+
+  const rare = [];
+  if (b.masukake === 'yes') rare.push(T.masukake);
+  rare.push(T.ratio[b.ratio] + `（人差し指÷薬指 ${measured.ratio.toFixed(2)}）`);
+
+  const traits = [];
+  traits.push({ line: '生命線', text: choose(T.life.len[b.lifeLen]) + (T.life.str[b.lifeStr] ? '。' + T.life.str[b.lifeStr] : '') });
+  traits.push({ line: '知能線', text: choose(T.head.len[b.headLen]) + '。' + T.head.slope[b.headSlope] });
+  if (b.masukake !== 'yes' || measured.heart)
+    traits.push({ line: '感情線', text: choose(T.heart.len[b.heartLen]) + (T.heart.str[b.heartStr] ? '。' + T.heart.str[b.heartStr] : '') });
+  traits.push({ line: '運命線', text: T.fate[b.fate] });
+
+  // 数字の予言：年は「今年から何年後か」を区分で決める（同じ手なら同じ年）
+  const Y = now.getFullYear();
+  const heartShift = { long: 0, mid: 1, short: 2 }[b.heartLen];
+  const slopeShift = { flat: 0, gentle: 1, steep: 2 }[b.headSlope];
+  const loveYear = Y + 1 + (heartShift + Math.floor(r() * 3)) % 4;
+  const moneyYear = Y + 1 + (slopeShift + Math.floor(r() * 3)) % 4;
+  const prophecy = [
+    `モテ期のピークは ${loveYear}年の${choose(T.seasons)}`,
+    `金運が大きく上がるのは ${moneyYear}年 ${1 + Math.floor(r() * 12)}月`,
+    `あなたを助けてくれる人の誕生月は ${1 + Math.floor(r() * 12)}月`,
+  ];
+
+  // 今日の運勢：区分＋日付で決める（毎日変わる）
+  const day = `${Y}-${now.getMonth() + 1}-${now.getDate()}`;
+  const rd = rng(fnv1a(key + '#' + day));
+  const today = {
+    text: T.today[Math.floor(rd() * T.today.length)],
+    number: 1 + Math.floor(rd() * 9),
+    color: T.colors[Math.floor(rd() * T.colors.length)],
+  };
+
+  return { buckets: b, key, seed, no: index + 1, total, rare, traits, prophecy, today };
+}
+
+// 複数回測った値の中央値（撮るたびのブレを減らす）
+function medianMeasure(list) {
+  const med = a => { const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+  const out = {};
+  for (const k of ['life', 'head', 'heart', 'fate']) {
+    const got = list.map(m => m[k]).filter(Boolean);
+    out[k] = got.length * 2 > list.length   // 半分より多い回で見つかった線だけ「ある」とする
+      ? { length: med(got.map(g => g.length)), strength: med(got.map(g => g.strength)), angle: med(got.map(g => g.angle || 0)) }
+      : null;
+  }
+  out.masukake = list.filter(m => m.masukake).length * 2 > list.length;
+  out.ratio = med(list.map(m => m.ratio));
+  return out;
+}
+
+// ===== 同じ手を覚えておく（測った数値だけ。写真は残さない） =====
+// 区分の境目付近の手は、撮るたびに区分が入れ替わることがある。
+// そこで端末の中に「数値と区分」を覚え、近い数値の手が来たら前回と同じ区分を使う。
+const MATCH_TOL = 0.07;
+function handVector(m) {
+  const L = k => m[k] ? [m[k].length, m[k].strength] : [-1, -1];
+  return [...L('life'), ...L('head'), m.head ? m.head.angle / 60 : -1, ...L('heart'), m.fate ? m.fate.strength : -1, m.ratio * 5, m.masukake ? 1 : 0];
+}
+function findSameHand(store, vec) {
+  let best = null, bestD = Infinity;
+  for (const e of store) {
+    let d = 0;
+    for (let i = 0; i < vec.length; i++) {
+      if ((vec[i] < 0) !== (e.vec[i] < 0)) { d = Infinity; break; }   // 線のある・なしが違えば別人
+      d = Math.max(d, Math.abs(vec[i] - e.vec[i]));
+    }
+    if (d < bestD) { bestD = d; best = e; }
+  }
+  return bestD <= MATCH_TOL ? best : null;
+}
+function readingWithMemory(measured, store, now = new Date()) {
+  const vec = handVector(measured);
+  const hit = findSameHand(store, vec);
+  if (hit) { hit.n = (hit.n || 1) + 1; hit.t = now.getTime(); return { reading: makeReading(measured, now, hit.buckets), again: hit.n }; }
+  const reading = makeReading(measured, now);
+  store.push({ vec, buckets: reading.buckets, t: now.getTime(), n: 1 });
+  store.sort((a, b) => b.t - a.t); store.length = Math.min(store.length, 300);   // 新しい300人分まで
+  return { reading, again: 1 };
+}
+
+
+</script>
+<script type="module">
+import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+const S = 256;                       // 正規化した手のひら画像の大きさ
+const LINE_INFO = [                  // 光らせる順番（シーン表どおり）
+  { key:'life',  name:'生命線', color:'#ffc83c' },
+  { key:'head',  name:'知能線', color:'#4fd2ff' },
+  { key:'heart', name:'感情線', color:'#ff5a8a' },
+  { key:'fate',  name:'運命線', color:'#8cff78' },
+];
+const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+
+const $ = id => document.getElementById(id);
+const video = $('video'), view = $('view'), vctx = view.getContext('2d');
+let videoLM = null, imageLM = null, stream = null, track = null, lastHand = null, steady = 0, live = false, torchOn = false;
+let lastResult = null;
+
+async function loadModels() {
+  const fs = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+  const base = { modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task" };
+  const mk = mode => HandLandmarker.createFromOptions(fs, { baseOptions:{ ...base, delegate:"GPU" }, runningMode:mode, numHands:1 })
+    .catch(() => HandLandmarker.createFromOptions(fs, { baseOptions:base, runningMode:mode, numHands:1 }));
+  [videoLM, imageLM] = await Promise.all([mk("VIDEO"), mk("IMAGE")]);
+}
+const ready = loadModels().then(() => { $('status').textContent = '「カメラ開始」か「写真から」を押してください'; })
+  .catch(e => { $('status').textContent = 'AIの読み込みに失敗：' + e.message; });
+
+// ---------- カメラ ----------
+$('btnCam').onclick = async () => {
+  await ready;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:960 } }, audio:false });
+  } catch (e) { $('status').textContent = 'カメラが使えません：' + e.message; return; }
+  video.srcObject = stream; await video.play();
+  track = stream.getVideoTracks()[0];
+  const caps = track.getCapabilities ? track.getCapabilities() : {};
+  $('btnTorch').disabled = !caps.torch;
+  if (!caps.torch) $('btnTorch').textContent = 'ライト（この端末は不可）';
+  $('btnCam').disabled = true; live = true; showResult(false);
+  requestAnimationFrame(loop);
+};
+$('btnTorch').onclick = async () => {
+  torchOn = !torchOn;
+  try { await track.applyConstraints({ advanced:[{ torch:torchOn }] }); } catch (e) { torchOn = false; }
+  $('btnTorch').classList.toggle('main', torchOn);
+};
+
+function fitCover(cw, ch, iw, ih) {   // 画面いっぱいに映すための位置
+  const s = Math.max(cw / iw, ch / ih);
+  return { s, ox:(cw - iw * s) / 2, oy:(ch - ih * s) / 2 };
+}
+
+function loop() {
+  if (!live) return;
+  const r = view.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  view.width = r.width * dpr; view.height = r.height * dpr;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (vw) {
+    const f = fitCover(view.width, view.height, vw, vh);
+    vctx.globalAlpha = 0.55; vctx.drawImage(video, f.ox, f.oy, vw * f.s, vh * f.s); vctx.globalAlpha = 1;
+    const res = videoLM.detectForVideo(video, performance.now());
+    const lm = res.landmarks && res.landmarks[0];
+    if (lm) {
+      const pts = lm.map(p => [f.ox + p.x * vw * f.s, f.oy + p.y * vh * f.s]);
+      drawSkeleton(vctx, pts, dpr);
+      const size = Math.hypot(pts[0][0] - pts[9][0], pts[0][1] - pts[9][1]) / Math.min(view.width, view.height);
+      lastHand = lm;
+      if (size < 0.22) { steady = 0; $('status').textContent = 'もう少し近づけて'; }
+      else { steady++; $('status').textContent = steady > 20 ? 'OK「読み取る」を押してください' : 'そのまま…'; }
+    } else { lastHand = null; steady = 0; $('status').textContent = '手のひらを映してください（指を上に）'; }
+    $('btnShot').disabled = !(lastHand && steady > 20);
+  }
+  requestAnimationFrame(loop);
+}
+
+function drawSkeleton(ctx, pts, dpr) {
+  ctx.save();
+  ctx.strokeStyle = '#3ff2ff'; ctx.lineWidth = 2 * dpr; ctx.shadowColor = '#3ff2ff'; ctx.shadowBlur = 10 * dpr;
+  for (const [a, b] of BONES) { ctx.beginPath(); ctx.moveTo(...pts[a]); ctx.lineTo(...pts[b]); ctx.stroke(); }
+  ctx.fillStyle = '#e8ffff';
+  for (const p of pts) { ctx.beginPath(); ctx.arc(p[0], p[1], 3.5 * dpr, 0, 7); ctx.fill(); }
+  ctx.restore();
+}
+
+$('btnShot').onclick = async () => {
+  $('btnShot').disabled = true;
+  const frames = [];
+  for (let i = 0; i < 5; i++) {      // 約1秒で5回測り、ブレを中央値でならす
+    $('status').textContent = `計測中… ${i + 1}/5`;
+    const c = document.createElement('canvas');
+    c.width = video.videoWidth; c.height = video.videoHeight;
+    c.getContext('2d').drawImage(video, 0, 0);
+    frames.push(measure(c));
+    await sleep(120);
+  }
+  runReading(frames);
+};
+
+$('file').onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  await ready;
+  const img = new Image(); img.src = URL.createObjectURL(file); await img.decode();
+  const c = document.createElement('canvas');
+  const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  URL.revokeObjectURL(img.src); e.target.value = '';
+  $('status').textContent = '解析中…';
+  await sleep(30);
+  runReading([measure(c)]);
+};
+
+// ---------- 解析 ----------
+function solveAffine(src, dst) {     // 3点の対応から 変換行列[a,b,c,d,e,f] を求める
+  const [[x1,y1],[x2,y2],[x3,y3]] = src, det = x1*(y2-y3) - y1*(x2-x3) + (x2*y3 - x3*y2);
+  const sol = (u1,u2,u3) => [
+    (u1*(y2-y3) - y1*(u2-u3) + (u2*y3 - u3*y2)) / det,
+    (x1*(u2-u3) - u1*(x2-x3) + (x2*u3 - x3*u2)) / det,
+    (x1*(y2*u3-y3*u2) - y1*(x2*u3-x3*u2) + u1*(x2*y3-x3*y2)) / det ];
+  const [a, c, e] = sol(dst[0][0], dst[1][0], dst[2][0]);
+  const [b, d, f] = sol(dst[0][1], dst[1][1], dst[2][1]);
+  return [a, b, c, d, e, f];
+}
+const apply = (m, [x, y]) => [m[0]*x + m[2]*y + m[4], m[1]*x + m[3]*y + m[5]];
+
+function hull(pts) {
+  const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length > 1 && cr(lo[lo.length-2], lo[lo.length-1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of p.reverse()) { while (up.length > 1 && cr(up[up.length-2], up[up.length-1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+
+function fingerRatio(lm, w, h) {     // 人差し指 ÷ 薬指（付け根の関節から指先まで）
+  const len = ids => ids.slice(1).reduce((s, id, i) => s + Math.hypot((lm[id].x - lm[ids[i]].x) * w, (lm[id].y - lm[ids[i]].y) * h), 0);
+  return len([5,6,7,8]) / len([13,14,15,16]);
+}
+
+function measure(canvas) {          // 1枚の画像から線を測る（表示はしない）
+  const res = imageLM.detect(canvas);
+  const lm = res.landmarks && res.landmarks[0];
+  if (!lm) return null;
+  const W = canvas.width, H = canvas.height, P = i => [lm[i].x * W, lm[i].y * H];
+  // 人差し指の付け根→左上、小指の付け根→右上、手首→下 に合わせる（右手でも左手でも親指が左に来る）
+  const m = solveAffine([P(5), P(17), P(0)], [[0.25*S, 0.10*S], [0.86*S, 0.16*S], [0.52*S, 0.97*S]]);
+  const pc = document.createElement('canvas'); pc.width = pc.height = S;
+  const pctx = pc.getContext('2d', { willReadFrequently:true });
+  pctx.fillStyle = '#000'; pctx.fillRect(0, 0, S, S);
+  pctx.setTransform(...m); pctx.drawImage(canvas, 0, 0); pctx.setTransform(1, 0, 0, 1, 0, 0);
+  const rgba = pctx.getImageData(0, 0, S, S).data;
+  const gray = new Uint8Array(S * S);
+  for (let i = 0; i < gray.length; i++) gray[i] = Math.round(0.25 * rgba[i*4] + 0.6 * rgba[i*4+1] + 0.15 * rgba[i*4+2]);
+  // 手のひらの範囲（付け根・親指の付け根・手首を囲み、少し内側に縮める）
+  let poly = hull([0,1,2,5,9,13,17].map(i => apply(m, P(i))).concat([[0.95*S, 0.55*S], [0.30*S, 0.98*S], [0.80*S, 0.96*S]]));
+  const cx = poly.reduce((s, p) => s + p[0], 0) / poly.length, cy = poly.reduce((s, p) => s + p[1], 0) / poly.length;
+  poly = poly.map(([x, y]) => [cx + (x - cx) * 0.95, cy + (y - cy) * 0.95]);
+  const mask = polygonMask(poly, S);
+  const t0 = performance.now();
+  const out = palmLines(gray, S, mask);
+  out.ms = Math.round(performance.now() - t0);
+  out.ratio = fingerRatio(lm, W, H);
+  out.photo = pc; out.poly = poly;
+  return out;
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function loadStore() { try { return JSON.parse(localStorage.getItem('palm-hands') || '[]'); } catch (e) { return []; } }
+function saveStore(st) { try { localStorage.setItem('palm-hands', JSON.stringify(st)); } catch (e) {} }
+
+async function runReading(frames) {  // frames: 測った結果の配列（1〜5回分）
+  const ok = frames.filter(Boolean);
+  if (!ok.length) { $('status').textContent = '手が見つかりませんでした。指を上にして、手のひら全体を映してください'; return; }
+  const meas = medianMeasure(ok.map(o => ({ ...o.feat, ratio:o.ratio })));
+  // 表示に使うのは、中央値にいちばん近い回
+  const dist = o => ['life','head','heart','fate'].reduce((d, k) => d + (o.feat[k] && meas[k] ? Math.abs(o.feat[k].length - meas[k].length) : (!!o.feat[k] !== !!meas[k]) * 1), 0);
+  const shown = ok.slice().sort((a, b) => dist(a) - dist(b))[0];
+  const store = loadStore();
+  const { reading, again } = readingWithMemory(meas, store);
+  saveStore(store);
+  lastResult = { ...shown, meas, reading, again, frames:ok.length };
+  live = false;
+  $('status').textContent = '';
+  showResult(true);
+  renderTable(lastResult);
+  await animate(lastResult);
+  $('btnCert').disabled = false;
+}
+
+// ---------- 結果の表示 ----------
+function showResult(on) { $('result').style.display = on ? 'block' : 'none'; if (on) $('result').scrollIntoView({ behavior:'smooth' }); }
+
+function level(v, cuts, words) { return words[cuts.findIndex(c => v < c) < 0 ? words.length - 1 : cuts.findIndex(c => v < c)]; }
+
+function renderTable(o) {
+  const rows = LINE_INFO.map(({ key, name, color }) => {
+    const f = o.meas[key];
+    const txt = f ? `長さ ${f.length}／濃さ ${f.strength}／角度 ${f.angle}°` : '見つからず';
+    return `<tr><td><span class="dot" style="background:${color}"></span>${name}</td><td>${txt}</td></tr>`;
+  });
+  rows.push(`<tr><td>ますかけ線（推定）</td><td>${o.meas.masukake ? 'あり' : 'なし'}</td></tr>`);
+  rows.push(`<tr><td>人差し指÷薬指</td><td>${o.meas.ratio.toFixed(3)}</td></tr>`);
+  rows.push(`<tr><td>線の候補数／処理時間</td><td>${o.cands.length}本／${o.ms}ms（${o.frames}回測定）</td></tr>`);
+  rows.push(`<tr><td>区分</td><td style="font-size:11px">${o.reading.key}</td></tr>`);
+  $('table').innerHTML = rows.join('');
+}
+
+function animate(o) {
+  const c = $('palm'), ctx = c.getContext('2d'), k = c.width / S;
+  // 下地：手のひら写真を暗くして青みに
+  const base = document.createElement('canvas'); base.width = base.height = S;
+  const b = base.getContext('2d'); b.drawImage(o.photo, 0, 0);
+  const id = b.getImageData(0, 0, S, S);
+  for (let i = 0; i < id.data.length; i += 4) { const g = 0.25*id.data[i] + 0.6*id.data[i+1] + 0.15*id.data[i+2]; id.data[i] = g*0.18; id.data[i+1] = g*0.32; id.data[i+2] = g*0.40; }
+  b.putImageData(id, 0, 0);
+  // 線ごとに、端から順に点が並ぶようにしておく
+  const seq = LINE_INFO.filter(l => o.lines[l.key]).map(l => {
+    const cmp = o.lines[l.key], ux = Math.cos(cmp.angle), uy = Math.sin(cmp.angle);
+    const px = cmp.px.slice().sort((p, q) => ((p % S) * ux + ((p / S) | 0) * uy) - ((q % S) * ux + ((q / S) | 0) * uy));
+    return { ...l, px };
+  });
+  const layer = document.createElement('canvas'); layer.width = layer.height = S;
+  const lc = layer.getContext('2d');
+  const per = 900, gap = 250, start = performance.now();
+  function frame(now) {
+    const t = now - start;
+    ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none';
+    ctx.drawImage(base, 0, 0, c.width, c.height);
+    lc.clearRect(0, 0, S, S);
+    seq.forEach((l, i) => {
+      const p = Math.max(0, Math.min(1, (t - i * (per + gap)) / per));
+      const n = Math.floor(l.px.length * p);
+      lc.fillStyle = l.color;
+      for (let j = 0; j < n; j++) { const q = l.px[j]; lc.fillRect(q % S, (q / S) | 0, 1, 1); }
+    });
+    ctx.imageSmoothingEnabled = true;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.filter = `blur(${6 * k / 2}px)`; ctx.drawImage(layer, 0, 0, c.width, c.height); ctx.drawImage(layer, 0, 0, c.width, c.height);
+    ctx.filter = 'none'; ctx.drawImage(layer, 0, 0, c.width, c.height);
+    if (t < seq.length * (per + gap)) requestAnimationFrame(frame); else done();
+  }
+  let done; const fin = new Promise(r => done = r);
+  requestAnimationFrame(frame);
+  // 途中経過（線の強さマップ）
+  const d = $('debug').getContext('2d'), im = d.createImageData(S, S);
+  for (let i = 0; i < S * S; i++) { const v = Math.round(o.map[i] * 255); im.data[i*4] = im.data[i*4+1] = im.data[i*4+2] = v; im.data[i*4+3] = 255; }
+  d.putImageData(im, 0, 0);
+  return fin;
+}
+
+$('btnReplay').onclick = () => lastResult && animate(lastResult);
+$('btnCert').onclick = () => { renderCert(lastResult); $('result').style.display = 'none'; $('cert').style.display = 'block'; window.scrollTo({ top:$('cert').offsetTop }); };
+$('btnCertBack').onclick = () => { $('cert').style.display = 'none'; showResult(true); };
+
+const esc = t => String(t).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[c]);
+// 数字を大きく見せる
+const bigNum = t => esc(t).replace(/(\d{4}年|\d{1,2}月|の[春夏秋冬])/g, '<em>$1</em>');
+
+function renderCert(o) {
+  const r = o.reading;
+  $('cNo').textContent = '鑑定番号 ' + r.seed.toString(16).toUpperCase().padStart(8, '0') + (o.again > 1 ? `　（${o.again}回目の鑑定・前回と同じ手）` : '');
+  $('cType').innerHTML = `あなたの手相の型は <b>${r.total.toLocaleString()}</b> 通り中の <b>No.${r.no.toLocaleString()}</b>`;
+  $('cRare').innerHTML = '<ul>' + r.rare.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>';
+  $('cTraits').innerHTML = r.traits.map(t => `<p><span class="ln">${t.line}</span>${esc(t.text)}</p>`).join('');
+  $('cProphecy').innerHTML = r.prophecy.map(t => `<p class="big">${bigNum(t)}</p>`).join('');
+  $('cToday').innerHTML = `<p>${esc(r.today.text)}</p><p>ラッキーナンバー ${r.today.number}　ラッキーカラー ${esc(r.today.color)}</p>`;
+  // 白地に、本人の手の線を光らせて描く
+  const c = $('cHand'), ctx = c.getContext('2d'), k = c.width / S;
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.strokeStyle = '#cfc6b4'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 5]);
+  ctx.beginPath(); o.poly.forEach(([x, y], i) => i ? ctx.lineTo(x * k, y * k) : ctx.moveTo(x * k, y * k)); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+  const layer = document.createElement('canvas'); layer.width = layer.height = S;
+  const lc = layer.getContext('2d');
+  for (const l of LINE_INFO) {
+    const cmp = o.lines[l.key]; if (!cmp) continue;
+    lc.fillStyle = l.color;
+    for (const p of cmp.px) lc.fillRect(p % S, (p / S) | 0, 1, 1);
+  }
+  ctx.save(); ctx.filter = `blur(${5 * k / 2}px)`; ctx.globalAlpha = 0.9; ctx.drawImage(layer, 0, 0, c.width, c.height); ctx.drawImage(layer, 0, 0, c.width, c.height); ctx.restore();
+  ctx.drawImage(layer, 0, 0, c.width, c.height);
+}
+$('btnDebug').onclick = () => { const d = $('debug'); d.style.display = d.style.display === 'block' ? 'none' : 'block'; };
+$('btnBack').onclick = () => { showResult(false); if (stream) { live = true; requestAnimationFrame(loop); } window.scrollTo({ top:0, behavior:'smooth' }); };
+</script>
+</body>
+</html>

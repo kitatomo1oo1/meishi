@@ -42,7 +42,6 @@
   .big { font-size:17px; }
   .big em { font-style:normal; font-size:22px; color:#8a2b2b; }
   .c-foot { font-size:10px !important; color:#888; border-top:1px solid #ddd; margin-top:18px !important; padding-top:8px; line-height:1.6 !important; }
-  /* u-home-pad */ header{padding-left:84px}
 </style>
 </head>
 <body>
@@ -236,7 +235,7 @@ function palmTemplates(a, S) {
     life:  D.life.map(sc),
     head:  D.head.map(sc),
     heart: D.heart.map(sc),
-    fate:  [lerp(a[0], a[17], 0.10), add(lerp(a[9], a[13], 0.5), 0, 0.35 * S)],
+    fate:  [lerp(a[0], a[9], 0.06), lerp(a[0], a[9], 0.62)],   // 手首の中央から中指の付け根へ向かう軸
   };
 }
 // 手のひらの範囲（親指そのものは外す）
@@ -411,9 +410,17 @@ function palmLines(gray, S, mask, opt = {}) {
     if (opt.templates) for (const k in opt.templates) T[k] = opt.templates[k].map(([x, y]) => [x * S, y * S]);
     const W = opt.widths ? Object.fromEntries(Object.entries(opt.widths).map(([k, v]) => [k, Array.isArray(v) ? v.map(z => z * S) : v * S])) : { life: 0.08 * S, head: 0.07 * S, heart: 0.07 * S, fate: 0.07 * S };
     const work = Float32Array.from(bhs);              // なぞった線の周りは、次の線の候補から外す
-    const R = Math.max(3, Math.round(S / 64));
+    const workFate = Float32Array.from(bhs);          // 運命線用：生命線とは重なってよい（運命線が生命線から出る手がある）
+    const workSep = Float32Array.from(bhs);           // 運命線用：生命線の周りを広めに外す（生命線のシワの縁を拾わない）
+    const R = Math.max(3, Math.round(S / 64)), R2 = Math.round(R * 2.5);
     for (const k of ['life', 'heart', 'head', 'fate']) {
-      const tr = traceLine(work, ori, S, T[k], W[k], mask);
+      let tr = traceLine(k === 'fate' ? workSep : work, ori, S, T[k], W[k], mask), fromLife = false;
+      if (k === 'fate') {
+        // まず生命線とは別のシワで探す。はっきりした線がなければ、生命線と重なる線を運命線とみなす
+        const alone = tr, shared = traceLine(workFate, ori, S, T[k], W[k], mask);
+        const ok = alone && alone.span >= 0.25 * S && (!shared || alone.strength >= 0.75 * shared.strength);
+        if (opt.fateFromLife && !ok && shared && shared.span >= 0.25 * S) { tr = shared; fromLife = true; }
+      }
       if (!tr || tr.span < 0.12 * S) continue;
       // 表示用に、なぞった道を2画素の太さで塗る
       const px = new Set();
@@ -422,10 +429,14 @@ function palmLines(gray, S, mask, opt = {}) {
         for (let j = 0; j <= n; j++) { const x = Math.round(x0 + (x1 - x0) * j / n), y = Math.round(y0 + (y1 - y0) * j / n);
           for (const [dx, dy] of [[0,0],[1,0],[0,1]]) if (x + dx < S && y + dy < S) px.add((y + dy) * S + x + dx); }
       }
-      for (const [x, y] of tr.route) for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
-        const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < S && yy < S && dx * dx + dy * dy <= R * R) work[yy * S + xx] = 0;
+      const Rk = k === 'life' ? R2 : R;
+      for (const [x, y] of tr.route) for (let dy = -Rk; dy <= Rk; dy++) for (let dx = -Rk; dx <= Rk; dx++) {
+        const xx0 = x + dx, yy0 = y + dy;
+        if (xx0 >= 0 && yy0 >= 0 && xx0 < S && yy0 < S && dx * dx + dy * dy <= Rk * Rk) workSep[yy0 * S + xx0] = 0;
+        if (Math.abs(dx) > R || Math.abs(dy) > R) continue;
+        const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < S && yy < S && dx * dx + dy * dy <= R * R) { work[yy * S + xx] = 0; if (k !== 'life') workFate[yy * S + xx] = 0; }
       }
-      const c = { id: k, px: [...px], route: tr.route };
+      const c = { id: k, px: [...px], route: tr.route, fromLife };
       shapeOf(c, S, null, tr.strength);
       c.span = tr.span;
       c.ratio = tr.span / samplePath(T[k], 10).total;   // 道筋に対してどれだけ伸びているか
@@ -449,6 +460,12 @@ function palmLines(gray, S, mask, opt = {}) {
   }
   // ますかけ線の推定：手のひらを横切る1本の長い横線
   // ますかけ線：知能線と感情線の道筋をまたいで、1本の長い横線が手のひらを横切る
+  // 運命線が生命線から出ているか：運命線の道のうち、生命線のすぐ近く（3画素以内）を通る割合
+  if (lines.fate && lines.life && feat.fate) {
+    const near = lines.fate.route.filter(([x, y]) => lines.life.route.some(([u, v]) => (x - u) ** 2 + (y - v) ** 2 <= 9)).length;
+    feat.fate.withLife = +(near / lines.fate.route.length).toFixed(2);
+    feat.fate.fromLife = !!lines.fate.fromLife;
+  }
   const longH = kept.filter(c => c.group === 'h' && c.span > S * 0.50 && c.elong > 8);
   feat.masukake = longH.length >= 1 && !lines.heart && !!lines.head;
   return { map: bhs, cands: kept, lines, feat };
@@ -526,7 +543,7 @@ const READING_CUTS = {
   len: { life: [0.97, 1.04], head: [0.85, 0.94], heart: [0.79, 0.83] },   // 短い / 普通 / 長い（道筋に対して伸びている割合）
   str: { life: [0.47, 0.60], head: [0.51, 0.58], heart: [0.60, 0.73] },   // 細い / 普通 / 濃い
   slope: [2.1, 4.0],                                                       // 知能線の傾き（道筋との差・度）
-  fateClear: 0.39,                                                         // 運命線「はっきり」の濃さ
+  fateClear: 0.36,                                                         // 運命線「はっきり」の濃さ
   ratio: [0.97, 1.00],                                                     // 人差し指÷薬指
 };
 const pick3 = (v, cuts, names) => v < cuts[0] ? names[0] : v < cuts[1] ? names[1] : names[2];
@@ -825,8 +842,8 @@ function measure(canvas) {          // 1枚の画像から線を測る（表示�
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-function loadStore() { try { return JSON.parse(localStorage.getItem('palm-hands-v5') || '[]'); } catch (e) { return []; } }
-function saveStore(st) { try { localStorage.setItem('palm-hands-v5', JSON.stringify(st)); } catch (e) {} }
+function loadStore() { try { return JSON.parse(localStorage.getItem('palm-hands-v6') || '[]'); } catch (e) { return []; } }
+function saveStore(st) { try { localStorage.setItem('palm-hands-v6', JSON.stringify(st)); } catch (e) {} }
 
 async function runReading(frames) {  // frames: 測った結果の配列（1〜5回分）
   const out = frames.filter(f => f && f.outOfFrame);
@@ -947,6 +964,5 @@ function renderCert(o) {
 $('btnDebug').onclick = () => { const d = $('debug'); d.style.display = d.style.display === 'block' ? 'none' : 'block'; };
 $('btnBack').onclick = () => { showResult(false); if (stream) { live = true; requestAnimationFrame(loop); } window.scrollTo({ top:0, behavior:'smooth' }); };
 </script>
-<script src="../lib/nav.js"></script>
 </body>
 </html>

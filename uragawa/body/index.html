@@ -3,113 +3,200 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ボディチェック 試作｜顔の読み取り</title>
+<title>ボディチェック 試作｜ウラガワ</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#05070a;color:#cfefff;font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
-#stage{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:background .3s}
-#stage.light{background:#fff;color:#123}
-#wrap{position:relative;width:min(88vw,58vh);aspect-ratio:3/4;border-radius:22px;overflow:hidden;background:#000;box-shadow:0 0 40px rgba(60,240,255,.15)}
+button{font:inherit;cursor:pointer}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center}
+.screen.on{display:flex}
+h1{font-size:13px;font-weight:400;letter-spacing:.5em;color:rgba(207,239,255,.55)}
+.big{font-size:26px;line-height:1.5;letter-spacing:.04em}
+.sub{font-size:13px;color:rgba(207,239,255,.6);line-height:1.7}
+.btn{font-size:16px;padding:14px 26px;border-radius:999px;border:1px solid #3cf0ff;background:transparent;color:#3cf0ff;letter-spacing:.06em;min-width:200px}
+.btn.main{background:#3cf0ff;color:#05070a;font-weight:600}
+.btn:disabled{opacity:.3}
+.grid{display:grid;grid-template-columns:repeat(var(--c,3),1fr);gap:10px;width:min(90vw,380px)}
+.chip{padding:16px 0;border-radius:14px;border:1px solid rgba(60,240,255,.4);background:transparent;color:#cfefff;font-size:18px}
+.chip.wide{font-size:16px;padding:18px 10px;text-align:left;display:flex;justify-content:space-between;align-items:center}
+.chip small{font-size:11px;color:rgba(207,239,255,.5)}
+.chip:disabled{opacity:.3}
+.who{font-size:44px;letter-spacing:.1em;color:#3cf0ff;text-shadow:0 0 18px rgba(60,240,255,.5)}
+
+/* 計測 */
+#measure.light{background:#fff;color:#123}
+#wrap{position:relative;width:min(84vw,52vh);aspect-ratio:3/4;border-radius:22px;overflow:hidden;background:#000;box-shadow:0 0 40px rgba(60,240,255,.15)}
+#measure.light #wrap{width:min(62vw,40vh)}
 video,#mesh{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
 video{opacity:.35}
-#status{font-size:14px;letter-spacing:.08em;min-height:1.4em;text-align:center}
-#bar{width:min(88vw,58vh);height:4px;background:rgba(60,240,255,.15);border-radius:2px;overflow:hidden}
+#bar{width:min(84vw,52vh);height:4px;background:rgba(60,240,255,.15);border-radius:2px;overflow:hidden}
 #bar i{display:block;height:100%;width:0;background:#3cf0ff;box-shadow:0 0 10px #3cf0ff}
+#mStatus{font-size:14px;letter-spacing:.06em;min-height:1.4em}
 .row{display:flex;gap:10px}
-button{font:inherit;font-size:15px;padding:12px 22px;border-radius:999px;border:1px solid #3cf0ff;background:transparent;color:#3cf0ff;letter-spacing:.06em}
-button.main{background:#3cf0ff;color:#05070a;font-weight:600}
-button:disabled{opacity:.35}
-#stage.light button{border-color:#0a6b78;color:#0a6b78}
-#stage.light button.main{background:#0a6b78;color:#fff}
-#debug{font:11px/1.5 ui-monospace,Menlo,monospace;color:rgba(207,239,255,.6);text-align:center;min-height:3em}
-#stage.light #debug{color:#567}
-#result{position:fixed;inset:0;background:#fff;color:#111;display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif}
-#result.show{display:flex}
-#result h2{font-weight:400;font-size:15px;letter-spacing:.4em;border-bottom:1px solid #111;padding-bottom:8px;margin-bottom:28px}
-#result .label{font-size:20px;letter-spacing:.3em}
-#result .score{font-size:min(34vw,160px);line-height:1;margin:6px 0 26px;font-feature-settings:"palt"}
-#result .note{font-size:15px;margin-bottom:18px;min-height:1.2em}
-#result table{border-collapse:collapse;font-size:13px;margin-bottom:22px}
-#result td{padding:5px 12px;border-bottom:1px solid #ddd}
-#result td:last-child{text-align:right;font-family:ui-monospace,Menlo,monospace}
-#result small{font-size:11px;color:#666;text-align:center;line-height:1.7;margin-bottom:22px;font-family:-apple-system,sans-serif}
-#result button{border-color:#111;color:#111;font-family:-apple-system,sans-serif}
+#measure.light .btn{border-color:#0a6b78;color:#0a6b78}
+#measure.light .btn.main{background:#0a6b78;color:#fff}
+
+/* 発表（鑑定書） */
+#reveal{background:#fff;color:#111;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;justify-content:flex-start;padding-top:max(40px,env(safe-area-inset-top));overflow:auto}
+#reveal h2{font-weight:400;font-size:15px;letter-spacing:.4em;border-bottom:1px solid #111;padding-bottom:8px}
+#rTopic{font-size:14px;letter-spacing:.2em;color:#555}
+#rList{width:min(88vw,380px);display:flex;flex-direction:column-reverse;gap:8px}
+.rank{display:flex;align-items:baseline;justify-content:space-between;padding:10px 4px;border-bottom:1px solid #ddd;opacity:0;transform:translateY(8px);transition:all .5s}
+.rank.show{opacity:1;transform:none}
+.rank .pos{font-size:14px;width:3em;text-align:left}
+.rank .name{flex:1;text-align:left;font-size:18px}
+.rank .val{font-size:28px}
+.rank.first{border-bottom:2px solid #111;padding:18px 4px}
+.rank.first .name{font-size:24px}
+.rank.first .val{font-size:56px;line-height:1}
+.gap{font-size:14px;color:#333;width:100%;text-align:right;margin-top:6px}
+#rNote{font-size:15px;min-height:1.2em}
+#reveal small{font-size:11px;color:#666;line-height:1.7;font-family:-apple-system,sans-serif}
+#reveal .btn{border-color:#111;color:#111;font-family:-apple-system,sans-serif}
+#reveal .btn.main{background:#111;color:#fff}
+#reveal .after{display:none;flex-direction:column;align-items:center;gap:12px}
+#reveal .after.on{display:flex}
+details{font:11px/1.6 ui-monospace,Menlo,monospace;color:#666;width:min(88vw,380px);text-align:left}
+details table{border-collapse:collapse;width:100%;margin-top:6px}
+details td{padding:2px 4px;border-bottom:1px solid #eee}
 </style>
 </head>
 <body>
-<div id="stage">
+
+<!-- 0. 起動 -->
+<section class="screen on" id="boot">
+  <h1>ウ ラ ガ ワ</h1>
+  <div class="big">ボディチェック</div>
+  <div class="sub" id="bootMsg">カメラとAIを準備しています…</div>
+  <button class="btn main" id="bootGo" disabled>はじめる</button>
+</section>
+
+<!-- 1. お題 -->
+<section class="screen" id="topic">
+  <h1>お 題</h1>
+  <div class="grid" style="--c:1" id="topicList"></div>
+</section>
+
+<!-- 2. 人数 -->
+<section class="screen" id="people">
+  <h1>人 数</h1>
+  <div class="big">何人で測る？</div>
+  <div class="grid" id="peopleList"></div>
+</section>
+
+<!-- 3. 指差し -->
+<section class="screen" id="point">
+  <div class="big" id="pointText"></div>
+  <div class="sub">せーので指差して、誰が誰を指したか覚えておいてください</div>
+  <button class="btn main" id="pointGo">測りはじめる</button>
+</section>
+
+<!-- 4. 自己申告 -->
+<section class="screen" id="report">
+  <div class="who" id="repWho"></div>
+  <div class="big" id="repQ"></div>
+  <div class="grid" id="repList"></div>
+</section>
+
+<!-- 5. 計測 -->
+<section class="screen" id="measure">
+  <div class="sub" id="mWho"></div>
   <div id="wrap">
     <video id="video" playsinline muted autoplay></video>
     <canvas id="mesh"></canvas>
   </div>
   <div id="bar"><i></i></div>
-  <div id="status">準備中…</div>
+  <div id="mStatus"></div>
   <div class="row">
-    <button id="light">ライト</button>
-    <button id="start" class="main" disabled>計測スタート</button>
+    <button class="btn" id="lightBtn" style="min-width:0">ライト</button>
+    <button class="btn main" id="mStart">計測スタート</button>
   </div>
-  <div id="debug"></div>
-</div>
+</section>
 
-<div id="result">
+<!-- 6. 発表 -->
+<section class="screen" id="reveal">
   <h2>鑑 定 書</h2>
-  <div class="label">酔い度</div>
-  <div class="score" id="rScore">--</div>
-  <div class="note" id="rNote"></div>
-  <table id="rTable"></table>
-  <small>遊び用の推定です。医療目的ではありません。<br>運転してよいかの判断には使えません。<br>（試作版：数値の出し方は仮）</small>
-  <button id="again">もう1回</button>
-</div>
+  <div id="rTopic"></div>
+  <div id="rList"></div>
+  <div id="rNote"></div>
+  <div class="after" id="rAfter">
+    <button class="btn main" id="again">同じお題でもう1回</button>
+    <button class="btn" id="next">次のお題</button>
+    <small>遊び用の推定です。医療目的ではありません。<br>運転してよいかの判断には使えません。<br>（試作版：数値の出し方は仮）</small>
+    <details><summary>調整用の数値</summary><table id="rawTable"></table></details>
+  </div>
+</section>
 
 <script type="module">
 import { FaceLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 
-const MEASURE_MS = 15000;      // 1人あたりの計測時間（仮）
-const BLINK_TH = 0.5;          // まばたき判定のしきい値
-const CHEEKS = [50, 280];      // 左右の頬
-const FOREHEAD = 151;          // 額（基準）
+const MEASURE_MS = 15000;   // 1人あたりの計測時間（仮）
+const BLINK_TH = 0.5;
+const CHEEKS = [50, 280], FOREHEAD = 151;
+
+// ---------- お題 ----------
+const TOPICS = {
+  drunk: {
+    name: "酔い度", q: "今夜いちばん酔ってるのは誰？", ask: "何杯飲んだ？",
+    opts: ["0","1","2","3","4","5","6","7","8","9","10+"],
+    score: m => 100 * (0.5 * m.sRed + 0.3 * m.sOpen + 0.2 * m.sDur),
+    report: i => `申告 ${i === 10 ? "10杯以上" : i + "杯"}`,
+    measured: s => `測定 ${Math.round(s / 10)}杯相当`,
+    high: "お水を"
+  },
+  sleepy: {
+    name: "眠気度", q: "いちばん眠いのは誰？", ask: "どのくらい眠い？",
+    opts: ["全然","少し","ふつう","かなり","限界"],
+    score: m => 100 * (0.45 * m.sOpen + 0.35 * m.sDur + 0.2 * m.sRate),
+    report: i => `申告「${TOPICS.sleepy.opts[i]}」`,
+    measured: s => `測定「${TOPICS.sleepy.opts[Math.min(4, Math.floor(s / 20))]}」`,
+    high: "今日は早めに寝よう"
+  }
+};
+const SOON = ["疲れ度", "緊張度", "リラックス度"];
 
 const $ = id => document.getElementById(id);
+const show = id => { document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id)); };
+let topic, count, idx, players = [];
+
+// ---------- カメラとAI ----------
 const video = $("video"), mesh = $("mesh"), ctx = mesh.getContext("2d");
 const off = document.createElement("canvas"), offCtx = off.getContext("2d", { willReadFrequently: true });
 let landmarker, draw, lastVideoTime = -1;
-let measuring = false, t0 = 0, frames = [], blinks = [], closedAt = null, lastFace = null;
+let measuring = false, t0 = 0, frames = [], blinks = [], closedAt = null;
 
-// ---------- 起動 ----------
 async function init() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 960 } }, audio: false
-    });
+      video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 960 } }, audio: false });
     video.srcObject = stream;
     await video.play();
   } catch (e) {
-    $("status").textContent = "カメラを使えません（https で開いて、カメラを許可してください）";
+    $("bootMsg").textContent = "カメラを使えません（カメラを許可して、もう一度開いてください）";
     return;
   }
-  $("status").textContent = "AIを読み込み中…";
-  const fileset = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
-  landmarker = await FaceLandmarker.createFromOptions(fileset, {
-    baseOptions: {
-      modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-      delegate: "GPU"
-    },
-    runningMode: "VIDEO",
-    numFaces: 1,
-    outputFaceBlendshapes: true
-  });
+  try {
+    const fileset = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    landmarker = await FaceLandmarker.createFromOptions(fileset, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate: "GPU" },
+      runningMode: "VIDEO", numFaces: 1, outputFaceBlendshapes: true });
+  } catch (e) {
+    $("bootMsg").textContent = "AIの読み込みに失敗しました：" + e.message;
+    return;
+  }
   mesh.width = off.width = video.videoWidth;
   mesh.height = off.height = video.videoHeight;
   draw = new DrawingUtils(ctx);
-  $("status").textContent = "顔を枠に入れてください";
-  $("start").disabled = false;
+  $("bootMsg").textContent = "準備できました";
+  $("bootGo").disabled = false;
   requestAnimationFrame(loop);
 }
 
-// ---------- 毎フレーム ----------
 function loop() {
-  if (video.currentTime !== lastVideoTime) {
+  if (video.currentTime !== lastVideoTime && $("measure").classList.contains("on")) {
     lastVideoTime = video.currentTime;
     const now = performance.now();
     const res = landmarker.detectForVideo(video, now);
@@ -117,14 +204,12 @@ function loop() {
     ctx.clearRect(0, 0, mesh.width, mesh.height);
     if (lm) {
       drawMesh(lm, now);
-      const sample = readFace(lm, res.faceBlendshapes[0], now);
-      lastFace = sample;
-      if (measuring) frames.push(sample);
-      showDebug(sample);
+      const s = readFace(lm, res.faceBlendshapes[0], now);
+      if (measuring) frames.push(s);
+      else $("mStatus").textContent = s.light != null && s.light < 70 ? "暗いので「ライト」を押してください" : "顔を枠に入れてください";
     } else {
-      lastFace = null;
       if (measuring) frames.push(null);
-      $("debug").textContent = "顔が見つかりません";
+      else $("mStatus").textContent = "顔が見つかりません";
     }
     if (measuring) tick(now);
   }
@@ -134,9 +219,10 @@ function loop() {
 function drawMesh(lm, now) {
   const a = measuring ? 0.55 : 0.3;
   draw.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: `rgba(60,240,255,${a})`, lineWidth: 0.6 });
-  for (const c of [FaceLandmarker.FACE_LANDMARKS_LEFT_EYE, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE, FaceLandmarker.FACE_LANDMARKS_FACE_OVAL, FaceLandmarker.FACE_LANDMARKS_LIPS])
+  for (const c of [FaceLandmarker.FACE_LANDMARKS_LEFT_EYE, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
+                   FaceLandmarker.FACE_LANDMARKS_FACE_OVAL, FaceLandmarker.FACE_LANDMARKS_LIPS])
     draw.drawConnectors(lm, c, { color: "#3cf0ff", lineWidth: 1.4 });
-  if (measuring) { // 走査線
+  if (measuring) {
     const y = ((now - t0) / 1500 % 1) * mesh.height;
     const g = ctx.createLinearGradient(0, y - 30, 0, y + 2);
     g.addColorStop(0, "rgba(60,240,255,0)"); g.addColorStop(1, "rgba(60,240,255,.6)");
@@ -144,12 +230,11 @@ function drawMesh(lm, now) {
   }
 }
 
-// ---------- 読み取り ----------
 function patchRGB(p, r) {
   const x = Math.round(p.x * off.width - r), y = Math.round(p.y * off.height - r), s = r * 2;
   if (x < 0 || y < 0 || x + s > off.width || y + s > off.height) return null;
   const d = offCtx.getImageData(x, y, s, s).data;
-  let R = 0, G = 0, B = 0, n = d.length / 4;
+  let R = 0, G = 0, B = 0; const n = d.length / 4;
   for (let i = 0; i < d.length; i += 4) { R += d[i]; G += d[i + 1]; B += d[i + 2]; }
   return { R: R / n, G: G / n, B: B / n };
 }
@@ -161,86 +246,165 @@ function readFace(lm, bs, now) {
   const r = Math.max(4, Math.round(faceW * 0.04));
   const cheeks = CHEEKS.map(i => patchRGB(lm[i], r)).filter(Boolean);
   const fh = patchRGB(lm[FOREHEAD], r);
-  const cheekRed = cheeks.length ? cheeks.reduce((s, c) => s + redIdx(c), 0) / cheeks.length : null;
-  const foreRed = fh ? redIdx(fh) : null;
-  const light = fh ? 0.299 * fh.R + 0.587 * fh.G + 0.114 * fh.B : null;
-
   const cat = n => (bs.categories.find(c => c.categoryName === n) || {}).score || 0;
   const blink = (cat("eyeBlinkLeft") + cat("eyeBlinkRight")) / 2;
-
-  // まばたき（閉じた→開いた で1回）
   if (blink > BLINK_TH && closedAt === null) closedAt = now;
   if (blink <= BLINK_TH && closedAt !== null) {
     const dur = now - closedAt;
     if (measuring && dur > 50 && dur < 2000) blinks.push(dur);
     closedAt = null;
   }
-  return { cheekRed, foreRed, light, blink };
+  return {
+    cheekRed: cheeks.length ? cheeks.reduce((s, c) => s + redIdx(c), 0) / cheeks.length : null,
+    foreRed: fh ? redIdx(fh) : null,
+    light: fh ? 0.299 * fh.R + 0.587 * fh.G + 0.114 * fh.B : null,
+    blink
+  };
 }
 
-function showDebug(s) {
-  const f = v => v == null ? "-" : v.toFixed(3);
-  $("debug").innerHTML =
-    `頬の赤み ${f(s.cheekRed)}　額 ${f(s.foreRed)}　明るさ ${s.light == null ? "-" : s.light.toFixed(0)}<br>` +
-    `目の閉じ ${f(s.blink)}` + (s.light != null && s.light < 70 ? "　<b>暗い：ライトをON</b>" : "");
-}
+const mean = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : null;
+const clamp = v => Math.max(0, Math.min(1, v || 0));
 
-// ---------- 計測 ----------
-function start() {
+function startMeasure() {
   frames = []; blinks = []; closedAt = null;
   measuring = true; t0 = performance.now();
-  $("start").disabled = true;
-  $("status").textContent = "読み取り中… 画面を見たまま動かないで";
+  $("mStart").disabled = true;
+  $("mStatus").textContent = "読み取り中… 画面を見たまま動かないで";
 }
 function tick(now) {
   const p = Math.min(1, (now - t0) / MEASURE_MS);
   $("bar").firstElementChild.style.width = (p * 100) + "%";
-  if (p >= 1) finish();
+  if (p >= 1) finishMeasure();
 }
-
-const mean = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : null;
-const clamp = v => Math.max(0, Math.min(1, v));
-
-function finish() {
+function finishMeasure() {
   measuring = false;
   $("bar").firstElementChild.style.width = "0";
-  $("start").disabled = false;
+  $("mStart").disabled = false;
   const ok = frames.filter(Boolean);
   if (ok.length < frames.length * 0.6) {
-    $("status").textContent = "顔が見えにくかったので、もう一度";
+    $("mStatus").textContent = "顔が見えにくかったので、もう一度";
     return;
   }
-  const cheekRed = mean(ok.map(f => f.cheekRed).filter(v => v != null));
-  const foreRed = mean(ok.map(f => f.foreRed).filter(v => v != null));
-  const light = mean(ok.map(f => f.light).filter(v => v != null));
-  const eyeOpen = 1 - mean(ok.filter(f => f.blink <= BLINK_TH).map(f => f.blink));
-  const blinkDur = mean(blinks);
   const sec = MEASURE_MS / 1000;
-
-  // ---- 酔い度の仮の計算式（実測して調整する）----
-  const sRed = clamp((cheekRed - 0.08) / 0.15);
-  const sOpen = clamp((0.9 - eyeOpen) / 0.35);
-  const sDur = blinkDur == null ? 0 : clamp((blinkDur - 150) / 250);
-  const score = Math.round(100 * (0.5 * sRed + 0.3 * sOpen + 0.2 * sDur));
-
-  $("rScore").textContent = score;
-  $("rNote").textContent = score >= 70 ? "お水を" : "";
-  const rows = [
-    ["頬の赤み", cheekRed?.toFixed(3)],
-    ["額の赤み（基準）", foreRed?.toFixed(3)],
-    ["目の開き", eyeOpen?.toFixed(3)],
-    [`まばたき（${sec}秒）`, blinks.length + "回"],
-    ["まばたきの長さ", blinkDur == null ? "-" : Math.round(blinkDur) + "ms"],
-    ["明るさ", light?.toFixed(0)],
-    ["読み取れた割合", Math.round(ok.length / frames.length * 100) + "%"]
-  ];
-  $("rTable").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v ?? "-"}</td></tr>`).join("");
-  $("result").classList.add("show");
+  const m = {
+    cheekRed: mean(ok.map(f => f.cheekRed).filter(v => v != null)),
+    foreRed: mean(ok.map(f => f.foreRed).filter(v => v != null)),
+    light: mean(ok.map(f => f.light).filter(v => v != null)),
+    eyeOpen: 1 - mean(ok.filter(f => f.blink <= BLINK_TH).map(f => f.blink)),
+    blinkN: blinks.length,
+    blinkDur: mean(blinks),
+    seen: ok.length / frames.length
+  };
+  // 仮の正規化（実測して調整する）
+  m.sRed = clamp((m.cheekRed - 0.08) / 0.15);
+  m.sOpen = clamp((0.9 - m.eyeOpen) / 0.35);
+  m.sDur = m.blinkDur == null ? 0 : clamp((m.blinkDur - 150) / 250);
+  m.sRate = clamp((m.blinkN / sec * 60 - 15) / 20);   // 1分あたり15回を基準
+  players[idx].raw = m;
+  players[idx].score = Math.round(TOPICS[topic].score(m));
+  idx++;
+  if (idx < count) askReport(); else reveal();
 }
 
-$("start").onclick = start;
-$("again").onclick = () => { $("result").classList.remove("show"); $("status").textContent = "顔を枠に入れてください"; };
-$("light").onclick = () => $("stage").classList.toggle("light");
+// ---------- 画面の流れ ----------
+function topicScreen() {
+  const list = $("topicList");
+  list.innerHTML = "";
+  for (const [k, t] of Object.entries(TOPICS)) {
+    const b = document.createElement("button");
+    b.className = "chip wide";
+    b.innerHTML = `<span>${t.q}</span><small>${t.name}</small>`;
+    b.onclick = () => { topic = k; peopleScreen(); };
+    list.appendChild(b);
+  }
+  for (const n of SOON) {
+    const b = document.createElement("button");
+    b.className = "chip wide"; b.disabled = true;
+    b.innerHTML = `<span>${n}</span><small>準備中</small>`;
+    list.appendChild(b);
+  }
+  show("topic");
+}
+function peopleScreen() {
+  const list = $("peopleList");
+  list.innerHTML = "";
+  for (let n = 2; n <= 6; n++) {
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = n + "人";
+    b.onclick = () => { count = n; pointScreen(); };
+    list.appendChild(b);
+  }
+  show("people");
+}
+function pointScreen() {
+  $("pointText").textContent = "せーので、" + TOPICS[topic].q.replace("のは誰？", "人を") + "指差して！";
+  show("point");
+}
+function beginRound() {
+  players = Array.from({ length: count }, (_, i) => ({ name: (i + 1) + "番さん" }));
+  idx = 0;
+  askReport();
+}
+function askReport() {
+  const t = TOPICS[topic];
+  $("repWho").textContent = players[idx].name;
+  $("repQ").textContent = t.ask;
+  const list = $("repList");
+  list.style.setProperty("--c", t.opts.length > 5 ? 4 : 1);
+  list.innerHTML = "";
+  t.opts.forEach((o, i) => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = o;
+    b.onclick = () => { players[idx].report = i; measureScreen(); };
+    list.appendChild(b);
+  });
+  show("report");
+}
+function measureScreen() {
+  $("mWho").textContent = `${players[idx].name}（${idx + 1}/${count}）`;
+  $("mStatus").textContent = "顔を枠に入れてください";
+  show("measure");
+}
+
+function reveal() {
+  const t = TOPICS[topic];
+  $("rTopic").textContent = t.q;
+  $("rNote").textContent = "";
+  $("rAfter").classList.remove("on");
+  const list = $("rList");
+  list.innerHTML = "";
+  // 低い順に出して、1位は最後（column-reverse なので上に積まれる）
+  const sorted = players.map((p, i) => ({ ...p, i })).sort((a, b) => a.score - b.score);
+  const n = sorted.length;
+  sorted.forEach((p, k) => {
+    const pos = n - k;
+    const el = document.createElement("div");
+    el.className = "rank" + (pos === 1 ? " first" : "");
+    el.innerHTML = `<span class="pos">${pos}位</span><span class="name">${p.name}</span><span class="val">${p.score}</span>` +
+      (pos === 1 ? `<div class="gap">${t.report(p.report)} ／ ${t.measured(p.score)}</div>` : "");
+    if (pos === 1) el.style.flexWrap = "wrap";
+    list.appendChild(el);
+    const delay = pos === 1 ? 1200 * (n - 1) + 1800 : 1200 * k + 400;
+    setTimeout(() => {
+      el.classList.add("show");
+      if (pos === 1) {
+        if (p.score >= 70) $("rNote").textContent = t.high;
+        setTimeout(() => $("rAfter").classList.add("on"), 900);
+      }
+    }, delay);
+  });
+  const f = (v, d = 3) => v == null ? "-" : v.toFixed(d);
+  $("rawTable").innerHTML = "<tr><td></td><td>頬赤</td><td>額赤</td><td>目開</td><td>瞬回</td><td>瞬ms</td><td>明</td><td>可視</td></tr>" +
+    players.map(p => { const m = p.raw; return `<tr><td>${p.name}</td><td>${f(m.cheekRed)}</td><td>${f(m.foreRed)}</td><td>${f(m.eyeOpen, 2)}</td><td>${m.blinkN}</td><td>${m.blinkDur == null ? "-" : Math.round(m.blinkDur)}</td><td>${f(m.light, 0)}</td><td>${Math.round(m.seen * 100)}%</td></tr>`; }).join("");
+  show("reveal");
+}
+
+$("bootGo").onclick = topicScreen;
+$("pointGo").onclick = beginRound;
+$("mStart").onclick = startMeasure;
+$("lightBtn").onclick = () => $("measure").classList.toggle("light");
+$("again").onclick = pointScreen;
+$("next").onclick = topicScreen;
 init();
 </script>
 </body>

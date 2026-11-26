@@ -67,7 +67,7 @@
 <body>
 <header>PALM SCAN — 試作</header>
 <div class="bar" id="installBar" style="display:none"><button id="btnInstall" class="main">アプリとして保存</button></div>
-<p class="note" id="iosHint" style="display:none">iPhoneでは、下の共有ボタン →「ホーム画面に追加」でアプリとして保存できます。</p>
+<p class="note" id="installHint" style="display:none"></p>
 <p class="note">手のひらの線を画像処理で浮かび上がらせる試作です。写真は端末の中だけで処理し、保存も送信もしません（最初に手の位置を読むAIのデータだけ読み込みます）。</p>
 
 <div id="stage">
@@ -1989,12 +1989,32 @@ $('btnZukan').onclick = () => { renderZukan(lastResult ? lastResult.reading.rare
 $('btnZukanBack').onclick = () => { $('zukan').style.display = 'none'; $('cert').style.display = 'block'; window.scrollTo({ top:$('cert').offsetTop }); };
 
 // ---------- アプリとして保存（ホーム画面に追加） ----------
+// Chromeが「保存できます」と知らせてきたら、そのまま保存ボタンにする。
+// LINE・Claudeなどのアプリ内ブラウザでは保存できないので、Chromeで開き直すボタンにする。
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 let installEvt = null;
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (!standalone) $('installBar').style.display = 'flex'; });
-$('btnInstall').onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; $('installBar').style.display = 'none'; };
-if (!standalone && /iPhone|iPad/.test(navigator.userAgent)) $('iosHint').style.display = 'block';
+const ua = navigator.userAgent, isAndroid = /Android/.test(ua), isIOS = /iPhone|iPad|iPod/.test(ua);
+const inApp = /; wv\)|Line\/|FBAN|FBAV|Instagram|Claude/i.test(ua) || (isAndroid && !/Chrome\//.test(ua));
+function showInstall(mode) {
+  if (standalone) return;
+  const bar = $('installBar'), btn = $('btnInstall'), hint = $('installHint');
+  bar.style.display = 'flex'; hint.style.display = 'block';
+  if (mode === 'prompt') { btn.style.display = ''; btn.textContent = 'アプリとして保存'; hint.textContent = '押すとホーム画面にアイコンが追加されます。'; }
+  else if (mode === 'chrome') { btn.style.display = ''; btn.textContent = 'Chromeで開く'; hint.textContent = 'この画面（アプリ内のブラウザ）では保存できません。Chromeで開いてから「アプリとして保存」を押してください。'; }
+  else if (mode === 'ios') { btn.style.display = 'none'; hint.textContent = 'Safariの共有ボタン →「ホーム画面に追加」でアプリとして保存できます。'; }
+  else { btn.style.display = 'none'; hint.textContent = 'Chromeの右上の︙メニュー →「ホーム画面に追加」または「アプリをインストール」で保存できます。'; }
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; showInstall('prompt'); });
+$('btnInstall').onclick = async () => {
+  if (installEvt) { installEvt.prompt(); const c = await installEvt.userChoice; installEvt = null; if (c.outcome === 'accepted') $('installBar').style.display = 'none'; return; }
+  // AndroidでChromeを指定して、このページを開き直す
+  location.href = 'intent://' + location.host + location.pathname + '#Intent;scheme=https;package=com.android.chrome;end';
+};
+if (!standalone) setTimeout(() => {   // Chromeからの知らせが来なかった場合の案内
+  if (installEvt) return;
+  showInstall(isIOS ? 'ios' : isAndroid && inApp ? 'chrome' : isAndroid ? 'menu' : 'menu');
+}, isAndroid && inApp ? 0 : 2500);
 
 const esc = t => String(t).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[c]);
 // 数字を大きく見せる

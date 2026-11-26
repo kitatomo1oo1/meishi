@@ -1,5 +1,5 @@
 // ウラガワ手相：ホーム画面のアプリ用。手相ページと手の位置AIのデータをスマホに保存して、次回から速く起動する
-const CACHE = 'uragawa-palm-v1';
+const CACHE = 'uragawa-palm-v2';
 const OWN = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(OWN)).then(() => self.skipWaiting()));

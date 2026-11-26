@@ -1497,9 +1497,21 @@ function fitCover(cw, ch, iw, ih) {   // 画面いっぱいに映すための位
 // 手の21点の標準的な位置（研究コード yeonsumia/palmistry の位置合わせ用の型を使用、親指が左）
 const GUIDE = [[0.518,0.906],[0.396,0.812],[0.324,0.679],[0.266,0.572],[0.210,0.510],[0.434,0.512],[0.402,0.366],[0.386,0.271],[0.380,0.193],
   [0.507,0.498],[0.510,0.321],[0.511,0.213],[0.517,0.129],[0.574,0.518],[0.597,0.358],[0.606,0.262],[0.614,0.178],[0.636,0.564],[0.664,0.447],[0.679,0.375],[0.688,0.303]];
-function guidePoints(W, H, mirror) {
-  const s = 0.80 * H / (0.906 - 0.129), cx = W / 2, top = 0.10 * H;
-  return GUIDE.map(([x, y]) => [cx + (mirror ? -1 : 1) * (x - 0.5) * s, top + (y - 0.129) * s]);
+// 指を少し開いた形にする（付け根を中心に回す。親指・小指ほど大きく開く）
+const GUIDE_OPEN = (() => {
+  const g = GUIDE.map(p => p.slice()), rot = (chain, deg) => {
+    const [cx, cy] = g[chain[0]], r = deg * Math.PI / 180;
+    for (const i of chain.slice(1)) { const x = g[i][0] - cx, y = g[i][1] - cy; g[i] = [cx + x * Math.cos(r) - y * Math.sin(r), cy + x * Math.sin(r) + y * Math.cos(r)]; }
+  };
+  rot([1,2,3,4], -6); rot([5,6,7,8], -8); rot([13,14,15,16], 7); rot([17,18,19,20], 14);
+  return g;
+})();
+function guidePoints(W, H, mirror) {   // 手全体（親指・手首の幅も含む）が画面に収まるように大きさと位置を決める
+  const xs = GUIDE_OPEN.map(p => p[0]), ys = GUIDE_OPEN.map(p => p[1]);
+  const pad = 0.06, x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad, y0 = Math.min(...ys) - pad * 0.5, y1 = Math.max(...ys) + pad * 0.5;
+  const s = Math.min(0.94 * W / (x1 - x0), 0.80 * H / (y1 - y0));
+  const mx = (x0 + x1) / 2, top = (H - (y1 - y0) * s) / 2 + 0.02 * H;
+  return GUIDE_OPEN.map(([x, y]) => [W / 2 + (mirror ? -1 : 1) * (x - mx) * s, top + (y - y0) * s]);
 }
 function drawGuide(ctx, g, state, dpr) {
   const col = state === 'ok' ? '#5dff9a' : state === 'near' ? '#ffd45c' : '#ffffff';
@@ -1509,16 +1521,27 @@ function drawGuide(ctx, g, state, dpr) {
   const off = document.createElement('canvas'); off.width = ctx.canvas.width; off.height = ctx.canvas.height;
   const o = off.getContext('2d'); o.lineCap = 'round'; o.lineJoin = 'round'; o.strokeStyle = o.fillStyle = col;
   const sh = w => { o.lineWidth = w; for (const f of fingers) { o.beginPath(); o.moveTo(...g[f[0]]); for (const i of f.slice(1)) o.lineTo(...g[i]); o.stroke(); }
-    o.beginPath(); [0,1,5,9,13,17].forEach((i, k) => k ? o.lineTo(...g[i]) : o.moveTo(...g[i])); o.closePath(); o.fill(); o.stroke(); };
-  sh(L * 0.27);
-  o.globalCompositeOperation = 'destination-out'; sh(L * 0.27 - 4 * dpr);
+    const u = [(g[17][0] - g[5][0]) * 0.32, (g[17][1] - g[5][1]) * 0.32];          // 手首の幅（付け根の幅の約6割）
+    const wl = [g[0][0] - u[0], g[0][1] - u[1] + L * 0.05], wr = [g[0][0] + u[0], g[0][1] + u[1] + L * 0.05];
+    o.beginPath(); [wl, g[1], g[2], g[5], g[9], g[13], g[17], wr].forEach((p, k) => k ? o.lineTo(...p) : o.moveTo(...p)); o.closePath(); o.fill(); o.stroke(); };
+  sh(L * 0.19);
+  o.globalCompositeOperation = 'destination-out'; sh(L * 0.19 - 4 * dpr);
   ctx.save(); ctx.globalAlpha = state === 'idle' ? 0.8 : 1; ctx.shadowColor = col; ctx.shadowBlur = 12 * dpr; ctx.drawImage(off, 0, 0); ctx.restore();
 }
-function alignment(pts, g) {        // 手（画面座標）とガイドのずれ。手首・中指の付け根の位置と、手の大きさで見る
+function alignment(pts, g) {        // 手（画面座標）とガイドのずれ。手のひらの中心の位置・大きさ・向きで見る
   const L = Math.hypot(g[0][0] - g[9][0], g[0][1] - g[9][1]);
-  const d0 = Math.hypot(pts[0][0] - g[0][0], pts[0][1] - g[0][1]) / L, d9 = Math.hypot(pts[9][0] - g[9][0], pts[9][1] - g[9][1]) / L;
+  const c = p => [(p[0][0] + p[9][0]) / 2, (p[0][1] + p[9][1]) / 2], hc = c(pts), gc = c(g);
+  const dx = (hc[0] - gc[0]) / L, dy = (hc[1] - gc[1]) / L;
   const size = Math.hypot(pts[0][0] - pts[9][0], pts[0][1] - pts[9][1]) / L;
-  return { d: Math.max(d0, d9), size };
+  const tilt = Math.atan2(pts[9][0] - pts[0][0], pts[0][1] - pts[9][1]) * 180 / Math.PI;   // 0＝指がまっすぐ上
+  return { d: Math.hypot(dx, dy), dx, dy, size, tilt };
+}
+function alignHint(al) {            // ずれている内容を具体的に伝える
+  if (al.size < 0.72) return 'もう少し近づけて';
+  if (al.size > 1.35) return '少し離して';
+  if (Math.abs(al.tilt) > 25) return '指をまっすぐ上に向けて';
+  if (al.d >= 0.45) return Math.abs(al.dx) > Math.abs(al.dy) ? (al.dx > 0 ? '手を少し左へ' : '手を少し右へ') : (al.dy > 0 ? '手を少し上へ' : '手を少し下へ');
+  return '指先から手首まで画面に入れてください';
 }
 
 // 撮影の手順：ガイドに合わせて10回撮影 → 手を下ろしてもう一度 → 2回の鑑定を照合（食い違えば3回目）
@@ -1576,8 +1599,9 @@ function loop() {
       const mirror = pts ? pts[4][0] > pts[20][0] : false;          // 親指が右にある手ならガイドも左右反転
       const g = guidePoints(view.width, view.height, mirror);
       const al = pts && alignment(pts, g);
-      const ok = al && al.d < 0.22 && al.size > 0.82 && al.size < 1.2 && lm.every(p => p.x > 0.02 && p.x < 0.98 && p.y > 0.02 && p.y < 0.98);
-      drawGuide(vctx, g, flow.capturing || ok ? 'ok' : al && al.d < 0.5 ? 'near' : 'idle', dpr);
+      const inFrame = lm && lm.every(p => p.x > 0.02 && p.x < 0.98 && p.y > 0.02 && p.y < 0.98);
+      const ok = al && inFrame && al.d < 0.45 && al.size > 0.72 && al.size < 1.35 && Math.abs(al.tilt) <= 25;
+      drawGuide(vctx, g, flow.capturing || ok ? 'ok' : al && al.d < 0.9 && al.size > 0.6 && al.size < 1.6 ? 'near' : 'idle', dpr);
       vctx.save(); vctx.fillStyle = '#fff'; vctx.font = `${14 * dpr}px sans-serif`; vctx.textAlign = 'center';
       vctx.fillText(`STEP ${flow.step} / ${flow.sets.length >= 2 ? 3 : 2}　手のひらを枠に合わせてください`, view.width / 2, 24 * dpr); vctx.restore();
       lastHand = lm;
@@ -1585,8 +1609,7 @@ function loop() {
         if (!ok) flow.needRelease = false;
       } else if (!flow.capturing) {
         if (ok) { steady++; $('status').textContent = 'そのまま…'; if (steady > 15) guidedShot(); }
-        else { steady = 0; $('status').textContent = !lm ? '手のひらを枠に合わせてください（指を上に）'
-          : al.size <= 0.82 ? 'もう少し近づけて' : al.size >= 1.2 ? '少し離して' : '手のひらを枠に合わせてください'; }
+        else { steady = 0; $('status').textContent = !lm ? '手のひらを枠に合わせてください（指を上に）' : alignHint(al); }
       }
       $('btnShot').disabled = !(lm && !flow.capturing);
     } else if (lm) {

@@ -1264,22 +1264,28 @@ function medianMeasure(list) {
 // ===== 同じ手を覚えておく（測った数値だけ。写真は残さない） =====
 // 区分の境目付近の手は、撮るたびに区分が入れ替わることがある。
 // そこで端末の中に「数値と区分」を覚え、近い数値の手が来たら前回と同じ区分を使う。
-const MATCH_TOL = 0.07;
+// 項目ごとに許すブレの幅（同じ手を撮り直した12回で実際に測ったブレをもとに設定）
+// 並び：生命線の長さ・濃さ、知能線の長さ・濃さ・傾き、感情線の長さ・濃さ、指の比率
+// 運命線は薄い人だと撮るたびに「ある／ない」が入れ替わるので、同じ手の判定には使わない
+const MATCH_TOL = [0.15, 0.07, 0.11, 0.07, 0.06, 0.08, 0.09, 0.04];
 function handVector(m) {
-  const L = k => m[k] ? [m[k].length, m[k].strength] : [-1, -1];
-  return [...L('life'), ...L('head'), m.head ? (m.head.bend + 60) / 120 : -1, ...L('heart'), m.fate ? m.fate.strength : -1, m.ratio * 5, m.masukake ? 1 : 0];
+  const g = (k, f, miss) => m[k] ? f(m[k]) : miss;
+  return [g('life', x => x.length, -1), g('life', x => x.strength, -1),
+          g('head', x => x.length, -1), g('head', x => x.strength, -1), g('head', x => ((x.bend || 0) + 60) / 120, -1),
+          g('heart', x => x.length, -1), g('heart', x => x.strength, -1), m.ratio];
 }
 function findSameHand(store, vec) {
   let best = null, bestD = Infinity;
   for (const e of store) {
+    if (!e.vec || e.vec.length !== vec.length) continue;
     let d = 0;
     for (let i = 0; i < vec.length; i++) {
-      if ((vec[i] < 0) !== (e.vec[i] < 0)) { d = Infinity; break; }   // 線のある・なしが違えば別人
-      d = Math.max(d, Math.abs(vec[i] - e.vec[i]));
+      if ((vec[i] < 0) !== (e.vec[i] < 0)) { d = Infinity; break; }   // 主な線のある・なしが違えば別人
+      d = Math.max(d, Math.abs(vec[i] - e.vec[i]) / MATCH_TOL[i]);
     }
     if (d < bestD) { bestD = d; best = e; }
   }
-  return bestD <= MATCH_TOL ? best : null;
+  return bestD <= 1 ? best : null;
 }
 function readingWithMemory(measured, store, now = new Date()) {
   const vec = handVector(measured);

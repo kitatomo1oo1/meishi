@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ウラガワ｜手相 試作</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#05080c">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ウラガワ手相">
 <style>
   :root { --bg:#05080c; --line:#3ff2ff; --fg:#d8f6ff; --dim:#5d7a88; }
   * { box-sizing:border-box; }
@@ -60,6 +66,8 @@
 </head>
 <body>
 <header>PALM SCAN — 試作</header>
+<div class="bar" id="installBar" style="display:none"><button id="btnInstall" class="main">アプリとして保存</button></div>
+<p class="note" id="iosHint" style="display:none">iPhoneでは、下の共有ボタン →「ホーム画面に追加」でアプリとして保存できます。</p>
 <p class="note">手のひらの線を画像処理で浮かび上がらせる試作です。写真は端末の中だけで処理し、保存も送信もしません（最初に手の位置を読むAIのデータだけ読み込みます）。</p>
 
 <div id="stage">
@@ -1979,6 +1987,14 @@ function renderZukan(nowIds) {
 }
 $('btnZukan').onclick = () => { renderZukan(lastResult ? lastResult.reading.rareIds : []); $('cert').style.display = 'none'; $('zukan').style.display = 'block'; window.scrollTo({ top:$('zukan').offsetTop }); };
 $('btnZukanBack').onclick = () => { $('zukan').style.display = 'none'; $('cert').style.display = 'block'; window.scrollTo({ top:$('cert').offsetTop }); };
+
+// ---------- アプリとして保存（ホーム画面に追加） ----------
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+let installEvt = null;
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (!standalone) $('installBar').style.display = 'flex'; });
+$('btnInstall').onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; $('installBar').style.display = 'none'; };
+if (!standalone && /iPhone|iPad/.test(navigator.userAgent)) $('iosHint').style.display = 'block';
 
 const esc = t => String(t).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[c]);
 // 数字を大きく見せる

@@ -1521,9 +1521,11 @@ function drawGuide(ctx, g, state, dpr) {
   const off = document.createElement('canvas'); off.width = ctx.canvas.width; off.height = ctx.canvas.height;
   const o = off.getContext('2d'); o.lineCap = 'round'; o.lineJoin = 'round'; o.strokeStyle = o.fillStyle = col;
   const sh = w => { o.lineWidth = w; for (const f of fingers) { o.beginPath(); o.moveTo(...g[f[0]]); for (const i of f.slice(1)) o.lineTo(...g[i]); o.stroke(); }
-    const u = [(g[17][0] - g[5][0]) * 0.32, (g[17][1] - g[5][1]) * 0.32];          // 手首の幅（付け根の幅の約6割）
-    const wl = [g[0][0] - u[0], g[0][1] - u[1] + L * 0.05], wr = [g[0][0] + u[0], g[0][1] + u[1] + L * 0.05];
-    o.beginPath(); [wl, g[1], g[2], g[5], g[9], g[13], g[17], wr].forEach((p, k) => k ? o.lineTo(...p) : o.moveTo(...p)); o.closePath(); o.fill(); o.stroke(); };
+    // 手首：水平で、そのまま腕として画面の下まで伸ばす（底の線は画面の外に出るので見えない）
+    const half = Math.abs(g[17][0] - g[5][0]) * 0.36, sgn = Math.sign(g[17][0] - g[1][0]) || 1;
+    const bottom = o.canvas.height + L;
+    const wl = [g[0][0] - sgn * half, g[0][1]], wr = [g[0][0] + sgn * half, g[0][1]];
+    o.beginPath(); [[wl[0], bottom], wl, g[1], g[2], g[5], g[9], g[13], g[17], wr, [wr[0], bottom]].forEach((p, k) => k ? o.lineTo(...p) : o.moveTo(...p)); o.closePath(); o.fill(); o.stroke(); };
   sh(L * 0.19);
   o.globalCompositeOperation = 'destination-out'; sh(L * 0.19 - 4 * dpr);
   ctx.save(); ctx.globalAlpha = state === 'idle' ? 0.8 : 1; ctx.shadowColor = col; ctx.shadowBlur = 12 * dpr; ctx.drawImage(off, 0, 0); ctx.restore();

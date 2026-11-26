@@ -49,6 +49,13 @@
   .p-score { text-align:center; font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; color:#8a2b2b; font-size:64px; line-height:1.1; margin-top:6px; }
   .p-score small { font-size:22px; margin-left:4px; }
   .p-comment { text-align:center; font-size:16px !important; margin:8px 0 4px !important; }
+  #zukan { display:none; background:#f4f1ea; padding:16px 12px 40px; }
+  .z-item { border:1px solid #e3dccd; padding:12px 14px; margin:10px 0; opacity:.45; }
+  .z-item.got { opacity:1; border-color:#b08d4a; }
+  .z-item.now { background:#fbf6ea; }
+  .z-item b { font-size:16px; } .z-item .z-tag { font-size:11px; color:#8a2b2b; margin-left:6px; }
+  .z-item .z-st { float:right; font-size:12px; color:#b08d4a; }
+  .z-item p { font-size:13px !important; margin:6px 0 0 !important; color:#444; }
 </style>
 </head>
 <body>
@@ -97,6 +104,16 @@
   </div>
 </div>
 
+<div id="zukan">
+  <div class="paper">
+    <div class="c-head">珍 し い 線 の 図 鑑</div>
+    <div class="c-type" id="zCount"></div>
+    <div id="zList"></div>
+    <p class="c-foot">「推定」は、手のひらの位置から推定した線です。この図鑑の記録は、この端末の中だけに残ります。</p>
+  </div>
+  <div class="bar"><button id="btnZukanBack">鑑定書に戻る</button></div>
+</div>
+
 <div id="cert">
   <div class="paper">
     <div class="c-head">手 相 鑑 定 書</div>
@@ -113,6 +130,7 @@
   </div>
   <div class="bar">
     <button id="btnShare" class="main">画像で保存・LINEで送る</button>
+    <button id="btnZukan">珍しい線の図鑑</button>
     <button id="btnCertBack">戻る</button>
   </div>
 </div>
@@ -474,10 +492,34 @@ function palmLines(gray, S, mask, opt = {}) {
       c.tmplAngle = Math.atan2(Math.abs(t1[1] - t0[1]), Math.abs(t1[0] - t0[0]));
       lines[k] = c;
     }
+    // ---------- 珍しい線（主要4本をなぞった後の残りのシワから探す） ----------
+    const a = opt.anchors, rare = {};
+    const RT = {
+      // 太陽線：薬指の下。感情線と知能線の間を縦に走る線（手のひらをそろえた座標で x≈0.66、y≈0.24〜0.48）
+      sun:    { path: [[0.66 * S, 0.50 * S], [0.67 * S, 0.24 * S]], w: 0.045 },
+      // 財運線：小指の下。感情線より下、手のひらの小指側を縦に走る短い線（x≈0.82、y≈0.30〜0.50）
+      wealth: { path: [[0.81 * S, 0.52 * S], [0.83 * S, 0.30 * S]], w: 0.04 },
+    };
+    if (T.life) RT.doubleLife = { path: T.life.slice(2, 8).map(([x, y]) => [x - 0.07 * S, y]), w: 0.03 };          // 二重生命線：生命線の親指側に並ぶ線
+    for (const k in RT) {
+      const tr = traceLine(workSep, ori, S, RT[k].path, RT[k].w * S, mask);
+      if (!tr) continue;
+      rare[k] = { span: +(tr.span / samplePath(RT[k].path, 10).total).toFixed(2), strength: +tr.strength.toFixed(3), route: tr.route };
+    }
+    // 形から分かる珍しさ
+    const L = lines.life && lines.life.route, Hd = lines.head && lines.head.route, Ht = lines.heart && lines.heart.route;
+    if (L && Hd) {   // 生命線と知能線の始まりが離れている
+      const top = r => r.slice(0, Math.max(3, Math.round(r.length * 0.2)));
+      let d = Infinity; for (const [x, y] of top(L)) for (const [u, v] of top(Hd)) d = Math.min(d, Math.hypot(x - u, y - v));
+      rare.separated = { gap: +(d / S).toFixed(3) };
+    }
+    if (Ht) rare.heartReach = { x: +(Math.min(...Ht.map(p => p[0])) - a[5][0]) / S };   // 感情線が人差し指の下まで届くか（マイナスほど届いている）
+    if (Hd) rare.headReach = { x: +(Math.max(...Hd.map(p => p[0])) / S).toFixed(3) };    // 知能線が小指側の端まで伸びるか
+    lines.rare = rare;
   }
   // 4) 特徴量（鑑定に使う）
   const feat = {};
-  for (const k of Object.keys(lines)) {
+  for (const k of ['life', 'head', 'heart', 'fate']) {
     const c = lines[k];
     let ang = c ? c.angle : 0;
     if (c && c.route) {   // 左から右へ向けた角度（下がるほどプラス）。縦の線は上から下へ
@@ -498,6 +540,12 @@ function palmLines(gray, S, mask, opt = {}) {
   }
   const longH = kept.filter(c => c.group === 'h' && c.span > S * 0.50 && c.elong > 8);
   feat.masukake = longH.length >= 1 && !lines.heart && !!lines.head;
+  // 珍しい線の生データ（判定の基準は reading.js 側で決める）
+  if (lines.rare) {
+    const main = ['life', 'head', 'heart'].map(k => feat[k] && feat[k].strength).filter(Boolean).sort((x, y) => x - y);
+    feat.rareRaw = { mainStrength: main.length ? main[Math.floor(main.length / 2)] : 0.5 };
+    for (const k in lines.rare) { const { route, ...rest } = lines.rare[k]; feat.rareRaw[k] = rest; }
+  }
   return { map: bhs, cands: kept, lines, feat };
 }
 
@@ -1038,6 +1086,63 @@ const READING_TEXT = {
   add(T.luckyActions, ['好きなお酒の理由を話す', 'お店の名物を頼む', '隣の人に乾杯する', '名刺を交換する', '自分の手相を自慢する', '笑い話を一つする', '最後に握手する', '好きな季節を聞く', '相手の名前を3回呼ぶ', '「また会いたい」と言う']);
 })(READING_TEXT);
 
+// ===== 珍しい線（図鑑） =====
+// 判定の基準：公開されている手のひら写真22枚で、出すぎない（数枚に1枚程度）ように合わせた値
+// 「推定」：正解データがなく、手相の位置からの推定。根拠のない出現率は書かない（ますかけ線の「100人に1人」だけはメモの決定事項）
+
+const RARE_CUTS = {
+  sun:        r => r.span >= 0.5 && r.strength >= 0.45 * r.main,
+  wealth:     r => r.span >= 0.6 && r.strength >= 0.30 * r.main,
+  doubleLife: r => r.span >= 0.35 && r.strength >= 0.40 * r.main,
+  separated:  r => r.gap >= 0.08,
+  headReach:  r => r.x >= 0.83,
+};
+const RARE_RATIO = { ringLong: 0.94, indexLong: 1.04 };
+
+const RARE_INFO = [
+  { id: 'masukake',   name: 'ますかけ線',             tag: '100人に1人', guess: false,
+    about: '知能線と感情線が一本になって、手のひらを横切る線。天下取りの相と言われる',
+    texts: ['ますかけ線あり（100人に1人）。強運の相と言われる、天下取りの手', 'ますかけ線（100人に1人）＝一度つかんだ運を離さない手', 'ますかけ線あり（100人に1人）。人と違う道で大きく成功する相', 'ますかけ線（100人に1人）＝頭と心が一本でつながった、ブレない人'] },
+  { id: 'sun',        name: '太陽線',                 tag: '推定', guess: true,
+    about: '薬指の下に伸びる縦の線。人気や成功、お金に恵まれる線と言われる',
+    texts: ['太陽線あり（推定）。人気運と成功運の線。人に注目されるほど運が上がる', '太陽線（推定）＝努力が報われて、名前が知られていく手', '太陽線あり（推定）。華やかな場所が似合う人。表舞台に立つほど輝く', '太陽線（推定）＝周りを明るくする人。あなたの周りに人とお金が集まる'] },
+  { id: 'wealth',     name: '財運線',                 tag: '推定', guess: true,
+    about: '小指の下に伸びる縦の線。お金を稼ぐ力、商売の才能を表すと言われる',
+    texts: ['財運線あり（推定）。お金を引き寄せる線。商売の才能あり', '財運線（推定）＝稼ぐのが上手な手。副業や投資で光るかも', '財運線あり（推定）。お金の流れを読むセンスの持ち主', '財運線（推定）＝人とのつながりがそのまま収入になる手'] },
+  { id: 'doubleLife', name: '二重生命線',             tag: '推定', guess: true,
+    about: '生命線の親指側に、もう一本並んで走る線。生命力が強く、守られる運があると言われる',
+    texts: ['二重生命線あり（推定）。エネルギーが二人分。最強の生命線とも言われる', '二重生命線（推定）＝ピンチの時に必ず誰かが助けてくれる手', '二重生命線あり（推定）。タフさは手相のお墨付き', '二重生命線（推定）＝二つのことを同時にこなせるパワフルな人'] },
+  { id: 'separated',  name: '離れ型（生命線と知能線）', tag: '', guess: false,
+    about: '生命線と知能線の始まりが離れている手。大胆で、思い切りがいい人に多いと言われる',
+    texts: ['生命線と知能線の始まりが離れている「離れ型」。大胆で、決めたら即行動の人', '離れ型の手＝人の目を気にせず、自分の道を進める人', '離れ型＝若いうちから独立心が強く、挑戦を楽しめる人', '離れ型の手。思い切りの良さで、チャンスを人より先につかむ'] },
+  { id: 'headReach',  name: '長い知能線',             tag: '', guess: false,
+    about: '知能線が小指側の端近くまで伸びている手。考える力が強く、こだわりの深い人と言われる',
+    texts: ['知能線が手のひらの端まで伸びる、長い知能線。考え抜く力は人一倍', '長い知能線＝一つのことを極められる人。専門家の手', '知能線が長く伸びる手。記憶力と集中力が強み', '長い知能線＝頭の中にいつも次の計画がある人'] },
+  { id: 'ringLong',   name: '薬指がとても長い手',     tag: '', guess: false,
+    about: '人差し指より薬指がかなり長い手。勝負強さの表れと言われる',
+    texts: ['薬指がとても長い手。ここ一番の勝負強さは本物', '薬指がかなり長い＝度胸のある勝負師の手', '薬指がとても長い手。スポーツや駆け引きで本領を発揮', '薬指がかなり長い＝直感で勝ちを引き寄せる人'] },
+  { id: 'indexLong',  name: '人差し指がとても長い手', tag: '', guess: false,
+    about: '薬指より人差し指がかなり長い手。リーダーの素質の表れと言われる',
+    texts: ['人差し指がとても長い手。生まれながらのリーダー', '人差し指がかなり長い＝言ったことを実現する力がある', '人差し指がとても長い手。人をまとめるのが自然にできる', '人差し指がかなり長い＝自信と説得力の人'] },
+];
+
+// 1回分の測定から、見つかった珍しい線の一覧
+function rareHits(feat, ratio) {
+  const hits = [];
+  if (feat.masukake) hits.push('masukake');
+  const r = feat.rareRaw;
+  if (r) for (const k in RARE_CUTS) if (r[k] && RARE_CUTS[k]({ ...r[k], main: r.mainStrength })) hits.push(k);
+  if (ratio < RARE_RATIO.ringLong) hits.push('ringLong');
+  if (ratio > RARE_RATIO.indexLong) hits.push('indexLong');
+  return hits;
+}
+// 複数回の測定で、半分より多い回に出たものだけを採用
+function rareVote(list) {
+  const cnt = {}; for (const hs of list) for (const h of hs) cnt[h] = (cnt[h] || 0) + 1;
+  return RARE_INFO.map(x => x.id).filter(id => (cnt[id] || 0) * 2 > list.length);
+}
+
+
 // ===== 鑑定ルール：線の特徴 → 区分 → 鑑定文・数字の予言 =====
 // 同じ手なら同じ結果：測った値を少数の区分にまとめ、その区分の組み合わせだけで文章と数字を決める。
 // 日替わりにするのは「今日の運勢」だけ（区分＋日付で決める）。
@@ -1050,7 +1155,7 @@ const READING_CUTS = {
   str: { life: [0.47, 0.60], head: [0.51, 0.58], heart: [0.60, 0.73] },   // 細い / 普通 / 濃い
   slope: [2.1, 4.0],                                                       // 知能線の傾き（道筋との差・度）
   fateClear: 0.36,                                                         // 運命線「はっきり」の濃さ
-  ratio: [0.97, 1.00],                                                     // 人差し指÷薬指
+  ratio: [0.988, 1.019],                                                   // 人差し指÷薬指（22枚の1/3・2/3）
 };
 const pick3 = (v, cuts, names) => v < cuts[0] ? names[0] : v < cuts[1] ? names[1] : names[2];
 
@@ -1066,6 +1171,7 @@ function readingBuckets(m) {   // m: 測った値（複数フレームの中央�
     fate:     m.fate  ? (m.fate.strength >= READING_CUTS.fateClear ? 'clear' : 'thin') : 'none',
     masukake: m.masukake ? 'yes' : 'no',
     ratio:    pick3(m.ratio, READING_CUTS.ratio, ['low', 'mid', 'high']),
+    rare:     (m.rare || []).slice(),   // 見つかった珍しい線（区分の番号には含めない）
   };
   return b;
 }
@@ -1100,8 +1206,9 @@ function makeReading(measured, now = new Date(), fixedBuckets = null) {
 
   const [typeName, typeDesc] = T.types[`${b.lifeLen}-${b.headLen}-${b.heartLen}`];
 
-  const rare = [];
-  if (b.masukake === 'yes') rare.push(choose(T.masukake));
+  const rare = [], rareIds = (b.rare || []).filter(id => RARE_INFO.some(x => x.id === id));
+  if (b.masukake === 'yes' && !rareIds.includes('masukake')) rareIds.unshift('masukake');
+  for (const id of rareIds) rare.push(choose(RARE_INFO.find(x => x.id === id).texts));
   rare.push(choose(T.ratio[b.ratio]) + `（人差し指÷薬指 ${measured.ratio.toFixed(2)}）`);
 
   const traits = [];
@@ -1135,7 +1242,7 @@ function makeReading(measured, now = new Date(), fixedBuckets = null) {
   const rd = rng(fnv1a(key + '#' + day)), pick = arr => arr[Math.floor(rd() * arr.length)];
   const today = { text: pick(T.today), number: 1 + Math.floor(rd() * 9), color: pick(T.colors), item: pick(T.luckyItems), action: pick(T.luckyActions) };
 
-  return { buckets: b, key, seed, no: index + 1, total, typeName, typeDesc, rare, traits, themes, prophecy, today };
+  return { buckets: b, key, seed, no: index + 1, total, typeName, typeDesc, rare, rareIds, traits, themes, prophecy, today };
 }
 
 // 複数回測った値の中央値（撮るたびのブレを減らす）
@@ -1150,6 +1257,7 @@ function medianMeasure(list) {
   }
   out.masukake = list.filter(m => m.masukake).length * 2 > list.length;
   out.ratio = med(list.map(m => m.ratio));
+  out.rare = typeof rareVote === 'function' ? rareVote(list.map(m => m.rareList || [])) : [];
   return out;
 }
 
@@ -1507,11 +1615,11 @@ function measureHand(canvas, lm) {  // 1つの手の線を測る（表示はし�
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-function loadStore() { try { return JSON.parse(localStorage.getItem('palm-hands-v7') || '[]'); } catch (e) { return []; } }
-function saveStore(st) { try { localStorage.setItem('palm-hands-v7', JSON.stringify(st)); } catch (e) {} }
+function loadStore() { try { return JSON.parse(localStorage.getItem('palm-hands-v8') || '[]'); } catch (e) { return []; } }
+function saveStore(st) { try { localStorage.setItem('palm-hands-v8', JSON.stringify(st)); } catch (e) {} }
 
 function personFrom(ok) {           // 同じ人の手の測定（1〜5回分）→ 鑑定
-  const meas = medianMeasure(ok.map(o => ({ ...o.feat, ratio:o.ratio })));
+  const meas = medianMeasure(ok.map(o => ({ ...o.feat, ratio:o.ratio, rareList: rareHits(o.feat, o.ratio) })));
   // 表示に使うのは、中央値にいちばん近い回
   const dist = o => ['life','head','heart','fate'].reduce((d, k) => d + (o.feat[k] && meas[k] ? Math.abs(o.feat[k].length - meas[k].length) : (!!o.feat[k] !== !!meas[k]) * 1), 0);
   const shown = ok.slice().sort((a, b) => dist(a) - dist(b))[0];
@@ -1636,6 +1744,7 @@ function renderTable(o) {
   rows.push(`<tr><td>ますかけ線（推定）</td><td>${o.meas.masukake ? 'あり' : 'なし'}</td></tr>`);
   rows.push(`<tr><td>人差し指÷薬指</td><td>${o.meas.ratio.toFixed(3)}</td></tr>`);
   rows.push(`<tr><td>線の候補数／処理時間</td><td>${o.cands.length}本／${o.ms}ms（${o.frames}回測定）</td></tr>`);
+  rows.push(`<tr><td>珍しい線</td><td>${(o.reading.rareIds || []).map(id => RARE_INFO.find(x => x.id === id).name).join('、') || 'なし'}</td></tr>`);
   rows.push(`<tr><td>区分</td><td style="font-size:11px">${o.reading.key}</td></tr>`);
   $('table').innerHTML = rows.join('');
 }
@@ -1744,6 +1853,21 @@ $('btnShare').onclick = async () => {
   shareCanvas(certImage(lastResult), '手相鑑定書.png');   // スマホではLINEなどの送り先が選べる。共有できない端末では保存
 };
 
+// ---------- 珍しい線の図鑑 ----------
+function loadZukan() { try { return JSON.parse(localStorage.getItem('palm-zukan') || '[]'); } catch (e) { return []; } }
+function saveZukan(ids) { try { localStorage.setItem('palm-zukan', JSON.stringify(ids)); } catch (e) {} }
+function renderZukan(nowIds) {
+  const got = Array.from(new Set([...loadZukan(), ...nowIds])); saveZukan(got);
+  $('zCount').innerHTML = `この端末で見つけた珍しい線 <b>${got.length}</b> / ${RARE_INFO.length}`;
+  $('zList').innerHTML = RARE_INFO.map(x => {
+    const has = got.includes(x.id), now = nowIds.includes(x.id);
+    return `<div class="z-item${has ? ' got' : ''}${now ? ' now' : ''}"><span class="z-st">${now ? 'この手にあり' : has ? '発見済み' : '未発見'}</span>` +
+      `<b>${has ? esc(x.name) : '？？？'}</b>${x.tag ? `<span class="z-tag">${esc(x.tag)}</span>` : ''}<p>${has ? esc(x.about) : 'まだ見つかっていません'}</p></div>`;
+  }).join('');
+}
+$('btnZukan').onclick = () => { renderZukan(lastResult ? lastResult.reading.rareIds : []); $('cert').style.display = 'none'; $('zukan').style.display = 'block'; window.scrollTo({ top:$('zukan').offsetTop }); };
+$('btnZukanBack').onclick = () => { $('zukan').style.display = 'none'; $('cert').style.display = 'block'; window.scrollTo({ top:$('cert').offsetTop }); };
+
 const esc = t => String(t).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[c]);
 // 数字を大きく見せる
 const bigNum = t => esc(t).replace(/(\d{4}年|\d{1,2}月|[春夏秋冬](?=$|[、。 ]|の)|[月火水木金土日]曜日|\d+人目|\d+回目)/g, '<em>$1</em>');
@@ -1752,7 +1876,9 @@ function renderCert(o) {
   const r = o.reading;
   $('cNo').textContent = '鑑定番号 ' + r.seed.toString(16).toUpperCase().padStart(8, '0') + (o.again > 1 ? `　（${o.again}回目の鑑定・前回と同じ手）` : '');
   $('cType').innerHTML = `あなたの手相の型は <b>${r.total.toLocaleString()}</b> 通り中の <b>No.${r.no.toLocaleString()}</b>`;
-  $('cRare').innerHTML = '<ul>' + r.rare.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>';
+  const none = r.rareIds && r.rareIds.length ? '' : '<li>今回は珍しい線は見つかりませんでした。図鑑で全8種をチェック</li>';
+  $('cRare').innerHTML = '<ul>' + none + r.rare.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>';
+  renderZukan(r.rareIds || []);   // 見つかった線を図鑑に記録
   $('cName').innerHTML = `${esc(r.typeName)}<small>${esc(r.typeDesc)}</small>`;
   $('cTraits').innerHTML = r.traits.map(t => `<p><span class="ln">${t.line}</span>${esc(t.text)}</p>`).join('');
   $('cThemes').innerHTML = r.themes.map(t => `<p><span class="ln">${t.label}</span>${esc(t.text)}</p>`).join('');
@@ -1770,6 +1896,11 @@ function renderCert(o) {
     lc.fillStyle = l.color;
     for (const p of cmp.px) lc.fillRect(p % S, (p / S) | 0, 1, 1);
   }
+  const rr = (o.lines && o.lines.rare) || {};
+  lc.fillStyle = '#d4a017';
+  for (const id of o.reading.rareIds || []) { const x = rr[id]; if (!x || !x.route) continue;
+    for (let i = 1; i < x.route.length; i++) { const [x0, y0] = x.route[i - 1], [x1, y1] = x.route[i], n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0)));
+      for (let j = 0; j <= n; j++) lc.fillRect(Math.round(x0 + (x1 - x0) * j / n), Math.round(y0 + (y1 - y0) * j / n), 2, 2); } }
   ctx.save(); ctx.filter = `blur(${5 * k / 2}px)`; ctx.globalAlpha = 0.9; ctx.drawImage(layer, 0, 0, c.width, c.height); ctx.drawImage(layer, 0, 0, c.width, c.height); ctx.restore();
   ctx.drawImage(layer, 0, 0, c.width, c.height);
 }

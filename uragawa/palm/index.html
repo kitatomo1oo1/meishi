@@ -1532,13 +1532,14 @@ function drawSkeleton(ctx, pts, dpr) {
 $('btnShot').onclick = async () => {
   $('btnShot').disabled = true;
   const frames = [];
-  for (let i = 0; i < 5; i++) {      // 約1秒で5回測り、ブレを中央値でならす
-    $('status').textContent = `計測中… ${i + 1}/5`;
+  const N = 15;                       // 15回測って中央値で照合（実測：5回同士の一致53〜63%→15回同士86〜93%）
+  for (let i = 0; i < N; i++) {
+    $('status').textContent = `計測中… ${i + 1}/${N}　手を動かさないで`;
     const c = document.createElement('canvas');
     c.width = video.videoWidth; c.height = video.videoHeight;
     c.getContext('2d').drawImage(video, 0, 0);
     frames.push(pair ? measureAll(c) : measure(c));
-    await sleep(120);
+    await sleep(60);
   }
   pair ? runPair(frames) : runReading(frames);
 };

@@ -1493,6 +1493,71 @@ function fitCover(cw, ch, iw, ih) {   // 画面いっぱいに映すための位
   return { s, ox:(cw - iw * s) / 2, oy:(ch - ih * s) / 2 };
 }
 
+// ---------- 手形ガイド（手のひらを合わせる枠） ----------
+// 手の21点の標準的な位置（研究コード yeonsumia/palmistry の位置合わせ用の型を使用、親指が左）
+const GUIDE = [[0.518,0.906],[0.396,0.812],[0.324,0.679],[0.266,0.572],[0.210,0.510],[0.434,0.512],[0.402,0.366],[0.386,0.271],[0.380,0.193],
+  [0.507,0.498],[0.510,0.321],[0.511,0.213],[0.517,0.129],[0.574,0.518],[0.597,0.358],[0.606,0.262],[0.614,0.178],[0.636,0.564],[0.664,0.447],[0.679,0.375],[0.688,0.303]];
+function guidePoints(W, H, mirror) {
+  const s = 0.80 * H / (0.906 - 0.129), cx = W / 2, top = 0.10 * H;
+  return GUIDE.map(([x, y]) => [cx + (mirror ? -1 : 1) * (x - 0.5) * s, top + (y - 0.129) * s]);
+}
+function drawGuide(ctx, g, state, dpr) {
+  const col = state === 'ok' ? '#5dff9a' : state === 'near' ? '#ffd45c' : '#ffffff';
+  const fingers = [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16],[17,18,19,20]];
+  const L = Math.hypot(g[0][0] - g[9][0], g[0][1] - g[9][1]);
+  // 手の形を太い線で塗ってから、少し細い線でくり抜いて輪郭だけを残す（くり抜きは不透明で行う）
+  const off = document.createElement('canvas'); off.width = ctx.canvas.width; off.height = ctx.canvas.height;
+  const o = off.getContext('2d'); o.lineCap = 'round'; o.lineJoin = 'round'; o.strokeStyle = o.fillStyle = col;
+  const sh = w => { o.lineWidth = w; for (const f of fingers) { o.beginPath(); o.moveTo(...g[f[0]]); for (const i of f.slice(1)) o.lineTo(...g[i]); o.stroke(); }
+    o.beginPath(); [0,1,5,9,13,17].forEach((i, k) => k ? o.lineTo(...g[i]) : o.moveTo(...g[i])); o.closePath(); o.fill(); o.stroke(); };
+  sh(L * 0.27);
+  o.globalCompositeOperation = 'destination-out'; sh(L * 0.27 - 4 * dpr);
+  ctx.save(); ctx.globalAlpha = state === 'idle' ? 0.8 : 1; ctx.shadowColor = col; ctx.shadowBlur = 12 * dpr; ctx.drawImage(off, 0, 0); ctx.restore();
+}
+function alignment(pts, g) {        // 手（画面座標）とガイドのずれ。手首・中指の付け根の位置と、手の大きさで見る
+  const L = Math.hypot(g[0][0] - g[9][0], g[0][1] - g[9][1]);
+  const d0 = Math.hypot(pts[0][0] - g[0][0], pts[0][1] - g[0][1]) / L, d9 = Math.hypot(pts[9][0] - g[9][0], pts[9][1] - g[9][1]) / L;
+  const size = Math.hypot(pts[0][0] - pts[9][0], pts[0][1] - pts[9][1]) / L;
+  return { d: Math.max(d0, d9), size };
+}
+
+// 撮影の手順：ガイドに合わせて10回撮影 → 手を下ろしてもう一度 → 2回の鑑定を照合（食い違えば3回目）
+const SET = 10;
+let flow = { step: 1, sets: [], capturing: false, needRelease: false };
+function resetFlow() { flow = { step: 1, sets: [], capturing: false, needRelease: false }; }
+function keyOf(frames) {            // 1回分（10回撮影）の鑑定の区分。手の記憶は使わない（照合のため）
+  const ok = frames.filter(f => f && !f.outOfFrame); if (!ok.length) return null;
+  return makeReading(medianMeasure(ok.map(o => ({ ...o.feat, ratio:o.ratio, rareList: rareHits(o.feat, o.ratio) })))).key;
+}
+async function captureSet(n, label) {
+  const frames = [];
+  for (let i = 0; i < n; i++) {
+    $('status').textContent = `${label} ${i + 1}/${n}　手を動かさないで`;
+    const c = document.createElement('canvas');
+    c.width = video.videoWidth; c.height = video.videoHeight;
+    c.getContext('2d').drawImage(video, 0, 0);
+    frames.push(pair ? measureAll(c) : measure(c));
+    await sleep(40);
+  }
+  return frames;
+}
+async function guidedShot() {
+  flow.capturing = true;
+  const frames = await captureSet(SET, `STEP ${flow.step} 撮影中`);
+  flow.capturing = false; steady = 0;
+  if (!frames.some(f => f && !f.outOfFrame)) { $('status').textContent = 'うまく撮れませんでした。もう一度ガイドに合わせてください'; return; }
+  flow.sets.push(frames);
+  const keys = flow.sets.map(keyOf);
+  const agree = keys.length >= 2 && keys.some((k, i) => keys.indexOf(k) !== i);   // どれか2回が一致
+  if (flow.sets.length >= 2 && (agree || flow.sets.length >= 3)) {
+    const all = flow.sets.flat(), msg = agree ? '照合一致' : '3回の撮影を合わせて判定';
+    resetFlow(); $('status').textContent = msg; await sleep(400);
+    return runReading(all);
+  }
+  flow.step++; flow.needRelease = true;
+  $('status').textContent = flow.step === 2 ? '1回目OK。いったん手を下ろして、もう一度ガイドに合わせてください' : '結果が分かれました。もう1回、ガイドに合わせてください';
+}
+
 function loop() {
   if (!live) return;
   const r = view.getBoundingClientRect(), dpr = devicePixelRatio || 1;
@@ -1505,17 +1570,35 @@ function loop() {
     const hands = res.landmarks || [];
     for (const h of hands) drawSkeleton(vctx, h.map(p => [f.ox + p.x * vw * f.s, f.oy + p.y * vh * f.s]), dpr);
     const lm = biggest(hands);
-    if (lm) {
-      const pts = lm.map(p => [f.ox + p.x * vw * f.s, f.oy + p.y * vh * f.s]);
+    const pts = lm && lm.map(p => [f.ox + p.x * vw * f.s, f.oy + p.y * vh * f.s]);
+    if (!pair) {
+      // 1人用：手形ガイドに合わせると自動で撮影
+      const mirror = pts ? pts[4][0] > pts[20][0] : false;          // 親指が右にある手ならガイドも左右反転
+      const g = guidePoints(view.width, view.height, mirror);
+      const al = pts && alignment(pts, g);
+      const ok = al && al.d < 0.22 && al.size > 0.82 && al.size < 1.2 && lm.every(p => p.x > 0.02 && p.x < 0.98 && p.y > 0.02 && p.y < 0.98);
+      drawGuide(vctx, g, flow.capturing || ok ? 'ok' : al && al.d < 0.5 ? 'near' : 'idle', dpr);
+      vctx.save(); vctx.fillStyle = '#fff'; vctx.font = `${14 * dpr}px sans-serif`; vctx.textAlign = 'center';
+      vctx.fillText(`STEP ${flow.step} / ${flow.sets.length >= 2 ? 3 : 2}　手のひらを枠に合わせてください`, view.width / 2, 24 * dpr); vctx.restore();
+      lastHand = lm;
+      if (flow.needRelease) {                                        // 2回目の前に、いったん手を枠から外してもらう（別の姿勢で撮るため）
+        if (!ok) flow.needRelease = false;
+      } else if (!flow.capturing) {
+        if (ok) { steady++; $('status').textContent = 'そのまま…'; if (steady > 15) guidedShot(); }
+        else { steady = 0; $('status').textContent = !lm ? '手のひらを枠に合わせてください（指を上に）'
+          : al.size <= 0.82 ? 'もう少し近づけて' : al.size >= 1.2 ? '少し離して' : '手のひらを枠に合わせてください'; }
+      }
+      $('btnShot').disabled = !(lm && !flow.capturing);
+    } else if (lm) {
       const size = Math.hypot(pts[0][0] - pts[9][0], pts[0][1] - pts[9][1]) / Math.min(view.width, view.height);
       lastHand = lm;
       // 手全体（指先・手首まで）がカメラの画面に入っていないと、手のひらのそろえ方がずれる
-      const inFrame = (pair ? hands : [lm]).every(h => h.every(p => p.x > 0.02 && p.x < 0.98 && p.y > 0.02 && p.y < 0.98));
+      const inFrame = hands.every(h => h.every(p => p.x > 0.02 && p.x < 0.98 && p.y > 0.02 && p.y < 0.98));
       if (!inFrame) { steady = 0; $('status').textContent = '少し離して、指先から手首まで全部映してください'; }
       else if (size < 0.22) { steady = 0; $('status').textContent = 'もう少し近づけて'; }
-      else { steady++; $('status').textContent = steady > 20 ? (pair ? `OK（${hands.length}人分の手）「読み取る」を押してください` : 'OK「読み取る」を押してください') : 'そのまま…'; }
-    } else { lastHand = null; steady = 0; $('status').textContent = '手のひらを映してください（指を上に）'; }
-    $('btnShot').disabled = !(lastHand && steady > 20);
+      else { steady++; $('status').textContent = steady > 20 ? `OK（${hands.length}人分の手）「読み取る」を押してください` : 'そのまま…'; }
+      $('btnShot').disabled = !(lastHand && steady > 20);
+    } else { lastHand = null; steady = 0; $('status').textContent = '手のひらを映してください（指を上に）'; $('btnShot').disabled = true; }
   }
   requestAnimationFrame(loop);
 }
@@ -1529,19 +1612,11 @@ function drawSkeleton(ctx, pts, dpr) {
   ctx.restore();
 }
 
-$('btnShot').onclick = async () => {
+$('btnShot').onclick = async () => {   // ガイドに合わなくても手動で撮れる（1人用は手順の1回分として扱う）
   $('btnShot').disabled = true;
-  const frames = [];
-  const N = 15;                       // 15回測って中央値で照合（実測：5回同士の一致53〜63%→15回同士86〜93%）
-  for (let i = 0; i < N; i++) {
-    $('status').textContent = `計測中… ${i + 1}/${N}　手を動かさないで`;
-    const c = document.createElement('canvas');
-    c.width = video.videoWidth; c.height = video.videoHeight;
-    c.getContext('2d').drawImage(video, 0, 0);
-    frames.push(pair ? measureAll(c) : measure(c));
-    await sleep(60);
-  }
-  pair ? runPair(frames) : runReading(frames);
+  if (!pair) { if (!flow.capturing) { flow.needRelease = false; guidedShot(); } return; }
+  const frames = await captureSet(15, '計測中…');
+  runPair(frames);
 };
 
 $('file').onchange = async e => {   // 写真は複数枚まとめて選べる。同じ手の写真なら中央値で照合する
@@ -1660,7 +1735,7 @@ async function runReading(frames) {  // frames: 測った結果の配列（1〜5
 
 // ---------- 相性 ----------
 $('btnPair').onclick = () => {
-  pair = !pair; pairA = null;
+  pair = !pair; pairA = null; resetFlow();
   $('btnPair').classList.toggle('main', pair);
   $('btnPair').textContent = pair ? '相性モード中（解除）' : '相性を見る';
   $('status').textContent = pair ? '2人の手を並べて撮るか、1人ずつ撮ってください' : '「カメラ開始」か「写真から」を押してください';
@@ -1917,7 +1992,7 @@ function renderCert(o) {
   ctx.drawImage(layer, 0, 0, c.width, c.height);
 }
 $('btnDebug').onclick = () => { const d = $('debug'); d.style.display = d.style.display === 'block' ? 'none' : 'block'; };
-$('btnBack').onclick = () => { showResult(false); if (stream) { live = true; requestAnimationFrame(loop); } window.scrollTo({ top:0, behavior:'smooth' }); };
+$('btnBack').onclick = () => { resetFlow(); showResult(false); if (stream) { live = true; requestAnimationFrame(loop); } window.scrollTo({ top:0, behavior:'smooth' }); };
 </script>
 </body>
 </html>

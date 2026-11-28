@@ -639,6 +639,11 @@ label{font-size:11px;letter-spacing:.12em}
 .carousel .card.tpl-line,.carousel .card.tpl-ink{grid-template-columns:26% 16px minmax(0,1fr);padding:14px 12px 12px 10px}
 .carousel .card.tpl-line .org,.carousel .card.tpl-ink .org{letter-spacing:0;font-size:9px}
 .carousel .card>div:nth-child(2)::after{margin-top:10px;margin-bottom:10px}
+/* 見せる画面：名刺1枚だけ（2026-11-28 本人「1. 1枚だけ出す」） */
+.oneview{margin:0 0 18px}
+.oneview .card{cursor:pointer}
+.swaprow{display:flex;justify-content:flex-end;margin:0 0 10px}
+.swaprow .swap{width:auto;display:inline-block;margin:0;min-height:0;box-shadow:none;border-radius:0;background:none;border:0;padding:6px 0;font:inherit;font-size:11px;letter-spacing:.12em;color:var(--sub);cursor:pointer;border-bottom:1px solid var(--line)}
 .addcard{border-radius:6px;font-size:14px;font-weight:500}
 .addcard small{font-size:11px}
 
@@ -4167,13 +4172,13 @@ function ownerShow(){
   let mode = LS.get('mode', 'c');
   setAccent(cur);
   const qrArea = el('div');
-  const dots = el('div', {class:'dots', 'aria-hidden':'true'}, CONFIG.CARDS.map(()=>el('span')));
-  const cards = CONFIG.CARDS.map(c => { const v = cardView(c); v.dataset.id = c.id; v.addEventListener('click', ()=>{ if (c.id === cur.id) showCard(c, cardUrl(c, c.fortune ? mode : 'c')); else v.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'}); }); return v; });
-  const addCard = el('button', {class:'card addcard', onclick:()=>editCard(null)}, el('span', {class:'plus'}, '＋'), el('span', {}, '名刺を追加'), el('small', {}, '仕事ごと・場面ごとに何枚でも'));
-  const car = el('div', {class:'carousel'}, cards, addCard);
+  // 相手に見せる画面なので、選んだ名刺1枚だけを出す（ほかの名刺・枚数は見せない。2026-11-28）
+  const one = cardView(cur);
+  one.addEventListener('click', ()=>showCard(cur, cardUrl(cur, cur.fortune ? mode : 'c')));
+  const car = el('div', {class:'oneview'}, one);
+  const swap = el('div', {class:'swaprow'}, el('button', {class:'swap', onclick:()=>swapSheet(cur)}, CONFIG.CARDS.length > 1 ? '名刺を切り替える' : '名刺を追加'));
   function drawQr(){
     setAccent(cur);
-    [...dots.children].forEach((d,k)=>d.classList.toggle('on', CONFIG.CARDS[k].id===cur.id));
     const url = cardUrl(cur, cur.fortune ? mode : 'c');
     qrArea.replaceChildren(
       cur.fortune ? el('div', {class:'modes', role:'group', 'aria-label':'見せ方'},
@@ -4192,18 +4197,18 @@ function ownerShow(){
         el('button', {class:'btn-sub', onclick:()=>meetSheet(cur)}, '今会った人を記録')),
       el('button', {class:'btn-sub', style:'margin-top:10px', onclick:()=>qrScan()}, '相手のQRを読んで受け取る'));
   }
-  // 横にめくって止まった名刺を「今見せる名刺」にする
-  let t = null;
-  car.addEventListener('scroll', ()=>{ clearTimeout(t); t = setTimeout(()=>{
-    const mid = car.scrollLeft + car.clientWidth/2;
-    let best = cards[0], bd = 1e9;
-    for (const v of cards){ const d = Math.abs(v.offsetLeft + v.offsetWidth/2 - mid); if (d < bd){ bd = d; best = v; } }
-    const c = cardById(best.dataset.id);
-    if (c.id !== cur.id){ cur = c; LS.set('card', c.id); drawQr(); }
-  }, 80); }, {passive:true});
-  requestAnimationFrame(()=>{ const v = cards.find(x=>x.dataset.id===cur.id); if (v) car.scrollLeft = v.offsetLeft - (car.clientWidth - v.offsetWidth)/2; });
   drawQr();
-  return el('div', {}, logoInbox(), car, dots, qrArea);
+  return el('div', {}, logoInbox(), swap, car, qrArea);
+}
+/* 見せる名刺を選ぶ（持ち主だけが開く一覧。名刺の追加もここから） */
+function swapSheet(cur){
+  const sheet = el('div', {class:'sheet', onclick:e=>{ if (e.target === sheet) sheet.remove(); }},
+    el('div', {class:'panel'},
+      el('div', {class:'row', style:'align-items:center'}, el('div', {style:'font-family:var(--serif);font-size:20px'}, '見せる名刺'), el('button', {class:'close', onclick:()=>sheet.remove()}, '閉じる')),
+      el('div', {class:'stack', style:'margin-top:12px'},
+        CONFIG.CARDS.map(c => el('button', {class:'btn-sub' + (c.id === cur.id ? ' on' : ''), onclick:()=>{ LS.set('card', c.id); sheet.remove(); renderOwner(); }}, (c.id === cur.id ? '✓ ' : '') + (c.label || '名刺'))),
+        el('button', {class:'btn-sub', style:'opacity:.8', onclick:()=>{ sheet.remove(); editCard(null); }}, '＋ 名刺を追加'))));
+  document.body.append(sheet);
 }
 /* ロゴメーカーから届いたロゴを、名刺に入れる */
 function logoInbox(){

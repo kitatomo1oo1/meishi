@@ -3661,7 +3661,7 @@ function playIntro(c){
   });
   const ov = el('div', {class:'opening', 'aria-hidden':'true'},
     el('div', {class:'fx'}, el('div', {class:'ring'}), el('div', {class:'ring r2'}), sparks),
-    big, el('div', {class:'brand'}, c.label || c.company || CONFIG.NAME));
+    big, isSTCard(c) ? null : el('div', {class:'brand'}, c.label || c.company || CONFIG.NAME));
   document.body.append(ov);
   let done = false; const timers = [];
   function handoff(){
@@ -3778,12 +3778,12 @@ const Store = {
 /* ━━━━━━━━━━ 相手に見せる画面（QRを読んだ人が開く）━━━━━━━━━━ */
 function cardView(c, draw){
   const v = el('div', {class:'card tpl-' + (c.tpl || 'line')},
-    el('div', {class:'label-row'}, c.mark !== false ? logoMark(draw, c, c.tpl === 'ink' || c.tpl === 'band') : null, el('div', {class:'label'}, c.label)),
+    el('div', {class:'label-row'}, c.mark !== false ? logoMark(draw, c, c.tpl === 'ink' || c.tpl === 'band') : null, (c.mark !== false && isSTCard(c)) ? null : el('div', {class:'label'}, c.label)),
     el('div', {},
       el('div', {class:'name'}, CONFIG.NAME),
       CONFIG.NAME_EN ? el('div', {class:'kana'}, CONFIG.NAME_EN) : null),
     el('div', {class:'org'},
-      c.company ? el('div', {}, c.company) : null,
+      (c.company && !(c.mark !== false && isSTCard(c))) ? el('div', {}, c.company) : null,
       c.title ? el('div', {class:'title'}, c.title) : null)
   );
   v.style.setProperty('--accent', c.color || '#1f2a44');
@@ -4299,7 +4299,7 @@ function showCard(c, url, opts){
     const sp = el('i', {class:'spark'}); sp.style.setProperty('--dx', (Math.cos(a) * d).toFixed(0) + 'px'); sp.style.setProperty('--dy', (Math.sin(a) * d).toFixed(0) + 'px');
     sp.style.animationDelay = (1.1 + Math.random() * .3).toFixed(2) + 's'; return sp;
   });
-  const intro = el('div', {class:'opening', 'aria-hidden':'true'}, el('div', {class:'fx'}, el('div', {class:'ring'}), el('div', {class:'ring r2'}), sparks), big, el('div', {class:'brand'}, c.label || c.company || CONFIG.NAME));
+  const intro = el('div', {class:'opening', 'aria-hidden':'true'}, el('div', {class:'fx'}, el('div', {class:'ring'}), el('div', {class:'ring r2'}), sparks), big, isSTCard(c) ? null : el('div', {class:'brand'}, c.label || c.company || CONFIG.NAME));
   ov.append(intro);
   let done = false;
   const go = () => {

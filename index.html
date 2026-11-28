@@ -603,12 +603,42 @@ label{font-size:11px;letter-spacing:.12em}
 .card .name{font-weight:500;font-size:26px;letter-spacing:.16em;line-height:1.1}
 .card .kana{font-size:11px;letter-spacing:.22em;margin-top:8px}
 .card .org{font-size:11px;letter-spacing:.1em;line-height:1.6;margin-top:12px;padding-top:8px;border-top:1px solid color-mix(in srgb,currentColor 14%,transparent);max-width:100%;width:max-content}
-.card .logo.img{height:28px}
+.card .logo.img{height:40px}
 .card.live::after{opacity:.5}
-.carousel .card{padding:18px 22px 16px}
+.carousel .card{padding:14px 22px 12px}
 .carousel .card .name{font-size:26px}
 .carousel .card .kana{margin-top:6px}
 .carousel .card .org{font-size:11px;margin-top:10px;padding-top:8px}
+/* 名刺の並べ方（2026-11-28 本人「3. 左寄せで直す」）：左にロゴ・細い縦線・右に名前と仕事（左寄せ）。名前と仕事の間は短い線 */
+.card>div:nth-child(2)::after{content:"";display:block;width:28px;height:1px;background:currentColor;opacity:.35;margin:12px 0}
+.card .org,.carousel .card .org{border-top:0;padding-top:0;margin-top:0;letter-spacing:.03em;max-width:100%}
+/* 白（line）と紺地（ink）：左右に分ける */
+.card.tpl-line,.card.tpl-ink{display:grid;grid-template-columns:29% 22px minmax(0,1fr);grid-template-rows:1fr auto auto 1fr;padding:20px 16px 20px 14px}
+.card.tpl-line .label-row,.card.tpl-ink .label-row{grid-column:1;grid-row:1/5;flex-direction:column;justify-content:center;align-items:center;gap:8px;text-align:center;margin:14px 0;border-right:1px solid color-mix(in srgb,currentColor 18%,transparent)}
+.card.tpl-line .label,.card.tpl-ink .label{font-size:10px;letter-spacing:.16em;line-height:1.5;padding:0 6px}
+.card.tpl-line .logo,.card.tpl-ink .logo{width:40px;height:40px}
+.card.tpl-line .logo.img,.card.tpl-ink .logo.img{width:auto;height:52px;max-width:100%}
+.card.tpl-line>div:nth-child(2),.card.tpl-ink>div:nth-child(2){grid-column:3;grid-row:2;margin:0}
+.card.tpl-line .org,.card.tpl-ink .org{grid-column:3;grid-row:3;font-size:10px}
+.card.tpl-line .org>div,.card.tpl-ink .org>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card.tpl-line .name,.card.tpl-ink .name{font-size:24px}
+/* 帯（band）：帯の下の名前と仕事を左寄せ、上下の真ん中に */
+.card.tpl-band>div:nth-child(2){margin-top:14px}
+.card.tpl-band>div:nth-child(2)::after{margin:10px 0}
+/* 中央（center）：型の名の通り中央。字の間の分だけ左にずれるのを左の余白で直す */
+.card.tpl-center{align-items:center;text-align:center}
+.card.tpl-center .label-row{flex-direction:row;gap:10px;justify-content:center}
+.card.tpl-center>div:nth-child(2){margin:auto 0 0}
+.card.tpl-center .name{padding-left:.16em}
+.card.tpl-center .kana{padding-left:.22em}
+.card.tpl-center>div:nth-child(2)::after{margin:12px auto}
+.card.tpl-center .org{margin-bottom:auto}
+/* 持ち主の画面の小さな名刺 */
+.carousel .card.tpl-line .name,.carousel .card.tpl-ink .name{font-size:22px}
+.carousel .card.tpl-line .logo.img,.carousel .card.tpl-ink .logo.img{height:44px}
+.carousel .card.tpl-line,.carousel .card.tpl-ink{grid-template-columns:26% 16px minmax(0,1fr);padding:14px 12px 12px 10px}
+.carousel .card.tpl-line .org,.carousel .card.tpl-ink .org{letter-spacing:0;font-size:9px}
+.carousel .card>div:nth-child(2)::after{margin-top:10px;margin-bottom:10px}
 .addcard{border-radius:6px;font-size:14px;font-weight:500}
 .addcard small{font-size:11px}
 

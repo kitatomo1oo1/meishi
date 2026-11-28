@@ -9,6 +9,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <title>デジタル名刺</title>
 <style>
 :root{
@@ -572,6 +575,84 @@ button[disabled]{opacity:.45;cursor:default}
 @media (orientation:landscape) and (max-height:500px){.tz-stage{height:max(240px,72vh)}.tz-deck{max-width:none}}
 @media (max-width:360px),(max-height:620px){.tz{padding-top:calc(env(safe-area-inset-top) + 50px)}.tz-stage.idle{display:none}.tz-h{font-size:23px;margin:14px 0 8px}.tz-lead{font-size:15px}.tz-go{margin-top:18px}.tz-kw{font-size:26px}}
 @media (prefers-reduced-motion:reduce){.tz *{animation:none!important;transition:none!important}.tz-art *{stroke-dashoffset:0}}
+
+/* ━━ 見た目の型（2026-11-28 案A「余白と細線」）━━
+   字：明朝＝しっぽり明朝（名前と見出しだけ）・ゴシック＝Zen角ゴシック New（ほか全部）
+   大きさ：26（名前）・17（見出し）・14（本文・ボタン）・11（小さな字）の4段
+   色：名刺の色（--accent）＋黒・白・灰。左の太い帯はやめ、細い線で区切る */
+:root{
+  --ink:#1b1b1b; --sub:#76746f; --line:#e7e5e0; --paper:#fbfaf7;
+  --serif:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho","YuMincho",serif;
+  --sans:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
+}
+html,body{letter-spacing:.04em;-webkit-font-smoothing:antialiased}
+h2{font-weight:500;font-size:17px;letter-spacing:.08em}
+p.note{font-size:14px;line-height:1.9}
+button,.btn{font-size:14px;font-weight:500;letter-spacing:.08em;border-radius:4px}
+.btn-sub{background:#fff}
+label{font-size:11px;letter-spacing:.12em}
+.msg{font-size:14px;border-radius:4px}
+
+/* 名刺の面 */
+.card{border-radius:6px;padding:20px 26px 18px;justify-content:flex-start;box-shadow:0 24px 40px -32px rgba(0,0,0,.35)}
+.card.tpl-line::before{display:none}
+.card>div:nth-child(2){margin-top:auto}
+.card.tpl-band{gap:0;padding-top:0}
+.card.tpl-center .label-row{gap:4px}
+.card .label{font-size:11px;font-weight:500;letter-spacing:.24em}
+.card .name{font-weight:500;font-size:26px;letter-spacing:.16em;line-height:1.1}
+.card .kana{font-size:11px;letter-spacing:.22em;margin-top:8px}
+.card .org{font-size:11px;letter-spacing:.1em;line-height:1.6;margin-top:12px;padding-top:8px;border-top:1px solid color-mix(in srgb,currentColor 14%,transparent);max-width:100%;width:max-content}
+.card .logo.img{height:28px}
+.card.live::after{opacity:.5}
+.carousel .card{padding:18px 22px 16px}
+.carousel .card .name{font-size:26px}
+.carousel .card .kana{margin-top:6px}
+.carousel .card .org{font-size:11px;margin-top:10px;padding-top:8px}
+.addcard{border-radius:6px;font-size:14px;font-weight:500}
+.addcard small{font-size:11px}
+
+/* 相手が開く画面 */
+.actions{gap:10px;margin:28px 0 8px}
+.act{min-height:76px;border-radius:4px;font-size:11px;font-weight:500;letter-spacing:.08em}
+.act svg{width:20px;height:20px;color:var(--ink)}
+.act.primary svg{color:#fff}
+.contact-list{margin-top:28px}
+.contact-list a{padding:16px 0;font-size:14px;letter-spacing:.04em}
+.contact-list a span:first-child{font-size:11px;letter-spacing:.18em}
+.aboutx{margin-top:44px}
+.ax-eyebrow{font-size:11px;font-weight:400;letter-spacing:.3em;color:var(--sub);margin-bottom:14px}
+.ax-lead p{font-family:var(--sans);font-size:14px;line-height:2.1;letter-spacing:.06em}
+.work{border-radius:4px}
+.work h3,.sec h3,.promo h3{font-size:17px;font-weight:500;letter-spacing:.08em}
+.work p,.blist li,.sec p,.about,.promo p{font-size:14px;line-height:2}
+.wno{font-size:26px;font-weight:500}
+.tags span{font-size:11px}
+.intro{font-family:var(--sans);font-size:14px;line-height:2.1;letter-spacing:.06em}
+details.send{margin-top:40px;border-radius:0;border-width:1px 0;padding:0}
+details.send summary{padding:20px 0}
+details.send summary .t{font-size:17px;font-weight:400;letter-spacing:.08em}
+details.send summary .s{font-size:11px;letter-spacing:.06em;margin-top:6px}
+.promo{border-radius:4px}
+.foot{font-size:11px;letter-spacing:.34em;margin-top:48px}
+.more summary{font-size:14px}
+
+/* 持ち主の画面 */
+.showbtn{font-size:14px;padding:16px;margin:18px 0 4px}
+.qrhead{margin:22px 2px 0}
+.qrhead .t{font-size:17px;letter-spacing:.08em}
+.qrhead .s{font-size:11px;letter-spacing:.12em}
+.qrbox{border-radius:6px}
+.qrbox .url{font-size:11px}
+.tools{margin-top:12px}
+.dots span.on{border-radius:3px}
+nav.tabs button{font-size:11px;font-weight:500;letter-spacing:.08em}
+.item .n{font-size:17px}
+.item .m{font-size:11px}
+.big-hint{font-size:11px;letter-spacing:.16em}
+.flipper .back{border-radius:6px}
+.flipper .qrtxt b{font-size:14px;font-weight:500}
+.flipper .qrtxt span{font-size:11px}
 </style>
 </head>
 <body>
